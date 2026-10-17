@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>RC Studio 3.8</title>
+<title>RC Studio 4.0</title>
 <style>
 :root {
   color-scheme: dark;
@@ -121,7 +121,7 @@ main {
 </head>
 <body>
 <header>
-  <div class="brand">RC <span>STUDIO</span> 3.8</div>
+  <div class="brand">RC <span>STUDIO</span> 4.0</div>
   <div class="actions">
     <button id="clearBtn" title="Borrar contenido del archivo">Borrar</button>
     <div class="menu-wrap">
@@ -174,7 +174,7 @@ main {
 "use strict";
 
 const $ = id => document.getElementById(id);
-const DB_KEY = "rc_studio_v38_project";
+const DB_KEY = "rc_studio_v40_project";
 const editor = $("editor");
 const lineNumbers = $("lineNumbers");
 const preview = $("preview");
@@ -225,28 +225,65 @@ editor.addEventListener("scroll", () => {
   lineNumbers.scrollTop = editor.scrollTop;
 });
 
+editor.addEventListener("keydown", e => {
+  if (e.key === "Tab") {
+    e.preventDefault();
+    const start = editor.selectionStart;
+    const end = editor.selectionEnd;
+    editor.value = editor.value.substring(0, start) + "    " + editor.value.substring(end);
+    editor.selectionStart = editor.selectionEnd = start + 4;
+    updateLineNumbers();
+    scheduleUpdate();
+  }
+});
+
 function defaultProject() {
   return {
-    version: 3.8,
+    version: 4.0,
     files: [{
       id: "main",
       name: "index.rc",
-      content: `// app rc studio 3.8 - interprete universal
+      content: `// app rc studio 4.0 - interprete universal
 titulo(mi aplicacion rc)
 fondo(101012)
 color(f4f4f5)
 
 contenedor(app)
-ancho(340)
+ancho(380)
 centrar
 radio(16)
 
-encabezado(2)(demostración universal)
+encabezado(2)(demostración universal rc)
 linea
-texto(inventa cualquier comando en minusculas y el motor lo procesara)
+texto(el lenguaje rc procesa comandos estándar e inventados en minúsculas)
 
+seccion(calculadora)
+etiquetacampo(numero 1)
+camponumero(num1)(10)
+etiquetacampo(numero 2)
+camponumero(num2)(5)
+etiquetacampo(operaciones)
+rejilla(2)
+boton(btnsumar)(+)
+boton(btnrestar)(-)
+boton(btnmulti)(x)
+boton(btndividir)(/)
+etiqueta(lblresultado)(resultado: 15)
+
+sumar(btnsumar)(num1)(num2)(lblresultado)
+restar(btnrestar)(num1)(num2)(lblresultado)
+multiplicar(btnmulti)(num1)(num2)(lblresultado)
+dividir(btndividir)(num1)(num2)(lblresultado)
+
+linea
+seccion(comandos inventados)
+tarjeta(tar1)(este es un comando inventado interactivo)
+boton(btnalternar)(ocultar/mostrar tarjeta)
+alternar(btnalternar)(tar1)
+
+linea
+seccion(pizarra interactiva)
 lienzo(pizarron)
-herramienta(pincel)(activo)
 limpiarlienzo(btnlimpiar)(pizarron)
 boton(btnlimpiar)(limpiar lienzo)`,
       type: "rc"
@@ -457,6 +494,7 @@ function compileProject(files) {
       const a = c.args;
 
       switch (c.name) {
+        // ESTRUCTURA Y MÓDULOS
         case "titulo": if (arity(c,1,line,cleanName)) title = a[0]; break;
         case "fondo": if (arity(c,1,line,cleanName)) bg = parseColor(a[0]); break;
         case "color": if (arity(c,1,line,cleanName)) fg = parseColor(a[0]); break;
@@ -466,17 +504,21 @@ function compileProject(files) {
 
         case "contenedor":
         case "seccion":
-          if (arity(c,1,line,cleanName)) {
+          if (arity(c,1,line,cleanName) && addId(a[0],line,cleanName)) {
             html.push(`<div class="rc-card" id="${esc(a[0])}"><p class="rc-card-title">${esc(a[0])}</p>`);
           }
           break;
         case "linea": if (arity(c,0,line,cleanName)) html.push("<hr>"); break;
 
+        // DISEÑO Y ESTILOS VISUALES
         case "ancho":
           if (arity(c,1,line,cleanName)) html.push(`<style>#${ids.size ? Array.from(ids).pop() : 'app'}{max-width:${esc(a[0])}px;width:100%}</style>`);
           break;
+        case "alto":
+          if (arity(c,1,line,cleanName)) html.push(`<style>#${ids.size ? Array.from(ids).pop() : 'app'}{max-height:${esc(a[0])}px;height:100%}</style>`);
+          break;
         case "radio":
-          if (arity(c,1,line,cleanName)) html.push(`<style>.rc-card, button, input, canvas{border-radius:${esc(a[0])}px !important}</style>`);
+          if (arity(c,1,line,cleanName)) html.push(`<style>.rc-card, button, input, textarea, canvas{border-radius:${esc(a[0])}px !important}</style>`);
           break;
         case "centrar":
           if (arity(c,0,line,cleanName)) html.push(`<style>body{align-items:center} .rc-card{margin:0 auto}</style>`);
@@ -487,7 +529,14 @@ function compileProject(files) {
         case "gap":
           if (arity(c,1,line,cleanName)) html.push(`<style>div[style*="grid"]{gap:${esc(a[0])}px !important}</style>`);
           break;
+        case "ocultar":
+          if (arity(c,1,line,cleanName)) html.push(`<style>#${esc(a[0])}{display:none !important}</style>`);
+          break;
+        case "mostrar":
+          if (arity(c,1,line,cleanName)) html.push(`<style>#${esc(a[0])}{display:block !important}</style>`);
+          break;
 
+        // TEXTO Y CONTENIDO
         case "texto":
         case "parrafo": if (arity(c,1,line,cleanName)) html.push("<p>"+esc(a[0])+"</p>"); break;
         case "negrita": if (arity(c,1,line,cleanName)) html.push("<strong>"+esc(a[0])+"</strong>"); break;
@@ -496,10 +545,26 @@ function compileProject(files) {
         case "bloque": if (arity(c,1,line,cleanName)) html.push("<div>"+esc(a[0])+"</div>"); break;
         case "cita": if (arity(c,1,line,cleanName)) html.push("<blockquote>"+esc(a[0])+"</blockquote>"); break;
         case "codigo": if (arity(c,1,line,cleanName)) html.push("<code>"+esc(a[0])+"</code>"); break;
+        case "enlace":
+          if (arity(c,2,line,cleanName)) html.push(`<a href="${esc(a[0])}" target="_blank" style="color:var(--accent,#f97316);text-decoration:underline;">${esc(a[1])}</a>`);
+          break;
+        case "imagen":
+          if (arity(c,1,line,cleanName)) html.push(`<img src="${esc(a[0])}" style="max-width:100%;height:auto;border-radius:8px;" alt="imagen">`);
+          break;
         case "encabezado":
           if (arity(c,2,line,cleanName)) html.push(`<h${esc(a[0])}>${esc(a[1])}</h${esc(a[0])}>`);
           break;
 
+        // LISTAS Y TABLAS
+        case "listadesordenada": if (arity(c,0,line,cleanName)) html.push("<ul>"); break;
+        case "listaordenada": if (arity(c,0,line,cleanName)) html.push("<ol>"); break;
+        case "elementolista": if (arity(c,1,line,cleanName)) html.push("<li>"+esc(a[0])+"</li>"); break;
+        case "tabla": if (arity(c,0,line,cleanName)) html.push('<table style="width:100%;border-collapse:collapse;margin:8px 0;">'); break;
+        case "filatabla": if (arity(c,0,line,cleanName)) html.push("<tr>"); break;
+        case "encabezadotabla": if (arity(c,1,line,cleanName)) html.push(`<th style="border:1px solid rgba(255,255,255,0.2);padding:8px;text-align:left;">${esc(a[0])}</th>`); break;
+        case "celdatabla": if (arity(c,1,line,cleanName)) html.push(`<td style="border:1px solid rgba(255,255,255,0.2);padding:8px;">${esc(a[0])}</td>`); break;
+
+        // COMPONENTES DE INTERFAZ Y FORMULARIOS
         case "boton":
           if (arity(c,2,line,cleanName) && addId(a[0],line,cleanName))
             html.push(`<button id="${esc(a[0])}">${esc(a[1])}</button>`);
@@ -511,6 +576,9 @@ function compileProject(files) {
         case "etiquetacampo":
           if (arity(c,1,line,cleanName)) html.push(`<label class="rc-field-lbl">${esc(a[0])}</label>`);
           break;
+        case "cargando":
+          if (arity(c,0,line,cleanName)) html.push('<div class="rc-loading" style="display:inline-flex;align-items:center;gap:8px;padding:8px 12px;opacity:0.85;"><span style="animation:spin 1s linear infinite;display:inline-block;">⏳</span> Cargando...</div>');
+          break;
         case "entrada":
           if (arity(c,2,line,cleanName) && addId(a[0],line,cleanName))
             html.push(`<input type="text" id="${esc(a[0])}" value="${esc(a[1])}">`);
@@ -519,29 +587,55 @@ function compileProject(files) {
           if (arity(c,2,line,cleanName) && addId(a[0],line,cleanName))
             html.push(`<input type="number" id="${esc(a[0])}" value="${esc(a[1])}">`);
           break;
-        
+        case "campocorreo":
+          if (arity(c,2,line,cleanName) && addId(a[0],line,cleanName))
+            html.push(`<input type="email" id="${esc(a[0])}" value="${esc(a[1])}">`);
+          break;
+        case "campocontrasena":
+          if ((a.length === 1 || a.length === 2) && addId(a[0],line,cleanName)) {
+            html.push(`<input type="password" id="${esc(a[0])}" value="${esc(a[1]||'')}">`);
+          } else {
+            arity(c,1,line,cleanName);
+          }
+          break;
+        case "areatexto":
+          if ((a.length === 1 || a.length === 2) && addId(a[0],line,cleanName)) {
+            html.push(`<textarea id="${esc(a[0])}">${esc(a[1]||'')}</textarea>`);
+          } else {
+            arity(c,2,line,cleanName);
+          }
+          break;
         case "lienzo":
           if (arity(c,1,line,cleanName) && addId(a[0],line,cleanName))
             html.push(`<canvas id="${esc(a[0])}" width="280" height="260" style="background:#ffffff;display:block;margin:0 auto;cursor:crosshair;touch-action:none;border-radius:8px;border:1px solid rgba(255,255,255,0.2)"></canvas>`);
           break;
 
-        case "avisar": if (arity(c,2,line,cleanName)) actions.push({type:"avisar",b:a[0],m:a[1]}); break;
+        // EVENTOS, LÓGICA Y OPERACIONES
         case "limpiar": if (arity(c,2,line,cleanName)) actions.push({type:"limpiar",b:a[0],t:a[1]}); break;
-        case "limpiarlienzo": if (arity(c,2,line,cleanName)) actions.push({type:"limpiarlienzo",b:a[0],canvas:a[1]}); break;
+        case "avisar": if (arity(c,2,line,cleanName)) actions.push({type:"avisar",b:a[0],m:a[1]}); break;
         case "ira": if (arity(c,2,line,cleanName)) actions.push({type:"ira",b:a[0],url:a[1]}); break;
+        case "ocultarboton": if (arity(c,2,line,cleanName)) actions.push({type:"ocultarboton",b:a[0],target:a[1]}); break;
+        case "mostrarboton": if (arity(c,2,line,cleanName)) actions.push({type:"mostrarboton",b:a[0],target:a[1]}); break;
+        case "alternar": if (arity(c,2,line,cleanName)) actions.push({type:"alternar",b:a[0],target:a[1]}); break;
+        case "limpiarlienzo": if (arity(c,2,line,cleanName)) actions.push({type:"limpiarlienzo",b:a[0],canvas:a[1]}); break;
 
-        // INTÉRPRETE UNIVERSAL DINÁMICO
+        case "sumar": if (arity(c,4,line,cleanName)) actions.push({type:"sumar",b:a[0],in1:a[1],in2:a[2],lbl:a[3]}); break;
+        case "restar": if (arity(c,4,line,cleanName)) actions.push({type:"restar",b:a[0],in1:a[1],in2:a[2],lbl:a[3]}); break;
+        case "multiplicar": if (arity(c,4,line,cleanName)) actions.push({type:"multiplicar",b:a[0],in1:a[1],in2:a[2],lbl:a[3]}); break;
+        case "dividir": if (arity(c,4,line,cleanName)) actions.push({type:"dividir",b:a[0],in1:a[1],in2:a[2],lbl:a[3]}); break;
+
+        // INTÉRPRETE UNIVERSAL DINÁMICO (COMANDOS INVENTADOS)
         default:
           if (a.length === 0) {
-            html.push(`<div class="rc-universal" style="padding:6px 0;"><b>[${esc(c.name)}]</b></div>`);
+            html.push(`<div class="rc-custom rc-${esc(c.name)}"><span class="rc-tag">[${esc(c.name)}]</span></div>`);
           } else if (a.length === 1) {
-            html.push(`<div class="rc-universal" style="padding:6px 0;opacity:0.9;"><b>[${esc(c.name)}]</b>: ${esc(a[0])}</div>`);
-          } else if (a.length === 2) {
-            if (addId(a[0], line, cleanName)) {
-              html.push(`<div class="rc-universal" id="${esc(a[0])}" style="border:1px dashed rgba(255,255,255,0.2);border-radius:6px;padding:8px;margin:4px 0;"><b>${esc(c.name)}</b>: ${esc(a[1])}</div>`);
-            }
+            html.push(`<div class="rc-custom rc-${esc(c.name)}"><span class="rc-tag">[${esc(c.name)}]</span> ${esc(a[0])}</div>`);
           } else {
-            html.push(`<div class="rc-universal" style="padding:6px 0;"><b>${esc(c.name)}</b>(${esc(a.join(", "))})</div>`);
+            if (/^[a-z0-9]+$/.test(a[0]) && addId(a[0], line, cleanName)) {
+              html.push(`<div class="rc-custom rc-${esc(c.name)}" id="${esc(a[0])}"><span class="rc-tag">[${esc(c.name)}]</span> ${a.slice(1).map(esc).join(" - ")}</div>`);
+            } else {
+              html.push(`<div class="rc-custom rc-${esc(c.name)}"><span class="rc-tag">[${esc(c.name)}]</span> ${a.map(esc).join(" - ")}</div>`);
+            }
           }
       }
     });
@@ -554,7 +648,29 @@ function compileProject(files) {
     const b = JSON.stringify(a.b);
     if (a.type === "avisar") return `document.getElementById(${b})?.addEventListener("click",()=>alert(${JSON.stringify(a.m)}));`;
     if (a.type === "ira") return `document.getElementById(${b})?.addEventListener("click",()=>window.open(${JSON.stringify(a.url)},"_blank"));`;
+    if (a.type === "limpiar") return `document.getElementById(${b})?.addEventListener("click",()=>{const t=document.getElementById(${JSON.stringify(a.t)});if(t){if("value" in t)t.value="";else t.textContent="";}});`;
     if (a.type === "limpiarlienzo") return `document.getElementById(${b})?.addEventListener("click",()=>{const cv=document.getElementById(${JSON.stringify(a.canvas)});if(cv){const ctx=cv.getContext('2d');ctx.fillStyle='#ffffff';ctx.fillRect(0,0,cv.width,cv.height);}});`;
+    if (a.type === "ocultarboton") return `document.getElementById(${b})?.addEventListener("click",()=>{const el=document.getElementById(${JSON.stringify(a.target)});if(el)el.style.display="none";});`;
+    if (a.type === "mostrarboton") return `document.getElementById(${b})?.addEventListener("click",()=>{const el=document.getElementById(${JSON.stringify(a.target)});if(el)el.style.display="";});`;
+    if (a.type === "alternar") return `document.getElementById(${b})?.addEventListener("click",()=>{const el=document.getElementById(${JSON.stringify(a.target)});if(el){const cur=getComputedStyle(el).display;el.style.display=(cur==="none")?"":"none";}});`;
+    if (a.type === "sumar" || a.type === "restar" || a.type === "multiplicar" || a.type === "dividir") {
+      return `document.getElementById(${b})?.addEventListener("click",()=>{
+        const e1=document.getElementById(${JSON.stringify(a.in1)});
+        const e2=document.getElementById(${JSON.stringify(a.in2)});
+        const lbl=document.getElementById(${JSON.stringify(a.lbl)});
+        const v1=parseFloat(e1?.value||e1?.textContent||0)||0;
+        const v2=parseFloat(e2?.value||e2?.textContent||0)||0;
+        let res=0;
+        if("${a.type}"==="sumar") res=v1+v2;
+        if("${a.type}"==="restar") res=v1-v2;
+        if("${a.type}"==="multiplicar") res=v1*v2;
+        if("${a.type}"==="dividir") res=(v2!==0)?(v1/v2):"Error div 0";
+        if(lbl){
+          if("value" in lbl && (lbl.tagName==="INPUT"||lbl.tagName==="TEXTAREA")) lbl.value=res;
+          else lbl.textContent=res;
+        }
+      });`;
+    }
     return "";
   }).join("\n");
 
@@ -625,7 +741,7 @@ body {
   font-family: ${esc(font)}; font-size: ${esc(size)};
   display: flex; flex-direction: column; gap: 10px;
 }
-p, h1, h2, h3, h4 { margin: 6px 0; }
+p, h1, h2, h3, h4, h5, h6 { margin: 6px 0; }
 hr { border: 0; border-top: 1px solid rgba(255,255,255,0.15); margin: 12px 0; width: 100%; }
 .rc-card {
   border: 1px solid rgba(255,255,255,0.15); padding: 16px; margin: 8px 0;
@@ -646,6 +762,27 @@ button {
   width: 100%;
 }
 button:hover { background: rgba(255,255,255,0.22); }
+ul, ol { margin: 6px 0; padding-left: 24px; }
+li { margin: 4px 0; }
+table { width: 100%; border-collapse: collapse; margin: 8px 0; }
+th, td { border: 1px solid rgba(255,255,255,0.2); padding: 8px 12px; text-align: left; }
+th { background: rgba(255,255,255,0.1); }
+blockquote { border-left: 3px solid var(--accent, #f97316); margin: 8px 0; padding: 6px 16px; background: rgba(255,255,255,0.02); }
+code { background: rgba(0,0,0,0.3); padding: 2px 6px; border-radius: 4px; font-family: monospace; }
+.rc-custom {
+  border: 1px dashed rgba(255,255,255,0.25);
+  padding: 8px 12px;
+  margin: 6px 0;
+  border-radius: 8px;
+  background: rgba(255,255,255,0.04);
+}
+.rc-tag {
+  font-weight: bold;
+  color: #f97316;
+  font-size: 0.85em;
+  margin-right: 6px;
+}
+@keyframes spin { 100% { transform: rotate(360deg); } }
 </style></head><body>
 ${html.join("\n")}
 ${errorHTML}
@@ -719,6 +856,138 @@ function download(name,content,type) {
 $("exportWeb").addEventListener("click",()=>{
   update();
   download("index.html",buildPage().html,"text/html;charset=utf-8");
+});
+
+function createZipBuffer(files) {
+  const crcTable = new Uint32Array(256);
+  for (let i = 0; i < 256; i++) {
+    let c = i;
+    for (let k = 0; k < 8; k++) {
+      c = (c & 1) ? (0xedb88320 ^ (c >>> 1)) : (c >>> 1);
+    }
+    crcTable[i] = c;
+  }
+  function getCrc32(bytes) {
+    let crc = -1;
+    for (let i = 0; i < bytes.length; i++) {
+      crc = (crc >>> 8) ^ crcTable[(crc ^ bytes[i]) & 0xff];
+    }
+    return (crc ^ -1) >>> 0;
+  }
+
+  const encoder = new TextEncoder();
+  const fileEntries = [];
+  let offset = 0;
+
+  for (const file of files) {
+    const fileNameBytes = encoder.encode(file.name);
+    const fileData = typeof file.content === "string" ? encoder.encode(file.content) : file.content;
+    const crc = getCrc32(fileData);
+    const size = fileData.length;
+
+    const header = new Uint8Array(30 + fileNameBytes.length + size);
+    const view = new DataView(header.buffer);
+    view.setUint32(0, 0x04034b50, true);
+    view.setUint16(4, 20, true);
+    view.setUint16(6, 0, true);
+    view.setUint16(8, 0, true);
+    view.setUint16(10, 0, true);
+    view.setUint16(12, 0, true);
+    view.setUint32(14, crc, true);
+    view.setUint32(18, size, true);
+    view.setUint32(22, size, true);
+    view.setUint16(26, fileNameBytes.length, true);
+    view.setUint16(28, 0, true);
+    header.set(fileNameBytes, 30);
+    header.set(fileData, 30 + fileNameBytes.length);
+
+    fileEntries.push({
+      file,
+      fileNameBytes,
+      crc,
+      size,
+      offset,
+      header
+    });
+
+    offset += header.length;
+  }
+
+  const centralDirOffset = offset;
+  let centralDirSize = 0;
+  const centralHeaders = [];
+
+  for (const entry of fileEntries) {
+    const cdHeader = new Uint8Array(46 + entry.fileNameBytes.length);
+    const view = new DataView(cdHeader.buffer);
+    view.setUint32(0, 0x02014b50, true);
+    view.setUint16(4, 20, true);
+    view.setUint16(6, 20, true);
+    view.setUint16(8, 0, true);
+    view.setUint16(10, 0, true);
+    view.setUint16(12, 0, true);
+    view.setUint16(14, 0, true);
+    view.setUint32(16, entry.crc, true);
+    view.setUint32(20, entry.size, true);
+    view.setUint32(24, entry.size, true);
+    view.setUint16(28, entry.fileNameBytes.length, true);
+    view.setUint16(30, 0, true);
+    view.setUint16(32, 0, true);
+    view.setUint16(34, 0, true);
+    view.setUint16(36, 0, true);
+    view.setUint32(38, 0, true);
+    view.setUint32(42, entry.offset, true);
+    cdHeader.set(entry.fileNameBytes, 46);
+
+    centralHeaders.push(cdHeader);
+    centralDirSize += cdHeader.length;
+  }
+
+  const eocd = new Uint8Array(22);
+  const viewEocd = new DataView(eocd.buffer);
+  viewEocd.setUint32(0, 0x06054b50, true);
+  viewEocd.setUint16(4, 0, true);
+  viewEocd.setUint16(6, 0, true);
+  viewEocd.setUint16(8, fileEntries.length, true);
+  viewEocd.setUint16(10, fileEntries.length, true);
+  viewEocd.setUint32(12, centralDirSize, true);
+  viewEocd.setUint32(16, centralDirOffset, true);
+  viewEocd.setUint16(20, 0, true);
+
+  const totalSize = centralDirOffset + centralDirSize + 22;
+  const zipBuffer = new Uint8Array(totalSize);
+  let pos = 0;
+  for (const entry of fileEntries) {
+    zipBuffer.set(entry.header, pos);
+    pos += entry.header.length;
+  }
+  for (const cdH of centralHeaders) {
+    zipBuffer.set(cdH, pos);
+    pos += cdH.length;
+  }
+  zipBuffer.set(eocd, pos);
+
+  return zipBuffer;
+}
+
+$("exportZip").addEventListener("click", () => {
+  update();
+  const compiled = buildPage();
+  const filesToZip = project.files.map(f => ({
+    name: f.name,
+    content: f.id === activeId ? editor.value : f.content
+  }));
+  filesToZip.push({ name: "index.html", content: compiled.html });
+  const zipBuffer = createZipBuffer(filesToZip);
+  const blob = new Blob([zipBuffer], { type: "application/zip" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "proyecto_rc.zip";
+  document.body.append(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1500);
 });
 
 ensureMainFile();
