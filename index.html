@@ -1,0 +1,797 @@
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>RC Studio 3.0</title>
+<style>
+:root {
+  color-scheme: dark;
+  --bg:#101012;
+  --panel:#19191d;
+  --border:#303036;
+  --text:#f4f4f5;
+  --muted:#a1a1aa;
+  --accent:#f97316;
+}
+* { box-sizing:border-box }
+body {
+  margin:0;background:var(--bg);color:var(--text);
+  font-family:system-ui,sans-serif;
+}
+header {
+  height:58px;display:flex;align-items:center;
+  justify-content:space-between;padding:0 14px;
+  border-bottom:1px solid var(--border);background:#151518;
+}
+.brand {font-weight:800;letter-spacing:.4px}
+.brand span {color:var(--accent)}
+.actions {display:flex;gap:7px;align-items:center}
+button {
+  color:var(--text);background:#29292f;border:1px solid #414149;
+  border-radius:8px;padding:8px 11px;cursor:pointer;font:inherit;
+}
+button:hover {background:#38383f}
+.primary {background:#ea580c;border-color:#ea580c}
+.primary:hover {background:#c2410c}
+.menu-wrap {position:relative}
+#exportMenu {
+  display:none;position:absolute;top:44px;right:0;width:220px;
+  padding:8px;border:1px solid var(--border);border-radius:10px;
+  background:#202024;box-shadow:0 12px 40px #0008;z-index:20;
+}
+#exportMenu.open {display:block}
+#exportMenu button {width:100%;text-align:left;margin:3px 0}
+main {
+  display:grid;grid-template-columns:minmax(0,1fr) 8px minmax(0,1fr);
+  height:calc(100dvh - 58px);min-height:0;
+}
+.pane {min-width:0;min-height:0;display:flex;flex-direction:column}
+.pane-head {
+  height:43px;flex-shrink:0;display:flex;align-items:center;
+  justify-content:space-between;gap:6px;padding:0 10px;
+  border-bottom:1px solid var(--border);font-size:13px;
+}
+.pane + .pane {border-left:1px solid var(--border)}
+.file-head-left {display:flex;align-items:center;gap:6px;min-width:0}
+#toggleExplorer {font-size:18px;padding:2px 8px}
+#activeFileName {overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.status {font-size:11px;color:var(--muted);white-space:nowrap}
+.editor-workspace {display:flex;flex:1;min-height:0;min-width:0}
+#explorer {
+  display:none;flex-shrink:0;width:190px;overflow:auto;
+  border-right:1px solid var(--border);background:#151518;padding:9px;
+}
+#explorer.open {display:block}
+.explorer-title {
+  color:var(--muted);font-size:11px;letter-spacing:1px;margin:5px 0 10px;
+}
+.explorer-actions {display:flex;gap:5px;margin-bottom:9px}
+.explorer-actions button {flex:1;padding:7px 4px;font-size:12px}
+.file-item {display:flex;align-items:center;gap:3px;margin:4px 0}
+.file-select {
+  flex:1;min-width:0;text-align:left;overflow:hidden;
+  text-overflow:ellipsis;white-space:nowrap;padding:7px 6px;font-size:12px;
+}
+.file-selected {border-color:var(--accent);background:#3a251b}
+.file-tools {display:flex;gap:2px}
+.file-tools button {padding:5px;font-size:12px}
+#editor {
+  display:block;flex:1;width:0;min-width:0;min-height:0;
+  resize:none;padding:17px;border:0;outline:0;
+  background:#101012;color:var(--text);
+  font:14px/1.7 ui-monospace,SFMono-Regular,Consolas,monospace;
+  tab-size:4;white-space:pre;overflow:auto;
+}
+#preview {width:100%;flex:1;min-height:0;border:0;background:white}
+#splitter {background:#303036;cursor:col-resize;touch-action:none;z-index:2}
+#splitter:hover,#splitter.dragging {background:var(--accent)}
+#toast {
+  position:fixed;bottom:15px;left:50%;transform:translateX(-50%);
+  background:#29292f;border:1px solid #414149;border-radius:9px;
+  padding:10px 14px;font-size:13px;display:none;z-index:50;
+  max-width:90vw;
+}
+#toast.show {display:block}
+@media(max-width:700px) {
+  header {padding:0 8px}
+  .brand {font-size:13px}
+  .actions {gap:4px}
+  header button {font-size:12px;padding:7px}
+  main {
+    grid-template-columns:minmax(0,1fr);
+    grid-template-rows:minmax(0,1fr) 8px minmax(0,1fr);
+  }
+  .pane + .pane {border-left:0}
+  #splitter {cursor:row-resize}
+  #explorer {width:145px}
+  .status {font-size:10px}
+}
+</style>
+</head>
+<body>
+<header>
+  <div class="brand">RC <span>STUDIO</span> 3.0</div>
+  <div class="actions">
+    <button id="clearBtn">Borrar</button>
+    <div class="menu-wrap">
+      <button id="exportBtn" class="primary">Exportar ▾</button>
+      <div id="exportMenu">
+        <button id="exportWeb">Exportar web · HTML</button>
+        <button id="exportZip">Exportar proyecto · ZIP</button>
+      </div>
+    </div>
+  </div>
+</header>
+
+<main id="workspace">
+  <section class="pane" id="editorPane">
+    <div class="pane-head">
+      <div class="file-head-left">
+        <button id="toggleExplorer" title="Mostrar u ocultar archivos">›</button>
+        <span id="activeFileName">index.rc</span>
+      </div>
+      <span class="status" id="saveStatus">Guardado automático</span>
+    </div>
+    <div class="editor-workspace">
+      <aside id="explorer">
+        <div class="explorer-title">ARCHIVOS</div>
+        <div class="explorer-actions">
+          <button id="newRcFile">+ RC</button>
+          <button id="newAssetFile">+ Archivo</button>
+        </div>
+        <div id="fileList"></div>
+      </aside>
+      <textarea id="editor" spellcheck="false" autocomplete="off"
+        autocapitalize="off" placeholder="Escribe tu código RC aquí..."></textarea>
+    </div>
+  </section>
+  <div id="splitter" title="Arrastra para cambiar el tamaño"></div>
+  <section class="pane" id="previewPane">
+    <div class="pane-head">
+      <span>VISTA PREVIA</span>
+      <span class="status" id="previewStatus">Actualización automática</span>
+    </div>
+    <iframe id="preview" title="Vista previa"
+      sandbox="allow-scripts allow-forms"></iframe>
+  </section>
+</main>
+<div id="toast"></div>
+
+<script>
+(() => {
+"use strict";
+
+const $ = id => document.getElementById(id);
+const DB_KEY = "rc_studio_v3_project";
+const EXPLORER_KEY = "rc_studio_v3_explorer";
+const SIZE_KEY = "rc_studio_v3_split";
+const editor = $("editor");
+const preview = $("preview");
+const explorer = $("explorer");
+const fileList = $("fileList");
+const saveStatus = $("saveStatus");
+const previewStatus = $("previewStatus");
+const exportMenu = $("exportMenu");
+let timer = null;
+let toastTimer = null;
+let project;
+let activeId = "main";
+
+function uid() {
+  return "f_" + Date.now().toString(36) +
+    "_" + Math.random().toString(36).slice(2,8);
+}
+function toast(message) {
+  $("toast").textContent = message;
+  $("toast").classList.add("show");
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => $("toast").classList.remove("show"), 2400);
+}
+function validFilename(name) {
+  return !!name && /^[a-zA-Z0-9 _.-]+$/.test(name) &&
+    !name.startsWith(".") && !name.includes("..");
+}
+function activeFile() {
+  return project.files.find(f => f.id === activeId) || project.files[0];
+}
+function ensureMainFile() {
+  if (!project.files.length) {
+    project.files.push({id:"main",name:"index.rc",content:"",type:"rc"});
+  }
+  if (!project.files.some(f => f.id === activeId)) {
+    activeId = project.files[0].id;
+  }
+}
+function defaultProject() {
+  return {
+    version:3,
+    files:[{id:"main",name:"index.rc",content:"",type:"rc"}]
+  };
+}
+function loadProject() {
+  try {
+    const raw = localStorage.getItem(DB_KEY);
+    if (!raw) return defaultProject();
+    const parsed = JSON.parse(raw);
+    if (!parsed || !Array.isArray(parsed.files)) return defaultProject();
+    parsed.files = parsed.files.filter(f =>
+      f && typeof f.name === "string" &&
+      typeof f.content === "string" &&
+      ["rc","asset"].includes(f.type)
+    );
+    parsed.files.forEach(f => { if (!f.id) f.id = uid(); });
+    return parsed;
+  } catch {
+    return defaultProject();
+  }
+}
+project = loadProject();
+ensureMainFile();
+
+function saveProject() {
+  const file = activeFile();
+  if (file) file.content = editor.value;
+  try {
+    localStorage.setItem(DB_KEY, JSON.stringify(project));
+    saveStatus.textContent = "Guardado automáticamente";
+  } catch {
+    saveStatus.textContent = "Error al guardar";
+    toast("No se pudo guardar. Puede faltar espacio en el navegador.");
+  }
+}
+function switchFile(id) {
+  saveProject();
+  const file = project.files.find(f => f.id === id);
+  if (!file) return;
+  activeId = id;
+  editor.value = file.content;
+  $("activeFileName").textContent = file.name;
+  editor.readOnly = file.type !== "rc";
+  editor.placeholder = file.type === "rc"
+    ? "Escribe tu código RC aquí..."
+    : "Archivo auxiliar. Se conservará en el proyecto ZIP.";
+  renderFileList();
+  scheduleUpdate();
+}
+function renderFileList() {
+  fileList.replaceChildren();
+  for (const file of project.files) {
+    const row = document.createElement("div");
+    row.className = "file-item";
+    const select = document.createElement("button");
+    select.className = "file-select" +
+      (file.id === activeId ? " file-selected" : "");
+    select.textContent = (file.type === "rc" ? "◇ " : "▤ ") + file.name;
+    select.title = file.name;
+    select.addEventListener("click", () => switchFile(file.id));
+
+    const tools = document.createElement("div");
+    tools.className = "file-tools";
+    const rename = document.createElement("button");
+    rename.textContent = "✎";
+    rename.title = "Cambiar nombre";
+    rename.addEventListener("click", () => renameFile(file));
+    const remove = document.createElement("button");
+    remove.textContent = "×";
+    remove.title = "Eliminar archivo";
+    remove.addEventListener("click", () => deleteFile(file));
+    tools.append(rename, remove);
+    row.append(select, tools);
+    fileList.append(row);
+  }
+}
+function createFile(type) {
+  const name = prompt(type === "rc"
+    ? "Nombre del archivo RC (ej. pagina.rc):"
+    : "Nombre del archivo (ej. estilos.css):");
+  if (name === null) return;
+  const clean = name.trim();
+  if (!validFilename(clean)) {
+    toast("Nombre no válido. Usa letras, números, espacios, punto, guion o _.");
+    return;
+  }
+  if (project.files.some(f => f.name.toLowerCase() === clean.toLowerCase())) {
+    toast("Ya existe un archivo con ese nombre.");
+    return;
+  }
+  const isRc = type === "rc" || clean.toLowerCase().endsWith(".rc");
+  const file = {id:uid(),name:clean,content:"",type:isRc?"rc":"asset"};
+  project.files.push(file);
+  saveProject();
+  switchFile(file.id);
+  renderFileList();
+  toast("Archivo creado.");
+}
+function renameFile(file) {
+  const name = prompt("Nuevo nombre:", file.name);
+  if (name === null) return;
+  const clean = name.trim();
+  if (!validFilename(clean)) {
+    toast("Nombre no válido.");
+    return;
+  }
+  if (project.files.some(f =>
+      f.id !== file.id && f.name.toLowerCase() === clean.toLowerCase())) {
+    toast("Ya existe un archivo con ese nombre.");
+    return;
+  }
+  file.name = clean;
+  if (file.id === activeId) {
+    file.type = clean.toLowerCase().endsWith(".rc") ? "rc" : "asset";
+    editor.readOnly = file.type !== "rc";
+    $("activeFileName").textContent = file.name;
+  }
+  saveProject();
+  renderFileList();
+  scheduleUpdate();
+  toast("Nombre actualizado.");
+}
+function deleteFile(file) {
+  if (!confirm("¿Eliminar " + file.name + "? Esta acción no se puede deshacer.")) return;
+  if (project.files.length === 1) {
+    toast("El proyecto debe conservar al menos un archivo.");
+    return;
+  }
+  project.files = project.files.filter(f => f.id !== file.id);
+  if (activeId === file.id) {
+    const next = project.files[0];
+    activeId = next.id;
+    editor.value = next.content;
+    $("activeFileName").textContent = next.name;
+    editor.readOnly = next.type !== "rc";
+  }
+  saveProject();
+  renderFileList();
+  scheduleUpdate();
+  toast("Archivo eliminado.");
+}
+
+function esc(value) {
+  return String(value).replace(/[&<>"']/g, ch => ({
+    "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
+  })[ch]);
+}
+function parseLine(line) {
+  const match = line.match(/^\s*([a-zA-Z_][a-zA-Z0-9_]*)/);
+  if (!match) return null;
+  const name = match[1].toLowerCase();
+  let i = match[0].length;
+  const args = [];
+  while (i < line.length) {
+    while (i < line.length && /\s/.test(line[i])) i++;
+    if (i >= line.length) break;
+    if (line[i] !== "(") return null;
+    i++;
+    const start = i;
+    let depth = 1;
+    while (i < line.length && depth) {
+      if (line[i] === "(") depth++;
+      if (line[i] === ")") depth--;
+      i++;
+    }
+    if (depth) return null;
+    args.push(line.slice(start, i - 1).trim());
+  }
+  return {name,args};
+}
+
+function compile(source) {
+  const html = [];
+  const actions = [];
+  const errors = [];
+  const ids = new Set();
+  let title = "Mi página RC";
+  let bg = "#ffffff";
+  let fg = "#18181b";
+  let font = "Arial, sans-serif";
+  let size = "16px";
+
+  function arity(cmd,n,line) {
+    if (cmd.args.length !== n) {
+      errors.push("Línea " + line + ": " + cmd.name +
+        " necesita " + n + " argumento(s).");
+      return false;
+    }
+    return true;
+  }
+  function addId(id,line) {
+    if (!/^[a-zA-Z_][a-zA-Z0-9_-]*$/.test(id)) {
+      errors.push("Línea " + line + ": identificador no válido: " + id);
+      return false;
+    }
+    if (ids.has(id)) {
+      errors.push("Línea " + line + ": identificador repetido: " + id);
+      return false;
+    }
+    ids.add(id);
+    return true;
+  }
+
+  source.split(/\r?\n/).forEach((raw,index) => {
+    const line = index + 1;
+    if (!raw.trim() || raw.trim().startsWith("//")) return;
+    const c = parseLine(raw);
+    if (!c) {
+      errors.push("Línea " + line + ": no se pudo leer el comando.");
+      return;
+    }
+    const a = c.args;
+    switch (c.name) {
+      case "titulo":
+        if (arity(c,1,line)) title = a[0];
+        break;
+      case "fondo":
+        if (arity(c,1,line)) bg = a[0];
+        break;
+      case "color":
+        if (arity(c,1,line)) fg = a[0];
+        break;
+      case "letra":
+        if (arity(c,1,line)) font = a[0];
+        break;
+      case "tamano":
+        if (arity(c,1,line)) size = a[0].endsWith("px") ? a[0] : a[0]+"px";
+        break;
+      case "texto":
+        if (arity(c,1,line)) html.push("<p>"+esc(a[0])+"</p>");
+        break;
+      case "encabezado": {
+        if (!arity(c,2,line)) break;
+        const level = Number(a[0]);
+        if (![1,2,3,4,5,6].includes(level)) {
+          errors.push("Línea " + line + ": encabezado acepta niveles del 1 al 6.");
+          break;
+        }
+        html.push("<h"+level+">"+esc(a[1])+"</h"+level+">");
+        break;
+      }
+      case "linea":
+        if (arity(c,0,line)) html.push("<hr>");
+        break;
+      case "boton":
+        if (arity(c,2,line) && addId(a[0],line))
+          html.push('<button id="'+esc(a[0])+'">'+esc(a[1])+"</button>");
+        break;
+      case "entrada":
+        if (arity(c,2,line) && addId(a[0],line))
+          html.push('<input id="'+esc(a[0])+'" value="'+esc(a[1])+'">');
+        break;
+      case "etiqueta":
+        if (arity(c,2,line) && addId(a[0],line))
+          html.push('<p id="'+esc(a[0])+'">'+esc(a[1])+"</p>");
+        break;
+      case "avisar":
+        if (arity(c,2,line)) actions.push({type:c.name,b:a[0],m:a[1],line});
+        break;
+      case "limpiar":
+        if (arity(c,2,line)) actions.push({type:c.name,b:a[0],t:a[1],line});
+        break;
+      case "sumar":
+      case "restar":
+        if (arity(c,4,line))
+          actions.push({type:c.name,b:a[0],x:a[1],y:a[2],t:a[3],line});
+        break;
+      case "incluir":
+        errors.push("Línea "+line+": incluir() todavía no está implementado.");
+        break;
+      default:
+        errors.push("Línea "+line+": comando desconocido: "+c.name);
+    }
+  });
+
+  const actionCode = actions.map(a => {
+    const b = JSON.stringify(a.b);
+    const t = JSON.stringify(a.t || "");
+    const m = JSON.stringify(a.m || "");
+    const x = JSON.stringify(a.x || "");
+    const y = JSON.stringify(a.y || "");
+    if (a.type === "avisar") return `
+      (()=>{const b=document.getElementById(${b});
+      if(!b){errors.push("Línea ${a.line}: no existe el botón "+${b});return}
+      b.addEventListener("click",()=>alert(${m}));})();`;
+    if (a.type === "limpiar") return `
+      (()=>{const b=document.getElementById(${b});
+      const t=document.getElementById(${t});
+      if(!b||!t){errors.push("Línea ${a.line}: revisa limpiar()");return}
+      b.addEventListener("click",()=>{if("value" in t)t.value="";else t.textContent=""});})();`;
+    const op = a.type === "sumar" ? "+" : "-";
+    return `
+      (()=>{const b=document.getElementById(${b});
+      const x=document.getElementById(${x}),y=document.getElementById(${y});
+      const t=document.getElementById(${t});
+      if(!b||!x||!y||!t){errors.push("Línea ${a.line}: revisa los identificadores de ${a.type}()");return}
+      b.addEventListener("click",()=>{
+        const xv=Number(x.value),yv=Number(y.value);
+        if(x.value.trim()===""||y.value.trim()===""||!Number.isFinite(xv)||!Number.isFinite(yv)){
+          t.textContent="Introduce dos números válidos";return;
+        }
+        t.textContent=String(xv ${op} yv);
+      });})();`;
+  }).join("\n");
+
+  const errorHTML = errors.length
+    ? '<aside style="padding:10px;margin:12px;border:1px solid #dc2626;color:#991b1b;background:#fee2e2;border-radius:8px"><b>Errores de RC</b><ul>'+
+      errors.map(e=>"<li>"+esc(e)+"</li>").join("")+"</ul></aside>"
+    : "";
+  const runtime = `
+    const errors=[];
+    try { ${actionCode} } catch(e) { errors.push("Error al configurar una acción."); }
+    if(errors.length){
+      const box=document.createElement("div");
+      box.style.cssText="padding:10px;margin:12px;color:#991b1b;background:#fee2e2";
+      const ul=document.createElement("ul");
+      errors.forEach(msg=>{const li=document.createElement("li");li.textContent=msg;ul.append(li)});
+      box.textContent="Error de ejecución";box.append(ul);document.body.prepend(box);
+    }`;
+  const documentHTML = `<!DOCTYPE html>
+<html lang="es"><head><meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>${esc(title)}</title><style>
+body{margin:0;padding:24px;background:${esc(bg)};color:${esc(fg)};
+font-family:${esc(font)};font-size:${esc(size)}}
+button,input{font:inherit;margin:5px 5px 5px 0;padding:9px 12px}
+p{white-space:pre-wrap}
+</style></head><body>
+${html.join("\n")}
+${errorHTML}
+<script>${runtime.replace(/<\/script/gi,"<\\/script")}<\/script>
+</body></html>`;
+  return {html:documentHTML,errors};
+}
+
+function buildPage() {
+  // index.rc se compila primero; otros archivos RC se incorporan
+  // en el orden del explorador. Los archivos no RC quedan en el ZIP.
+  const rcFiles = project.files.filter(f =>
+    f.type === "rc" && f.name.toLowerCase().endsWith(".rc"));
+  const main = rcFiles.find(f => f.name.toLowerCase() === "index.rc") ||
+    activeFile();
+  const ordered = [main, ...rcFiles.filter(f => f.id !== main.id)];
+  const source = ordered.filter(f => f && f.type === "rc")
+    .map(f => f.content).join("\n");
+  return compile(source);
+}
+function update() {
+  saveProject();
+  const result = buildPage();
+  preview.srcdoc = result.html;
+  previewStatus.textContent = result.errors.length
+    ? result.errors.length+" posible(s) error(es)"
+    : "Vista previa actualizada";
+}
+function scheduleUpdate() {
+  saveStatus.textContent = "Guardando...";
+  previewStatus.textContent = "Actualizando...";
+  clearTimeout(timer);
+  timer = setTimeout(update,250);
+}
+
+editor.addEventListener("input", scheduleUpdate);
+$("newRcFile").addEventListener("click",()=>createFile("rc"));
+$("newAssetFile").addEventListener("click",()=>createFile("asset"));
+$("toggleExplorer").addEventListener("click",()=>{
+  const open = !explorer.classList.contains("open");
+  explorer.classList.toggle("open",open);
+  $("toggleExplorer").textContent = open ? "‹" : "›";
+  try {localStorage.setItem(EXPLORER_KEY,String(open))} catch {}
+});
+try {
+  const open = localStorage.getItem(EXPLORER_KEY) === "true";
+  explorer.classList.toggle("open",open);
+  $("toggleExplorer").textContent = open ? "‹" : "›";
+} catch {}
+
+$("clearBtn").addEventListener("click",()=>{
+  if(!confirm("¿Borrar el contenido del archivo actual?")) return;
+  editor.value="";
+  scheduleUpdate();
+  editor.focus();
+});
+$("exportBtn").addEventListener("click",e=>{
+  e.stopPropagation();
+  exportMenu.classList.toggle("open");
+});
+document.addEventListener("click",e=>{
+  if(!exportMenu.contains(e.target) && e.target.id!=="exportBtn")
+    exportMenu.classList.remove("open");
+});
+function download(name,content,type) {
+  const blob = new Blob([content],{type});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href=url;a.download=name;document.body.append(a);a.click();a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url),1500);
+}
+$("exportWeb").addEventListener("click",()=>{
+  update();
+  download("index.html",buildPage().html,"text/html;charset=utf-8");
+  exportMenu.classList.remove("open");
+});
+
+/* Generador ZIP independiente, sin bibliotecas externas. */
+const crcTable=(()=>{
+  const t=[];
+  for(let n=0;n<256;n++){
+    let c=n;
+    for(let k=0;k<8;k++) c=(c&1)?(0xEDB88320^(c>>>1)):(c>>>1);
+    t[n]=c>>>0;
+  }
+  return t;
+})();
+function crc32(bytes) {
+  let c=0xFFFFFFFF;
+  for(const b of bytes)c=crcTable[(c^b)&255]^(c>>>8);
+  return (c^0xFFFFFFFF)>>>0;
+}
+function makeZip(files) {
+  const enc=new TextEncoder(),locals=[],centrals=[];
+  let offset=0;
+  const u16=n=>[n&255,(n>>>8)&255];
+  const u32=n=>[n&255,(n>>>8)&255,(n>>>16)&255,(n>>>24)&255];
+  const join=parts=>{
+    const out=new Uint8Array(parts.reduce((s,p)=>s+p.length,0));
+    let at=0;for(const p of parts){out.set(p,at);at+=p.length}return out;
+  };
+  for(const f of files){
+    const name=enc.encode(f.name),data=enc.encode(f.content),crc=crc32(data);
+    const local=join([
+      new Uint8Array([80,75,3,4]),new Uint8Array(u16(20)),
+      new Uint8Array(u16(0x0800)),new Uint8Array(u16(0)),
+      new Uint8Array(u16(0)),new Uint8Array(u16(0)),
+      new Uint8Array(u32(crc)),new Uint8Array(u32(data.length)),
+      new Uint8Array(u32(data.length)),new Uint8Array(u16(name.length)),
+      new Uint8Array(u16(0)),name,data
+    ]);
+    locals.push(local);
+    const central=join([
+      new Uint8Array([80,75,1,2]),new Uint8Array(u16(20)),
+      new Uint8Array(u16(20)),new Uint8Array(u16(0x0800)),
+      new Uint8Array(u16(0)),new Uint8Array(u16(0)),
+      new Uint8Array(u16(0)),new Uint8Array(u32(crc)),
+      new Uint8Array(u32(data.length)),new Uint8Array(u32(data.length)),
+      new Uint8Array(u16(name.length)),new Uint8Array(u16(0)),
+      new Uint8Array(u16(0)),new Uint8Array(u16(0)),
+      new Uint8Array(u16(0)),new Uint8Array(u32(0)),
+      new Uint8Array(u32(offset)),name
+    ]);
+    centrals.push(central);offset+=local.length;
+  }
+  const localData=join(locals),cd=join(centrals);
+  const end=join([
+    new Uint8Array([80,75,5,6]),new Uint8Array(u16(0)),
+    new Uint8Array(u16(0)),new Uint8Array(u16(files.length)),
+    new Uint8Array(u16(files.length)),new Uint8Array(u32(cd.length)),
+    new Uint8Array(u32(localData.length)),new Uint8Array(u16(0))
+  ]);
+  return join([localData,cd,end]);
+}
+$("exportZip").addEventListener("click",()=>{
+  update();
+  const page=buildPage().html;
+  const workflow=`name: Publish RC website
+on:
+  push:
+    branches: [main, master]
+  workflow_dispatch:
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+concurrency:
+  group: pages
+  cancel-in-progress: true
+jobs:
+  deploy:
+    environment:
+      name: github-pages
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/configure-pages@v5
+      - name: Prepare website
+        run: |
+          mkdir -p dist
+          cp index.html dist/index.html
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+      - id: deployment
+        uses: actions/deploy-pages@v4
+`;
+  const readme=`# Proyecto RC Studio 3.0
+
+- index.rc: código principal, si existe.
+- index.html: página web generada.
+- Los demás archivos del explorador se incluyen en el ZIP.
+- .github/workflows/deploy.yml: flujo de publicación de GitHub Pages.
+
+Sube el contenido del ZIP a un repositorio GitHub. Revisa Actions y la
+configuración de GitHub Pages para comprobar que la publicación finalice.
+Los archivos auxiliares se conservan en el ZIP, pero esta versión no los
+incorpora automáticamente al HTML generado.
+`;
+  const files=project.files.map(f=>({
+    name:f.name,
+    content:f.id===activeId?editor.value:f.content
+  }));
+  // La página compilada se publica como index.html, independientemente
+  // del nombre del archivo fuente del proyecto.
+  const zipFiles=[
+    ...files.filter(f=>f.name!=="index.html"),
+    {name:"index.html",content:page},
+    {name:"README.md",content:readme},
+    {name:".github/workflows/deploy.yml",content:workflow}
+  ];
+  const bytes=makeZip(zipFiles);
+  const url=URL.createObjectURL(new Blob([bytes],{type:"application/zip"}));
+  const a=document.createElement("a");
+  a.href=url;a.download="proyecto-rc.zip";document.body.append(a);a.click();a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url),1500);
+  exportMenu.classList.remove("open");
+});
+
+/* Separador ajustable: arrastrar con ratón o dedo. */
+const workspace=$("workspace"),splitter=$("splitter");
+let dragging=false;
+let startPos=0,startRatio=0;
+function getRatio() {
+  const mobile=window.innerWidth<=700;
+  const style=getComputedStyle(workspace);
+  const cols=mobile?style.gridTemplateRows:style.gridTemplateColumns;
+  const first=parseFloat(cols.split(" ")[0])||1;
+  const total=mobile?workspace.clientHeight:workspace.clientWidth;
+  return total ? first/total : .5;
+}
+function applyRatio(ratio) {
+  ratio=Math.max(.2,Math.min(.8,ratio));
+  if(window.innerWidth>700)
+    workspace.style.gridTemplateColumns=
+      `minmax(0,${ratio}fr) 8px minmax(0,${1-ratio}fr)`;
+  else
+    workspace.style.gridTemplateRows=
+      `minmax(0,${ratio}fr) 8px minmax(0,${1-ratio}fr)`;
+}
+splitter.addEventListener("pointerdown",e=>{
+  dragging=true;startPos=window.innerWidth>700?e.clientX:e.clientY;
+  startRatio=getRatio();splitter.classList.add("dragging");
+  splitter.setPointerCapture(e.pointerId);e.preventDefault();
+});
+splitter.addEventListener("pointermove",e=>{
+  if(!dragging)return;
+  const mobile=window.innerWidth<=700;
+  const delta=(mobile?e.clientY:e.clientX)-startPos;
+  const total=mobile?workspace.clientHeight:workspace.clientWidth;
+  if(total>0)applyRatio(startRatio+delta/total);
+});
+function stopDrag(){
+  if(!dragging)return;
+  dragging=false;splitter.classList.remove("dragging");
+  try{localStorage.setItem(SIZE_KEY,String(getRatio()))}catch{}
+}
+splitter.addEventListener("pointerup",stopDrag);
+splitter.addEventListener("pointercancel",stopDrag);
+window.addEventListener("resize",()=>{
+  try{
+    const r=Number(localStorage.getItem(SIZE_KEY));
+    if(r>0&&r<1)applyRatio(r);
+  }catch{}
+});
+try{
+  const r=Number(localStorage.getItem(SIZE_KEY));
+  if(r>0&&r<1)applyRatio(r);
+}catch{}
+
+/* Iniciar editor con el archivo activo guardado o vacío. */
+ensureMainFile();
+const initial=activeFile();
+editor.value=initial.content;
+$("activeFileName").textContent=initial.name;
+editor.readOnly=initial.type!=="rc";
+renderFileList();
+update();
+})();
+</script>
+</body>
+</html>
