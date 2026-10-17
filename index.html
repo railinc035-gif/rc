@@ -243,7 +243,7 @@ function defaultProject() {
     files: [{
       id: "main",
       name: "index.rc",
-      content: `// app rc studio 4.0 - interprete universal
+      content: `// app rc studio 4.0 - interprete universal rc
 titulo(mi aplicacion rc)
 fondo(101012)
 color(f4f4f5)
@@ -253,39 +253,47 @@ ancho(380)
 centrar
 radio(16)
 
-encabezado(2)(demostración universal rc)
+pagina(paginicio)
+encabezado(2)(demostración rc multipágina)
 linea
-texto(el lenguaje rc procesa comandos estándar e inventados en minúsculas)
+texto(el lenguaje rc procesa navegacion condicionales listas y memoria)
+rejilla(2)
+boton(btnircalc)(calculadora)
+boton(btnirtareas)(tareas)
 
-seccion(calculadora)
+irapagina(btnircalc)(pagcalc)
+irapagina(btnirtareas)(pagtareas)
+
+pagina(pagcalc)
+encabezado(2)(calculadora rc)
+linea
 etiquetacampo(numero 1)
 camponumero(num1)(10)
 etiquetacampo(numero 2)
 camponumero(num2)(5)
-etiquetacampo(operaciones)
 rejilla(2)
 boton(btnsumar)(+)
 boton(btnrestar)(-)
-boton(btnmulti)(x)
-boton(btndividir)(/)
-etiqueta(lblresultado)(resultado: 15)
+etiqueta(lblres)(resultado: 15)
 
-sumar(btnsumar)(num1)(num2)(lblresultado)
-restar(btnrestar)(num1)(num2)(lblresultado)
-multiplicar(btnmulti)(num1)(num2)(lblresultado)
-dividir(btndividir)(num1)(num2)(lblresultado)
+sumar(btnsumar)(num1)(num2)(lblres)
+restar(btnrestar)(num1)(num2)(lblres)
 
+boton(btnvolver1)(volver al inicio)
+irapagina(btnvolver1)(paginicio)
+
+pagina(pagtareas)
+encabezado(2)(lista de tareas)
 linea
-seccion(comandos inventados)
-tarjeta(tar1)(este es un comando inventado interactivo)
-boton(btnalternar)(ocultar/mostrar tarjeta)
-alternar(btnalternar)(tar1)
+etiquetacampo(nueva tarea)
+entrada(inptarea)(estudiar rc)
+boton(btnagregar)(agregar tarea)
+listadesordenada(milista)
 
-linea
-seccion(pizarra interactiva)
-lienzo(pizarron)
-limpiarlienzo(btnlimpiar)(pizarron)
-boton(btnlimpiar)(limpiar lienzo)`,
+agregaralasta(btnagregar)(inptarea)(milista)
+
+boton(btnvolver2)(volver al inicio)
+irapagina(btnvolver2)(paginicio)`,
       type: "rc"
     }]
   };
@@ -396,7 +404,7 @@ function parseLine(line) {
   const name = match[1];
   
   if (name !== name.toLowerCase()) {
-    return { name, args: [], isError: true, errorMsg: `El comando "${name}" debe escribirse en minúsculas estrictas.` };
+    return { name, args: [], isError: true, errorMsg: `El comando "${name}" debe escribirse en minúsculas strictly.` };
   }
 
   let i = match[0].length;
@@ -432,6 +440,7 @@ function compileProject(files) {
   const errors = [];
   const ids = new Set();
   const includedSet = new Set();
+  let pageOpen = false;
 
   let title = "Mi Aplicación RC";
   let bg = "#101012";
@@ -494,7 +503,7 @@ function compileProject(files) {
       const a = c.args;
 
       switch (c.name) {
-        // ESTRUCTURA Y MÓDULOS
+        // ESTRUCTURA, PÁGINAS Y MÓDULOS
         case "titulo": if (arity(c,1,line,cleanName)) title = a[0]; break;
         case "fondo": if (arity(c,1,line,cleanName)) bg = parseColor(a[0]); break;
         case "color": if (arity(c,1,line,cleanName)) fg = parseColor(a[0]); break;
@@ -502,6 +511,13 @@ function compileProject(files) {
         case "tamano": if (arity(c,1,line,cleanName)) size = /^\d+$/.test(a[0]) ? a[0]+"px" : a[0]; break;
         case "incluir": if (arity(c,1,line,cleanName)) processFile(a[0]); break;
 
+        case "pagina":
+          if (arity(c,1,line,cleanName) && addId(a[0],line,cleanName)) {
+            if (pageOpen) html.push("</div>");
+            pageOpen = true;
+            html.push(`<div class="rc-page" id="${esc(a[0])}">`);
+          }
+          break;
         case "contenedor":
         case "seccion":
           if (arity(c,1,line,cleanName) && addId(a[0],line,cleanName)) {
@@ -556,8 +572,16 @@ function compileProject(files) {
           break;
 
         // LISTAS Y TABLAS
-        case "listadesordenada": if (arity(c,0,line,cleanName)) html.push("<ul>"); break;
-        case "listaordenada": if (arity(c,0,line,cleanName)) html.push("<ol>"); break;
+        case "listadesordenada":
+          if (a.length === 0) html.push("<ul>");
+          else if (a.length === 1 && addId(a[0],line,cleanName)) html.push(`<ul id="${esc(a[0])}">`);
+          else arity(c,0,line,cleanName);
+          break;
+        case "listaordenada":
+          if (a.length === 0) html.push("<ol>");
+          else if (a.length === 1 && addId(a[0],line,cleanName)) html.push(`<ol id="${esc(a[0])}">`);
+          else arity(c,0,line,cleanName);
+          break;
         case "elementolista": if (arity(c,1,line,cleanName)) html.push("<li>"+esc(a[0])+"</li>"); break;
         case "tabla": if (arity(c,0,line,cleanName)) html.push('<table style="width:100%;border-collapse:collapse;margin:8px 0;">'); break;
         case "filatabla": if (arity(c,0,line,cleanName)) html.push("<tr>"); break;
@@ -610,7 +634,8 @@ function compileProject(files) {
             html.push(`<canvas id="${esc(a[0])}" width="280" height="260" style="background:#ffffff;display:block;margin:0 auto;cursor:crosshair;touch-action:none;border-radius:8px;border:1px solid rgba(255,255,255,0.2)"></canvas>`);
           break;
 
-        // EVENTOS, LÓGICA Y OPERACIONES
+        // EVENTOS, NAVEGACIÓN Y CONDICIONALES
+        case "irapagina": if (arity(c,2,line,cleanName)) actions.push({type:"irapagina",b:a[0],page:a[1]}); break;
         case "limpiar": if (arity(c,2,line,cleanName)) actions.push({type:"limpiar",b:a[0],t:a[1]}); break;
         case "avisar": if (arity(c,2,line,cleanName)) actions.push({type:"avisar",b:a[0],m:a[1]}); break;
         case "ira": if (arity(c,2,line,cleanName)) actions.push({type:"ira",b:a[0],url:a[1]}); break;
@@ -618,6 +643,14 @@ function compileProject(files) {
         case "mostrarboton": if (arity(c,2,line,cleanName)) actions.push({type:"mostrarboton",b:a[0],target:a[1]}); break;
         case "alternar": if (arity(c,2,line,cleanName)) actions.push({type:"alternar",b:a[0],target:a[1]}); break;
         case "limpiarlienzo": if (arity(c,2,line,cleanName)) actions.push({type:"limpiarlienzo",b:a[0],canvas:a[1]}); break;
+
+        case "agregaralasta": if (arity(c,3,line,cleanName)) actions.push({type:"agregaralasta",b:a[0],in1:a[1],list:a[2]}); break;
+        case "guardar": if (arity(c,3,line,cleanName)) actions.push({type:"guardar",b:a[0],in1:a[1],key:a[2]}); break;
+        case "cargar": if (arity(c,3,line,cleanName)) actions.push({type:"cargar",b:a[0],key:a[1],lbl:a[2]}); break;
+
+        case "siesigual": if (arity(c,4,line,cleanName)) actions.push({type:"siesigual",b:a[0],in1:a[1],in2:a[2],target:a[3]}); break;
+        case "siesmayor": if (arity(c,4,line,cleanName)) actions.push({type:"siesmayor",b:a[0],in1:a[1],in2:a[2],target:a[3]}); break;
+        case "siestavacio": if (arity(c,3,line,cleanName)) actions.push({type:"siestavacio",b:a[0],in1:a[1],target:a[2]}); break;
 
         case "sumar": if (arity(c,4,line,cleanName)) actions.push({type:"sumar",b:a[0],in1:a[1],in2:a[2],lbl:a[3]}); break;
         case "restar": if (arity(c,4,line,cleanName)) actions.push({type:"restar",b:a[0],in1:a[1],in2:a[2],lbl:a[3]}); break;
@@ -639,6 +672,11 @@ function compileProject(files) {
           }
       }
     });
+
+    if (pageOpen) {
+      html.push("</div>");
+      pageOpen = false;
+    }
   }
 
   const mainFile = files.find(f => f.name.toLowerCase() === "index.rc") || files[0];
@@ -646,6 +684,9 @@ function compileProject(files) {
 
   const actionCode = actions.map(a => {
     const b = JSON.stringify(a.b);
+    if (a.type === "irapagina") {
+      return `document.getElementById(${b})?.addEventListener("click",()=>{document.querySelectorAll('.rc-page').forEach(p=>p.style.display='none');const target=document.getElementById(${JSON.stringify(a.page)});if(target)target.style.display='flex';});`;
+    }
     if (a.type === "avisar") return `document.getElementById(${b})?.addEventListener("click",()=>alert(${JSON.stringify(a.m)}));`;
     if (a.type === "ira") return `document.getElementById(${b})?.addEventListener("click",()=>window.open(${JSON.stringify(a.url)},"_blank"));`;
     if (a.type === "limpiar") return `document.getElementById(${b})?.addEventListener("click",()=>{const t=document.getElementById(${JSON.stringify(a.t)});if(t){if("value" in t)t.value="";else t.textContent="";}});`;
@@ -653,6 +694,27 @@ function compileProject(files) {
     if (a.type === "ocultarboton") return `document.getElementById(${b})?.addEventListener("click",()=>{const el=document.getElementById(${JSON.stringify(a.target)});if(el)el.style.display="none";});`;
     if (a.type === "mostrarboton") return `document.getElementById(${b})?.addEventListener("click",()=>{const el=document.getElementById(${JSON.stringify(a.target)});if(el)el.style.display="";});`;
     if (a.type === "alternar") return `document.getElementById(${b})?.addEventListener("click",()=>{const el=document.getElementById(${JSON.stringify(a.target)});if(el){const cur=getComputedStyle(el).display;el.style.display=(cur==="none")?"":"none";}});`;
+
+    if (a.type === "agregaralasta") {
+      return `document.getElementById(${b})?.addEventListener("click",()=>{const inp=document.getElementById(${JSON.stringify(a.in1)});const lst=document.getElementById(${JSON.stringify(a.list)});if(inp&&lst&&inp.value.trim()){const li=document.createElement("li");li.textContent=inp.value.trim();lst.appendChild(li);inp.value="";}});`;
+    }
+    if (a.type === "guardar") {
+      return `document.getElementById(${b})?.addEventListener("click",()=>{const val=(document.getElementById(${JSON.stringify(a.in1)})?.value||document.getElementById(${JSON.stringify(a.in1)})?.textContent||"").trim();localStorage.setItem(${JSON.stringify(a.key)},val);alert("Guardado en memoria");});`;
+    }
+    if (a.type === "cargar") {
+      return `document.getElementById(${b})?.addEventListener("click",()=>{const val=localStorage.getItem(${JSON.stringify(a.key)})||"";const target=document.getElementById(${JSON.stringify(a.lbl)});if(target){if("value" in target&&(target.tagName==="INPUT"||target.tagName==="TEXTAREA"))target.value=val;else target.textContent=val;}});`;
+    }
+
+    if (a.type === "siesigual") {
+      return `document.getElementById(${b})?.addEventListener("click",()=>{const v1=(document.getElementById(${JSON.stringify(a.in1)})?.value||document.getElementById(${JSON.stringify(a.in1)})?.textContent||"").trim();const v2=(document.getElementById(${JSON.stringify(a.in2)})?.value||document.getElementById(${JSON.stringify(a.in2)})?.textContent||"").trim();const el=document.getElementById(${JSON.stringify(a.target)});if(el)el.style.display=(v1===v2)?"block":"none";});`;
+    }
+    if (a.type === "siesmayor") {
+      return `document.getElementById(${b})?.addEventListener("click",()=>{const v1=parseFloat(document.getElementById(${JSON.stringify(a.in1)})?.value||document.getElementById(${JSON.stringify(a.in1)})?.textContent||0)||0;const v2=parseFloat(document.getElementById(${JSON.stringify(a.in2)})?.value||document.getElementById(${JSON.stringify(a.in2)})?.textContent||0)||0;const el=document.getElementById(${JSON.stringify(a.target)});if(el)el.style.display=(v1>v2)?"block":"none";});`;
+    }
+    if (a.type === "siestavacio") {
+      return `document.getElementById(${b})?.addEventListener("click",()=>{const v=(document.getElementById(${JSON.stringify(a.in1)})?.value||document.getElementById(${JSON.stringify(a.in1)})?.textContent||"").trim();const el=document.getElementById(${JSON.stringify(a.target)});if(el)el.style.display=(v==="")?"block":"none";});`;
+    }
+
     if (a.type === "sumar" || a.type === "restar" || a.type === "multiplicar" || a.type === "dividir") {
       return `document.getElementById(${b})?.addEventListener("click",()=>{
         const e1=document.getElementById(${JSON.stringify(a.in1)});
@@ -741,6 +803,8 @@ body {
   font-family: ${esc(font)}; font-size: ${esc(size)};
   display: flex; flex-direction: column; gap: 10px;
 }
+.rc-page { display: none; width: 100%; flex-direction: column; gap: 10px; }
+.rc-page:first-of-type { display: flex; }
 p, h1, h2, h3, h4, h5, h6 { margin: 6px 0; }
 hr { border: 0; border-top: 1px solid rgba(255,255,255,0.15); margin: 12px 0; width: 100%; }
 .rc-card {
