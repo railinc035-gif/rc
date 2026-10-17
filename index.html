@@ -1,10 +1,9 @@
-
 <!DOCTYPE html>
 <html lang="es">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>RC Studio 3.0</title>
+<title>RC Studio 3.8</title>
 <style>
 :root {
   color-scheme: dark;
@@ -58,10 +57,10 @@ main {
 #toggleExplorer {font-size:18px;padding:2px 8px}
 #activeFileName {overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .status {font-size:11px;color:var(--muted);white-space:nowrap}
-.editor-workspace {display:flex;flex:1;min-height:0;min-width:0}
+.editor-workspace {display:flex;flex:1;min-height:0;min-width:0;position:relative}
 #explorer {
   display:none;flex-shrink:0;width:190px;overflow:auto;
-  border-right:1px solid var(--border);background:#151518;padding:9px;
+  border-right:1px solid var(--border);background:#151518;padding:9px;z-index:5;
 }
 #explorer.open {display:block}
 .explorer-title {
@@ -77,6 +76,15 @@ main {
 .file-selected {border-color:var(--accent);background:#3a251b}
 .file-tools {display:flex;gap:2px}
 .file-tools button {padding:5px;font-size:12px}
+
+.code-container {
+  display:flex;flex:1;min-width:0;min-height:0;background:#101012;overflow:hidden;
+}
+#lineNumbers {
+  width:45px;background:#151518;color:#52525b;padding:17px 6px 17px 0;
+  text-align:right;font:14px/1.7 ui-monospace,SFMono-Regular,Consolas,monospace;
+  user-select:none;overflow:hidden;border-right:1px solid var(--border);
+}
 #editor {
   display:block;flex:1;width:0;min-width:0;min-height:0;
   resize:none;padding:17px;border:0;outline:0;
@@ -84,6 +92,7 @@ main {
   font:14px/1.7 ui-monospace,SFMono-Regular,Consolas,monospace;
   tab-size:4;white-space:pre;overflow:auto;
 }
+
 #preview {width:100%;flex:1;min-height:0;border:0;background:white}
 #splitter {background:#303036;cursor:col-resize;touch-action:none;z-index:2}
 #splitter:hover,#splitter.dragging {background:var(--accent)}
@@ -112,14 +121,14 @@ main {
 </head>
 <body>
 <header>
-  <div class="brand">RC <span>STUDIO</span> 3.0</div>
+  <div class="brand">RC <span>STUDIO</span> 3.8</div>
   <div class="actions">
-    <button id="clearBtn">Borrar</button>
+    <button id="clearBtn" title="Borrar contenido del archivo">Borrar</button>
     <div class="menu-wrap">
-      <button id="exportBtn" class="primary">Exportar ▾</button>
-      <div id="exportMenu">
-        <button id="exportWeb">Exportar web · HTML</button>
-        <button id="exportZip">Exportar proyecto · ZIP</button>
+      <button id="exportBtn" class="primary" aria-haspopup="true" aria-expanded="false">Exportar ▾</button>
+      <div id="exportMenu" role="menu">
+        <button id="exportWeb" role="menuitem">Exportar web · HTML</button>
+        <button id="exportZip" role="menuitem">Exportar proyecto · ZIP</button>
       </div>
     </div>
   </div>
@@ -129,7 +138,7 @@ main {
   <section class="pane" id="editorPane">
     <div class="pane-head">
       <div class="file-head-left">
-        <button id="toggleExplorer" title="Mostrar u ocultar archivos">›</button>
+        <button id="toggleExplorer" title="Mostrar archivos">›</button>
         <span id="activeFileName">index.rc</span>
       </div>
       <span class="status" id="saveStatus">Guardado automático</span>
@@ -143,18 +152,19 @@ main {
         </div>
         <div id="fileList"></div>
       </aside>
-      <textarea id="editor" spellcheck="false" autocomplete="off"
-        autocapitalize="off" placeholder="Escribe tu código RC aquí..."></textarea>
+      <div class="code-container">
+        <div id="lineNumbers">1</div>
+        <textarea id="editor" spellcheck="false" autocomplete="off" autocapitalize="off" placeholder="Escribe tu código RC aquí..."></textarea>
+      </div>
     </div>
   </section>
-  <div id="splitter" title="Arrastra para cambiar el tamaño"></div>
+  <div id="splitter"></div>
   <section class="pane" id="previewPane">
     <div class="pane-head">
       <span>VISTA PREVIA</span>
       <span class="status" id="previewStatus">Actualización automática</span>
     </div>
-    <iframe id="preview" title="Vista previa"
-      sandbox="allow-scripts allow-forms"></iframe>
+    <iframe id="preview" title="Vista previa" sandbox="allow-scripts allow-forms allow-popups"></iframe>
   </section>
 </main>
 <div id="toast"></div>
@@ -164,10 +174,9 @@ main {
 "use strict";
 
 const $ = id => document.getElementById(id);
-const DB_KEY = "rc_studio_v3_project";
-const EXPLORER_KEY = "rc_studio_v3_explorer";
-const SIZE_KEY = "rc_studio_v3_split";
+const DB_KEY = "rc_studio_v38_project";
 const editor = $("editor");
+const lineNumbers = $("lineNumbers");
 const preview = $("preview");
 const explorer = $("explorer");
 const fileList = $("fileList");
@@ -180,8 +189,7 @@ let project;
 let activeId = "main";
 
 function uid() {
-  return "f_" + Date.now().toString(36) +
-    "_" + Math.random().toString(36).slice(2,8);
+  return "f_" + Date.now().toString(36) + "_" + Math.random().toString(36).slice(2,8);
 }
 function toast(message) {
   $("toast").textContent = message;
@@ -190,8 +198,7 @@ function toast(message) {
   toastTimer = setTimeout(() => $("toast").classList.remove("show"), 2400);
 }
 function validFilename(name) {
-  return !!name && /^[a-zA-Z0-9 _.-]+$/.test(name) &&
-    !name.startsWith(".") && !name.includes("..");
+  return !!name && /^[a-zA-Z0-9 _.-]+$/.test(name) && !name.startsWith(".") && !name.includes("..");
 }
 function activeFile() {
   return project.files.find(f => f.id === activeId) || project.files[0];
@@ -204,24 +211,55 @@ function ensureMainFile() {
     activeId = project.files[0].id;
   }
 }
+
+function updateLineNumbers() {
+  const lines = editor.value.split("\n").length;
+  let text = "";
+  for (let i = 1; i <= lines; i++) {
+    text += i + "\n";
+  }
+  lineNumbers.textContent = text;
+}
+
+editor.addEventListener("scroll", () => {
+  lineNumbers.scrollTop = editor.scrollTop;
+});
+
 function defaultProject() {
   return {
-    version:3,
-    files:[{id:"main",name:"index.rc",content:"",type:"rc"}]
+    version: 3.8,
+    files: [{
+      id: "main",
+      name: "index.rc",
+      content: `// app rc studio 3.8 - interprete universal
+titulo(mi aplicacion rc)
+fondo(101012)
+color(f4f4f5)
+
+contenedor(app)
+ancho(340)
+centrar
+radio(16)
+
+encabezado(2)(demostración universal)
+linea
+texto(inventa cualquier comando en minusculas y el motor lo procesara)
+
+lienzo(pizarron)
+herramienta(pincel)(activo)
+limpiarlienzo(btnlimpiar)(pizarron)
+boton(btnlimpiar)(limpiar lienzo)`,
+      type: "rc"
+    }]
   };
 }
+
 function loadProject() {
   try {
     const raw = localStorage.getItem(DB_KEY);
     if (!raw) return defaultProject();
     const parsed = JSON.parse(raw);
     if (!parsed || !Array.isArray(parsed.files)) return defaultProject();
-    parsed.files = parsed.files.filter(f =>
-      f && typeof f.name === "string" &&
-      typeof f.content === "string" &&
-      ["rc","asset"].includes(f.type)
-    );
-    parsed.files.forEach(f => { if (!f.id) f.id = uid(); });
     return parsed;
   } catch {
     return defaultProject();
@@ -235,12 +273,12 @@ function saveProject() {
   if (file) file.content = editor.value;
   try {
     localStorage.setItem(DB_KEY, JSON.stringify(project));
-    saveStatus.textContent = "Guardado automáticamente";
+    saveStatus.textContent = "Guardado automático";
   } catch {
     saveStatus.textContent = "Error al guardar";
-    toast("No se pudo guardar. Puede faltar espacio en el navegador.");
   }
 }
+
 function switchFile(id) {
   saveProject();
   const file = project.files.find(f => f.id === id);
@@ -248,115 +286,82 @@ function switchFile(id) {
   activeId = id;
   editor.value = file.content;
   $("activeFileName").textContent = file.name;
-  editor.readOnly = file.type !== "rc";
-  editor.placeholder = file.type === "rc"
-    ? "Escribe tu código RC aquí..."
-    : "Archivo auxiliar. Se conservará en el proyecto ZIP.";
+  updateLineNumbers();
   renderFileList();
   scheduleUpdate();
 }
+
 function renderFileList() {
   fileList.replaceChildren();
   for (const file of project.files) {
     const row = document.createElement("div");
     row.className = "file-item";
     const select = document.createElement("button");
-    select.className = "file-select" +
-      (file.id === activeId ? " file-selected" : "");
+    select.className = "file-select" + (file.id === activeId ? " file-selected" : "");
     select.textContent = (file.type === "rc" ? "◇ " : "▤ ") + file.name;
-    select.title = file.name;
     select.addEventListener("click", () => switchFile(file.id));
 
     const tools = document.createElement("div");
     tools.className = "file-tools";
     const rename = document.createElement("button");
     rename.textContent = "✎";
-    rename.title = "Cambiar nombre";
     rename.addEventListener("click", () => renameFile(file));
     const remove = document.createElement("button");
     remove.textContent = "×";
-    remove.title = "Eliminar archivo";
     remove.addEventListener("click", () => deleteFile(file));
     tools.append(rename, remove);
     row.append(select, tools);
     fileList.append(row);
   }
 }
+
 function createFile(type) {
-  const name = prompt(type === "rc"
-    ? "Nombre del archivo RC (ej. pagina.rc):"
-    : "Nombre del archivo (ej. estilos.css):");
+  const name = prompt(type === "rc" ? "Nombre del archivo RC:" : "Nombre del archivo:");
   if (name === null) return;
-  const clean = name.trim();
-  if (!validFilename(clean)) {
-    toast("Nombre no válido. Usa letras, números, espacios, punto, guion o _.");
-    return;
-  }
-  if (project.files.some(f => f.name.toLowerCase() === clean.toLowerCase())) {
-    toast("Ya existe un archivo con ese nombre.");
-    return;
-  }
-  const isRc = type === "rc" || clean.toLowerCase().endsWith(".rc");
-  const file = {id:uid(),name:clean,content:"",type:isRc?"rc":"asset"};
+  let clean = name.trim().toLowerCase();
+  if (type === "rc" && !clean.endsWith(".rc")) clean += ".rc";
+  if (!validFilename(clean)) return toast("Nombre no válido.");
+  if (project.files.some(f => f.name.toLowerCase() === clean)) return toast("Ya existe este archivo.");
+  const file = {id:uid(), name:clean, content:"", type: clean.endsWith(".rc")?"rc":"asset"};
   project.files.push(file);
   saveProject();
   switchFile(file.id);
-  renderFileList();
-  toast("Archivo creado.");
 }
+
 function renameFile(file) {
   const name = prompt("Nuevo nombre:", file.name);
   if (name === null) return;
-  const clean = name.trim();
-  if (!validFilename(clean)) {
-    toast("Nombre no válido.");
-    return;
-  }
-  if (project.files.some(f =>
-      f.id !== file.id && f.name.toLowerCase() === clean.toLowerCase())) {
-    toast("Ya existe un archivo con ese nombre.");
-    return;
-  }
+  let clean = name.trim().toLowerCase();
+  if (file.type === "rc" && !clean.endsWith(".rc")) clean += ".rc";
+  if (!validFilename(clean)) return toast("Nombre no válido.");
   file.name = clean;
-  if (file.id === activeId) {
-    file.type = clean.toLowerCase().endsWith(".rc") ? "rc" : "asset";
-    editor.readOnly = file.type !== "rc";
-    $("activeFileName").textContent = file.name;
-  }
   saveProject();
   renderFileList();
   scheduleUpdate();
-  toast("Nombre actualizado.");
-}
-function deleteFile(file) {
-  if (!confirm("¿Eliminar " + file.name + "? Esta acción no se puede deshacer.")) return;
-  if (project.files.length === 1) {
-    toast("El proyecto debe conservar al menos un archivo.");
-    return;
-  }
-  project.files = project.files.filter(f => f.id !== file.id);
-  if (activeId === file.id) {
-    const next = project.files[0];
-    activeId = next.id;
-    editor.value = next.content;
-    $("activeFileName").textContent = next.name;
-    editor.readOnly = next.type !== "rc";
-  }
-  saveProject();
-  renderFileList();
-  scheduleUpdate();
-  toast("Archivo eliminado.");
 }
 
-function esc(value) {
-  return String(value).replace(/[&<>"']/g, ch => ({
+function deleteFile(file) {
+  if (!confirm("¿Eliminar " + file.name + "?")) return;
+  if (project.files.length === 1) return toast("Debes conservar al menos un archivo.");
+  project.files = project.files.filter(f => f.id !== file.id);
+  switchFile(project.files[0].id);
+}
+
+function esc(val) {
+  return String(val).replace(/[&<>"']/g, ch => ({
     "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
   })[ch]);
 }
+
 function parseLine(line) {
-  const match = line.match(/^\s*([a-zA-Z_][a-zA-Z0-9_]*)/);
+  const match = line.match(/^\s*([a-zA-Z0-9]+)/);
   if (!match) return null;
-  const name = match[1].toLowerCase();
+  const name = match[1];
+  
+  if (name !== name.toLowerCase()) {
+    return { name, args: [], isError: true, errorMsg: `El comando "${name}" debe escribirse en minúsculas estrictas.` };
+  }
+
   let i = match[0].length;
   const args = [];
   while (i < line.length) {
@@ -374,229 +379,335 @@ function parseLine(line) {
     if (depth) return null;
     args.push(line.slice(start, i - 1).trim());
   }
-  return {name,args};
+  return {name, args, isError: false};
 }
 
-function compile(source) {
+function parseColor(c) {
+  if (!c) return "inherit";
+  const clean = c.trim();
+  if (/^[0-9a-fA-F]{3,8}$/.test(clean)) return "#" + clean;
+  return clean;
+}
+
+function compileProject(files) {
   const html = [];
   const actions = [];
   const errors = [];
   const ids = new Set();
-  let title = "Mi página RC";
-  let bg = "#ffffff";
-  let fg = "#18181b";
-  let font = "Arial, sans-serif";
+  const includedSet = new Set();
+
+  let title = "Mi Aplicación RC";
+  let bg = "#101012";
+  let fg = "#f4f4f5";
+  let font = "system-ui, sans-serif";
   let size = "16px";
 
-  function arity(cmd,n,line) {
+  function arity(cmd, n, line, fileName) {
     if (cmd.args.length !== n) {
-      errors.push("Línea " + line + ": " + cmd.name +
-        " necesita " + n + " argumento(s).");
+      errors.push(`[${fileName}] Línea ${line}: ${cmd.name} necesita ${n} argumento(s).`);
       return false;
     }
     return true;
   }
-  function addId(id,line) {
-    if (!/^[a-zA-Z_][a-zA-Z0-9_-]*$/.test(id)) {
-      errors.push("Línea " + line + ": identificador no válido: " + id);
+
+  function addId(id, line, fileName) {
+    if (!/^[a-z0-9]+$/.test(id)) {
+      errors.push(`[${fileName}] Línea ${line}: ID no válido: ${id}`);
       return false;
     }
     if (ids.has(id)) {
-      errors.push("Línea " + line + ": identificador repetido: " + id);
+      errors.push(`[${fileName}] Línea ${line}: ID duplicado: ${id}`);
       return false;
     }
     ids.add(id);
     return true;
   }
 
-  source.split(/\r?\n/).forEach((raw,index) => {
-    const line = index + 1;
-    if (!raw.trim() || raw.trim().startsWith("//")) return;
-    const c = parseLine(raw);
-    if (!c) {
-      errors.push("Línea " + line + ": no se pudo leer el comando.");
+  function processFile(fileName) {
+    let cleanName = fileName.toLowerCase().trim();
+    if (!cleanName.endsWith(".rc")) cleanName += ".rc";
+
+    if (includedSet.has(cleanName)) return;
+    includedSet.add(cleanName);
+
+    const fileObj = files.find(f => f.name.toLowerCase() === cleanName);
+    if (!fileObj) {
+      errors.push(`Error de inclusión: El archivo "${fileName}" no existe.`);
       return;
     }
-    const a = c.args;
-    switch (c.name) {
-      case "titulo":
-        if (arity(c,1,line)) title = a[0];
-        break;
-      case "fondo":
-        if (arity(c,1,line)) bg = a[0];
-        break;
-      case "color":
-        if (arity(c,1,line)) fg = a[0];
-        break;
-      case "letra":
-        if (arity(c,1,line)) font = a[0];
-        break;
-      case "tamano":
-        if (arity(c,1,line)) size = a[0].endsWith("px") ? a[0] : a[0]+"px";
-        break;
-      case "texto":
-        if (arity(c,1,line)) html.push("<p>"+esc(a[0])+"</p>");
-        break;
-      case "encabezado": {
-        if (!arity(c,2,line)) break;
-        const level = Number(a[0]);
-        if (![1,2,3,4,5,6].includes(level)) {
-          errors.push("Línea " + line + ": encabezado acepta niveles del 1 al 6.");
-          break;
-        }
-        html.push("<h"+level+">"+esc(a[1])+"</h"+level+">");
-        break;
+
+    fileObj.content.split(/\r?\n/).forEach((raw, index) => {
+      const line = index + 1;
+      let cleanLine = raw;
+      
+      const commentIdx = cleanLine.indexOf("//");
+      if (commentIdx !== -1) cleanLine = cleanLine.slice(0, commentIdx);
+      if (!cleanLine.trim()) return;
+
+      const c = parseLine(cleanLine);
+      if (!c) {
+        errors.push(`[${cleanName}] Línea ${line}: sintaxis de paréntesis o estructura no válida.`);
+        return;
       }
-      case "linea":
-        if (arity(c,0,line)) html.push("<hr>");
-        break;
-      case "boton":
-        if (arity(c,2,line) && addId(a[0],line))
-          html.push('<button id="'+esc(a[0])+'">'+esc(a[1])+"</button>");
-        break;
-      case "entrada":
-        if (arity(c,2,line) && addId(a[0],line))
-          html.push('<input id="'+esc(a[0])+'" value="'+esc(a[1])+'">');
-        break;
-      case "etiqueta":
-        if (arity(c,2,line) && addId(a[0],line))
-          html.push('<p id="'+esc(a[0])+'">'+esc(a[1])+"</p>");
-        break;
-      case "avisar":
-        if (arity(c,2,line)) actions.push({type:c.name,b:a[0],m:a[1],line});
-        break;
-      case "limpiar":
-        if (arity(c,2,line)) actions.push({type:c.name,b:a[0],t:a[1],line});
-        break;
-      case "sumar":
-      case "restar":
-        if (arity(c,4,line))
-          actions.push({type:c.name,b:a[0],x:a[1],y:a[2],t:a[3],line});
-        break;
-      case "incluir":
-        errors.push("Línea "+line+": incluir() todavía no está implementado.");
-        break;
-      default:
-        errors.push("Línea "+line+": comando desconocido: "+c.name);
-    }
-  });
+      if (c.isError) {
+        errors.push(`[${cleanName}] Línea ${line}: ${c.errorMsg}`);
+        return;
+      }
+
+      const a = c.args;
+
+      switch (c.name) {
+        case "titulo": if (arity(c,1,line,cleanName)) title = a[0]; break;
+        case "fondo": if (arity(c,1,line,cleanName)) bg = parseColor(a[0]); break;
+        case "color": if (arity(c,1,line,cleanName)) fg = parseColor(a[0]); break;
+        case "letra": if (arity(c,1,line,cleanName)) font = a[0]; break;
+        case "tamano": if (arity(c,1,line,cleanName)) size = /^\d+$/.test(a[0]) ? a[0]+"px" : a[0]; break;
+        case "incluir": if (arity(c,1,line,cleanName)) processFile(a[0]); break;
+
+        case "contenedor":
+        case "seccion":
+          if (arity(c,1,line,cleanName)) {
+            html.push(`<div class="rc-card" id="${esc(a[0])}"><p class="rc-card-title">${esc(a[0])}</p>`);
+          }
+          break;
+        case "linea": if (arity(c,0,line,cleanName)) html.push("<hr>"); break;
+
+        case "ancho":
+          if (arity(c,1,line,cleanName)) html.push(`<style>#${ids.size ? Array.from(ids).pop() : 'app'}{max-width:${esc(a[0])}px;width:100%}</style>`);
+          break;
+        case "radio":
+          if (arity(c,1,line,cleanName)) html.push(`<style>.rc-card, button, input, canvas{border-radius:${esc(a[0])}px !important}</style>`);
+          break;
+        case "centrar":
+          if (arity(c,0,line,cleanName)) html.push(`<style>body{align-items:center} .rc-card{margin:0 auto}</style>`);
+          break;
+        case "rejilla":
+          if (arity(c,1,line,cleanName)) html.push(`<div style="display:grid;grid-template-columns:repeat(${esc(a[0])}, 1fr);gap:8px;margin:8px 0">`);
+          break;
+        case "gap":
+          if (arity(c,1,line,cleanName)) html.push(`<style>div[style*="grid"]{gap:${esc(a[0])}px !important}</style>`);
+          break;
+
+        case "texto":
+        case "parrafo": if (arity(c,1,line,cleanName)) html.push("<p>"+esc(a[0])+"</p>"); break;
+        case "negrita": if (arity(c,1,line,cleanName)) html.push("<strong>"+esc(a[0])+"</strong>"); break;
+        case "cursiva": if (arity(c,1,line,cleanName)) html.push("<em>"+esc(a[0])+"</em>"); break;
+        case "subrayado": if (arity(c,1,line,cleanName)) html.push("<u>"+esc(a[0])+"</u>"); break;
+        case "bloque": if (arity(c,1,line,cleanName)) html.push("<div>"+esc(a[0])+"</div>"); break;
+        case "cita": if (arity(c,1,line,cleanName)) html.push("<blockquote>"+esc(a[0])+"</blockquote>"); break;
+        case "codigo": if (arity(c,1,line,cleanName)) html.push("<code>"+esc(a[0])+"</code>"); break;
+        case "encabezado":
+          if (arity(c,2,line,cleanName)) html.push(`<h${esc(a[0])}>${esc(a[1])}</h${esc(a[0])}>`);
+          break;
+
+        case "boton":
+          if (arity(c,2,line,cleanName) && addId(a[0],line,cleanName))
+            html.push(`<button id="${esc(a[0])}">${esc(a[1])}</button>`);
+          break;
+        case "etiqueta":
+          if (arity(c,2,line,cleanName) && addId(a[0],line,cleanName))
+            html.push(`<div class="rc-label"><span id="${esc(a[0])}">${esc(a[1])}</span></div>`);
+          break;
+        case "etiquetacampo":
+          if (arity(c,1,line,cleanName)) html.push(`<label class="rc-field-lbl">${esc(a[0])}</label>`);
+          break;
+        case "entrada":
+          if (arity(c,2,line,cleanName) && addId(a[0],line,cleanName))
+            html.push(`<input type="text" id="${esc(a[0])}" value="${esc(a[1])}">`);
+          break;
+        case "camponumero":
+          if (arity(c,2,line,cleanName) && addId(a[0],line,cleanName))
+            html.push(`<input type="number" id="${esc(a[0])}" value="${esc(a[1])}">`);
+          break;
+        
+        case "lienzo":
+          if (arity(c,1,line,cleanName) && addId(a[0],line,cleanName))
+            html.push(`<canvas id="${esc(a[0])}" width="280" height="260" style="background:#ffffff;display:block;margin:0 auto;cursor:crosshair;touch-action:none;border-radius:8px;border:1px solid rgba(255,255,255,0.2)"></canvas>`);
+          break;
+
+        case "avisar": if (arity(c,2,line,cleanName)) actions.push({type:"avisar",b:a[0],m:a[1]}); break;
+        case "limpiar": if (arity(c,2,line,cleanName)) actions.push({type:"limpiar",b:a[0],t:a[1]}); break;
+        case "limpiarlienzo": if (arity(c,2,line,cleanName)) actions.push({type:"limpiarlienzo",b:a[0],canvas:a[1]}); break;
+        case "ira": if (arity(c,2,line,cleanName)) actions.push({type:"ira",b:a[0],url:a[1]}); break;
+
+        // INTÉRPRETE UNIVERSAL DINÁMICO
+        default:
+          if (a.length === 0) {
+            html.push(`<div class="rc-universal" style="padding:6px 0;"><b>[${esc(c.name)}]</b></div>`);
+          } else if (a.length === 1) {
+            html.push(`<div class="rc-universal" style="padding:6px 0;opacity:0.9;"><b>[${esc(c.name)}]</b>: ${esc(a[0])}</div>`);
+          } else if (a.length === 2) {
+            if (addId(a[0], line, cleanName)) {
+              html.push(`<div class="rc-universal" id="${esc(a[0])}" style="border:1px dashed rgba(255,255,255,0.2);border-radius:6px;padding:8px;margin:4px 0;"><b>${esc(c.name)}</b>: ${esc(a[1])}</div>`);
+            }
+          } else {
+            html.push(`<div class="rc-universal" style="padding:6px 0;"><b>${esc(c.name)}</b>(${esc(a.join(", "))})</div>`);
+          }
+      }
+    });
+  }
+
+  const mainFile = files.find(f => f.name.toLowerCase() === "index.rc") || files[0];
+  if (mainFile) processFile(mainFile.name);
 
   const actionCode = actions.map(a => {
     const b = JSON.stringify(a.b);
-    const t = JSON.stringify(a.t || "");
-    const m = JSON.stringify(a.m || "");
-    const x = JSON.stringify(a.x || "");
-    const y = JSON.stringify(a.y || "");
-    if (a.type === "avisar") return `
-      (()=>{const b=document.getElementById(${b});
-      if(!b){errors.push("Línea ${a.line}: no existe el botón "+${b});return}
-      b.addEventListener("click",()=>alert(${m}));})();`;
-    if (a.type === "limpiar") return `
-      (()=>{const b=document.getElementById(${b});
-      const t=document.getElementById(${t});
-      if(!b||!t){errors.push("Línea ${a.line}: revisa limpiar()");return}
-      b.addEventListener("click",()=>{if("value" in t)t.value="";else t.textContent=""});})();`;
-    const op = a.type === "sumar" ? "+" : "-";
-    return `
-      (()=>{const b=document.getElementById(${b});
-      const x=document.getElementById(${x}),y=document.getElementById(${y});
-      const t=document.getElementById(${t});
-      if(!b||!x||!y||!t){errors.push("Línea ${a.line}: revisa los identificadores de ${a.type}()");return}
-      b.addEventListener("click",()=>{
-        const xv=Number(x.value),yv=Number(y.value);
-        if(x.value.trim()===""||y.value.trim()===""||!Number.isFinite(xv)||!Number.isFinite(yv)){
-          t.textContent="Introduce dos números válidos";return;
-        }
-        t.textContent=String(xv ${op} yv);
-      });})();`;
+    if (a.type === "avisar") return `document.getElementById(${b})?.addEventListener("click",()=>alert(${JSON.stringify(a.m)}));`;
+    if (a.type === "ira") return `document.getElementById(${b})?.addEventListener("click",()=>window.open(${JSON.stringify(a.url)},"_blank"));`;
+    if (a.type === "limpiarlienzo") return `document.getElementById(${b})?.addEventListener("click",()=>{const cv=document.getElementById(${JSON.stringify(a.canvas)});if(cv){const ctx=cv.getContext('2d');ctx.fillStyle='#ffffff';ctx.fillRect(0,0,cv.width,cv.height);}});`;
+    return "";
   }).join("\n");
 
+  const drawingEngineJS = `
+    document.querySelectorAll('canvas').forEach(cv => {
+      const ctx = cv.getContext('2d');
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, cv.width, cv.height);
+      ctx.strokeStyle = '#000000';
+      ctx.lineWidth = 3;
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+
+      let drawing = false;
+
+      function getPos(e) {
+        const rect = cv.getBoundingClientRect();
+        const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+        const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+        return {
+          x: (clientX - rect.left) * (cv.width / rect.width),
+          y: (clientY - rect.top) * (cv.height / rect.height)
+        };
+      }
+
+      function startDraw(e) {
+        drawing = true;
+        const pos = getPos(e);
+        ctx.beginPath();
+        ctx.moveTo(pos.x, pos.y);
+        e.preventDefault();
+      }
+
+      function draw(e) {
+        if (!drawing) return;
+        const pos = getPos(e);
+        ctx.lineTo(pos.x, pos.y);
+        ctx.stroke();
+        e.preventDefault();
+      }
+
+      function stopDraw() {
+        drawing = false;
+      }
+
+      cv.addEventListener('mousedown', startDraw);
+      cv.addEventListener('mousemove', draw);
+      window.addEventListener('mouseup', stopDraw);
+
+      cv.addEventListener('touchstart', startDraw, {passive: false});
+      cv.addEventListener('touchmove', draw, {passive: false});
+      window.addEventListener('touchend', stopDraw);
+    });
+  `;
+
   const errorHTML = errors.length
-    ? '<aside style="padding:10px;margin:12px;border:1px solid #dc2626;color:#991b1b;background:#fee2e2;border-radius:8px"><b>Errores de RC</b><ul>'+
-      errors.map(e=>"<li>"+esc(e)+"</li>").join("")+"</ul></aside>"
+    ? '<div style="padding:12px;margin:12px 0;border:1px solid #ef4444;color:#f87171;background:#271212;border-radius:8px"><b>Errores de sintaxis:</b><ul>'+
+      errors.map(e=>"<li>"+esc(e)+"</li>").join("")+"</ul></div>"
     : "";
-  const runtime = `
-    const errors=[];
-    try { ${actionCode} } catch(e) { errors.push("Error al configurar una acción."); }
-    if(errors.length){
-      const box=document.createElement("div");
-      box.style.cssText="padding:10px;margin:12px;color:#991b1b;background:#fee2e2";
-      const ul=document.createElement("ul");
-      errors.forEach(msg=>{const li=document.createElement("li");li.textContent=msg;ul.append(li)});
-      box.textContent="Error de ejecución";box.append(ul);document.body.prepend(box);
-    }`;
+
   const documentHTML = `<!DOCTYPE html>
 <html lang="es"><head><meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>${esc(title)}</title><style>
-body{margin:0;padding:24px;background:${esc(bg)};color:${esc(fg)};
-font-family:${esc(font)};font-size:${esc(size)}}
-button,input{font:inherit;margin:5px 5px 5px 0;padding:9px 12px}
-p{white-space:pre-wrap}
+* { box-sizing: border-box; }
+body {
+  margin: 0; padding: 24px; background: ${esc(bg)}; color: ${esc(fg)};
+  font-family: ${esc(font)}; font-size: ${esc(size)};
+  display: flex; flex-direction: column; gap: 10px;
+}
+p, h1, h2, h3, h4 { margin: 6px 0; }
+hr { border: 0; border-top: 1px solid rgba(255,255,255,0.15); margin: 12px 0; width: 100%; }
+.rc-card {
+  border: 1px solid rgba(255,255,255,0.15); padding: 16px; margin: 8px 0;
+  border-radius: 12px; background: rgba(255,255,255,0.03);
+  display: flex; flex-direction: column; gap: 8px;
+}
+.rc-card-title { font-weight: bold; margin-bottom: 4px; opacity: 0.8; text-transform: uppercase; font-size: 12px; }
+.rc-field-lbl { font-size: 13px; opacity: 0.8; display: block; margin-top: 4px; }
+.rc-label { font-size: 18px; font-weight: bold; padding: 8px 0; }
+input, textarea {
+  width: 100%; font: inherit; padding: 10px 14px; border-radius: 8px;
+  border: 1px solid rgba(255,255,255,0.2); background: rgba(255,255,255,0.06); color: inherit; outline: none;
+}
+button {
+  font: inherit; padding: 10px 16px; border-radius: 8px;
+  border: 1px solid rgba(255,255,255,0.2); background: rgba(255,255,255,0.12); color: inherit;
+  cursor: pointer; transition: background 0.2s;
+  width: 100%;
+}
+button:hover { background: rgba(255,255,255,0.22); }
 </style></head><body>
 ${html.join("\n")}
 ${errorHTML}
-<script>${runtime.replace(/<\/script/gi,"<\\/script")}<\/script>
-</body></html>`;
-  return {html:documentHTML,errors};
+<script>
+try {
+  ${actionCode}
+  ${drawingEngineJS}
+} catch(e) { console.error(e); }
+<\/script></body></html>`;
+
+  return {html:documentHTML, errors};
 }
 
 function buildPage() {
-  // index.rc se compila primero; otros archivos RC se incorporan
-  // en el orden del explorador. Los archivos no RC quedan en el ZIP.
-  const rcFiles = project.files.filter(f =>
-    f.type === "rc" && f.name.toLowerCase().endsWith(".rc"));
-  const main = rcFiles.find(f => f.name.toLowerCase() === "index.rc") ||
-    activeFile();
-  const ordered = [main, ...rcFiles.filter(f => f.id !== main.id)];
-  const source = ordered.filter(f => f && f.type === "rc")
-    .map(f => f.content).join("\n");
-  return compile(source);
+  const currentFiles = project.files.map(f => ({
+    name: f.name,
+    content: f.id === activeId ? editor.value : f.content
+  }));
+  return compileProject(currentFiles);
 }
+
 function update() {
   saveProject();
   const result = buildPage();
   preview.srcdoc = result.html;
-  previewStatus.textContent = result.errors.length
-    ? result.errors.length+" posible(s) error(es)"
-    : "Vista previa actualizada";
+  previewStatus.textContent = result.errors.length ? result.errors.length+" error(es)" : "Vista previa lista";
 }
+
 function scheduleUpdate() {
   saveStatus.textContent = "Guardando...";
   previewStatus.textContent = "Actualizando...";
   clearTimeout(timer);
-  timer = setTimeout(update,250);
+  timer = setTimeout(update, 250);
 }
 
-editor.addEventListener("input", scheduleUpdate);
+editor.addEventListener("input", () => {
+  updateLineNumbers();
+  scheduleUpdate();
+});
+
 $("newRcFile").addEventListener("click",()=>createFile("rc"));
 $("newAssetFile").addEventListener("click",()=>createFile("asset"));
-$("toggleExplorer").addEventListener("click",()=>{
-  const open = !explorer.classList.contains("open");
-  explorer.classList.toggle("open",open);
+
+function setExplorerOpen(open) {
+  explorer.classList.toggle("open", open);
   $("toggleExplorer").textContent = open ? "‹" : "›";
-  try {localStorage.setItem(EXPLORER_KEY,String(open))} catch {}
-});
-try {
-  const open = localStorage.getItem(EXPLORER_KEY) === "true";
-  explorer.classList.toggle("open",open);
-  $("toggleExplorer").textContent = open ? "‹" : "›";
-} catch {}
+}
+$("toggleExplorer").addEventListener("click", () => setExplorerOpen(!explorer.classList.contains("open")));
 
 $("clearBtn").addEventListener("click",()=>{
-  if(!confirm("¿Borrar el contenido del archivo actual?")) return;
+  if(!confirm("¿Borrar el contenido?")) return;
   editor.value="";
+  updateLineNumbers();
   scheduleUpdate();
-  editor.focus();
 });
-$("exportBtn").addEventListener("click",e=>{
+
+$("exportBtn").addEventListener("click", e => {
   e.stopPropagation();
   exportMenu.classList.toggle("open");
 });
-document.addEventListener("click",e=>{
-  if(!exportMenu.contains(e.target) && e.target.id!=="exportBtn")
-    exportMenu.classList.remove("open");
-});
+document.addEventListener("click", () => exportMenu.classList.remove("open"));
+
 function download(name,content,type) {
   const blob = new Blob([content],{type});
   const url = URL.createObjectURL(blob);
@@ -604,191 +715,17 @@ function download(name,content,type) {
   a.href=url;a.download=name;document.body.append(a);a.click();a.remove();
   setTimeout(()=>URL.revokeObjectURL(url),1500);
 }
+
 $("exportWeb").addEventListener("click",()=>{
   update();
   download("index.html",buildPage().html,"text/html;charset=utf-8");
-  exportMenu.classList.remove("open");
 });
 
-/* Generador ZIP independiente, sin bibliotecas externas. */
-const crcTable=(()=>{
-  const t=[];
-  for(let n=0;n<256;n++){
-    let c=n;
-    for(let k=0;k<8;k++) c=(c&1)?(0xEDB88320^(c>>>1)):(c>>>1);
-    t[n]=c>>>0;
-  }
-  return t;
-})();
-function crc32(bytes) {
-  let c=0xFFFFFFFF;
-  for(const b of bytes)c=crcTable[(c^b)&255]^(c>>>8);
-  return (c^0xFFFFFFFF)>>>0;
-}
-function makeZip(files) {
-  const enc=new TextEncoder(),locals=[],centrals=[];
-  let offset=0;
-  const u16=n=>[n&255,(n>>>8)&255];
-  const u32=n=>[n&255,(n>>>8)&255,(n>>>16)&255,(n>>>24)&255];
-  const join=parts=>{
-    const out=new Uint8Array(parts.reduce((s,p)=>s+p.length,0));
-    let at=0;for(const p of parts){out.set(p,at);at+=p.length}return out;
-  };
-  for(const f of files){
-    const name=enc.encode(f.name),data=enc.encode(f.content),crc=crc32(data);
-    const local=join([
-      new Uint8Array([80,75,3,4]),new Uint8Array(u16(20)),
-      new Uint8Array(u16(0x0800)),new Uint8Array(u16(0)),
-      new Uint8Array(u16(0)),new Uint8Array(u16(0)),
-      new Uint8Array(u32(crc)),new Uint8Array(u32(data.length)),
-      new Uint8Array(u32(data.length)),new Uint8Array(u16(name.length)),
-      new Uint8Array(u16(0)),name,data
-    ]);
-    locals.push(local);
-    const central=join([
-      new Uint8Array([80,75,1,2]),new Uint8Array(u16(20)),
-      new Uint8Array(u16(20)),new Uint8Array(u16(0x0800)),
-      new Uint8Array(u16(0)),new Uint8Array(u16(0)),
-      new Uint8Array(u16(0)),new Uint8Array(u32(crc)),
-      new Uint8Array(u32(data.length)),new Uint8Array(u32(data.length)),
-      new Uint8Array(u16(name.length)),new Uint8Array(u16(0)),
-      new Uint8Array(u16(0)),new Uint8Array(u16(0)),
-      new Uint8Array(u16(0)),new Uint8Array(u32(0)),
-      new Uint8Array(u32(offset)),name
-    ]);
-    centrals.push(central);offset+=local.length;
-  }
-  const localData=join(locals),cd=join(centrals);
-  const end=join([
-    new Uint8Array([80,75,5,6]),new Uint8Array(u16(0)),
-    new Uint8Array(u16(0)),new Uint8Array(u16(files.length)),
-    new Uint8Array(u16(files.length)),new Uint8Array(u32(cd.length)),
-    new Uint8Array(u32(localData.length)),new Uint8Array(u16(0))
-  ]);
-  return join([localData,cd,end]);
-}
-$("exportZip").addEventListener("click",()=>{
-  update();
-  const page=buildPage().html;
-  const workflow=`name: Publish RC website
-on:
-  push:
-    branches: [main, master]
-  workflow_dispatch:
-permissions:
-  contents: read
-  pages: write
-  id-token: write
-concurrency:
-  group: pages
-  cancel-in-progress: true
-jobs:
-  deploy:
-    environment:
-      name: github-pages
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/configure-pages@v5
-      - name: Prepare website
-        run: |
-          mkdir -p dist
-          cp index.html dist/index.html
-      - uses: actions/upload-pages-artifact@v3
-        with:
-          path: dist
-      - id: deployment
-        uses: actions/deploy-pages@v4
-`;
-  const readme=`# Proyecto RC Studio 3.0
-
-- index.rc: código principal, si existe.
-- index.html: página web generada.
-- Los demás archivos del explorador se incluyen en el ZIP.
-- .github/workflows/deploy.yml: flujo de publicación de GitHub Pages.
-
-Sube el contenido del ZIP a un repositorio GitHub. Revisa Actions y la
-configuración de GitHub Pages para comprobar que la publicación finalice.
-Los archivos auxiliares se conservan en el ZIP, pero esta versión no los
-incorpora automáticamente al HTML generado.
-`;
-  const files=project.files.map(f=>({
-    name:f.name,
-    content:f.id===activeId?editor.value:f.content
-  }));
-  // La página compilada se publica como index.html, independientemente
-  // del nombre del archivo fuente del proyecto.
-  const zipFiles=[
-    ...files.filter(f=>f.name!=="index.html"),
-    {name:"index.html",content:page},
-    {name:"README.md",content:readme},
-    {name:".github/workflows/deploy.yml",content:workflow}
-  ];
-  const bytes=makeZip(zipFiles);
-  const url=URL.createObjectURL(new Blob([bytes],{type:"application/zip"}));
-  const a=document.createElement("a");
-  a.href=url;a.download="proyecto-rc.zip";document.body.append(a);a.click();a.remove();
-  setTimeout(()=>URL.revokeObjectURL(url),1500);
-  exportMenu.classList.remove("open");
-});
-
-/* Separador ajustable: arrastrar con ratón o dedo. */
-const workspace=$("workspace"),splitter=$("splitter");
-let dragging=false;
-let startPos=0,startRatio=0;
-function getRatio() {
-  const mobile=window.innerWidth<=700;
-  const style=getComputedStyle(workspace);
-  const cols=mobile?style.gridTemplateRows:style.gridTemplateColumns;
-  const first=parseFloat(cols.split(" ")[0])||1;
-  const total=mobile?workspace.clientHeight:workspace.clientWidth;
-  return total ? first/total : .5;
-}
-function applyRatio(ratio) {
-  ratio=Math.max(.2,Math.min(.8,ratio));
-  if(window.innerWidth>700)
-    workspace.style.gridTemplateColumns=
-      `minmax(0,${ratio}fr) 8px minmax(0,${1-ratio}fr)`;
-  else
-    workspace.style.gridTemplateRows=
-      `minmax(0,${ratio}fr) 8px minmax(0,${1-ratio}fr)`;
-}
-splitter.addEventListener("pointerdown",e=>{
-  dragging=true;startPos=window.innerWidth>700?e.clientX:e.clientY;
-  startRatio=getRatio();splitter.classList.add("dragging");
-  splitter.setPointerCapture(e.pointerId);e.preventDefault();
-});
-splitter.addEventListener("pointermove",e=>{
-  if(!dragging)return;
-  const mobile=window.innerWidth<=700;
-  const delta=(mobile?e.clientY:e.clientX)-startPos;
-  const total=mobile?workspace.clientHeight:workspace.clientWidth;
-  if(total>0)applyRatio(startRatio+delta/total);
-});
-function stopDrag(){
-  if(!dragging)return;
-  dragging=false;splitter.classList.remove("dragging");
-  try{localStorage.setItem(SIZE_KEY,String(getRatio()))}catch{}
-}
-splitter.addEventListener("pointerup",stopDrag);
-splitter.addEventListener("pointercancel",stopDrag);
-window.addEventListener("resize",()=>{
-  try{
-    const r=Number(localStorage.getItem(SIZE_KEY));
-    if(r>0&&r<1)applyRatio(r);
-  }catch{}
-});
-try{
-  const r=Number(localStorage.getItem(SIZE_KEY));
-  if(r>0&&r<1)applyRatio(r);
-}catch{}
-
-/* Iniciar editor con el archivo activo guardado o vacío. */
 ensureMainFile();
 const initial=activeFile();
 editor.value=initial.content;
 $("activeFileName").textContent=initial.name;
-editor.readOnly=initial.type!=="rc";
+updateLineNumbers();
 renderFileList();
 update();
 })();
