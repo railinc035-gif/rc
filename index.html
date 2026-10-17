@@ -114,12 +114,12 @@ main {
 <header>
   <div class="brand">RC <span>STUDIO</span> 3.0</div>
   <div class="actions">
-    <button id="clearBtn">Borrar</button>
+    <button id="clearBtn" title="Borrar el contenido del archivo actual">Borrar</button>
     <div class="menu-wrap">
-      <button id="exportBtn" class="primary">Exportar ▾</button>
-      <div id="exportMenu">
-        <button id="exportWeb">Exportar web · HTML</button>
-        <button id="exportZip">Exportar proyecto · ZIP</button>
+      <button id="exportBtn" class="primary" aria-haspopup="true" aria-expanded="false" title="Opciones de exportación">Exportar ▾</button>
+      <div id="exportMenu" role="menu">
+        <button id="exportWeb" role="menuitem">Exportar web · HTML</button>
+        <button id="exportZip" role="menuitem">Exportar proyecto · ZIP</button>
       </div>
     </div>
   </div>
@@ -129,7 +129,7 @@ main {
   <section class="pane" id="editorPane">
     <div class="pane-head">
       <div class="file-head-left">
-        <button id="toggleExplorer" title="Mostrar u ocultar archivos">›</button>
+        <button id="toggleExplorer" title="Mostrar archivos" aria-label="Mostrar u ocultar archivos">›</button>
         <span id="activeFileName">index.rc</span>
       </div>
       <span class="status" id="saveStatus">Guardado automático</span>
@@ -248,7 +248,7 @@ function switchFile(id) {
   activeId = id;
   editor.value = file.content;
   $("activeFileName").textContent = file.name;
-  editor.readOnly = file.type !== "rc";
+  editor.readOnly = false;
   editor.placeholder = file.type === "rc"
     ? "Escribe tu código RC aquí..."
     : "Archivo auxiliar. Se conservará en el proyecto ZIP.";
@@ -287,7 +287,10 @@ function createFile(type) {
     ? "Nombre del archivo RC (ej. pagina.rc):"
     : "Nombre del archivo (ej. estilos.css):");
   if (name === null) return;
-  const clean = name.trim();
+  let clean = name.trim();
+  if (type === "rc" && !clean.toLowerCase().endsWith(".rc")) {
+    clean += ".rc";
+  }
   if (!validFilename(clean)) {
     toast("Nombre no válido. Usa letras, números, espacios, punto, guion o _.");
     return;
@@ -301,13 +304,15 @@ function createFile(type) {
   project.files.push(file);
   saveProject();
   switchFile(file.id);
-  renderFileList();
   toast("Archivo creado.");
 }
 function renameFile(file) {
   const name = prompt("Nuevo nombre:", file.name);
   if (name === null) return;
-  const clean = name.trim();
+  let clean = name.trim();
+  if (file.type === "rc" && !clean.toLowerCase().endsWith(".rc")) {
+    clean += ".rc";
+  }
   if (!validFilename(clean)) {
     toast("Nombre no válido.");
     return;
@@ -318,10 +323,12 @@ function renameFile(file) {
     return;
   }
   file.name = clean;
+  file.type = clean.toLowerCase().endsWith(".rc") ? "rc" : "asset";
   if (file.id === activeId) {
-    file.type = clean.toLowerCase().endsWith(".rc") ? "rc" : "asset";
-    editor.readOnly = file.type !== "rc";
     $("activeFileName").textContent = file.name;
+    editor.placeholder = file.type === "rc"
+      ? "Escribe tu código RC aquí..."
+      : "Archivo auxiliar. Se conservará en el proyecto ZIP.";
   }
   saveProject();
   renderFileList();
@@ -337,14 +344,12 @@ function deleteFile(file) {
   project.files = project.files.filter(f => f.id !== file.id);
   if (activeId === file.id) {
     const next = project.files[0];
-    activeId = next.id;
-    editor.value = next.content;
-    $("activeFileName").textContent = next.name;
-    editor.readOnly = next.type !== "rc";
+    switchFile(next.id);
+  } else {
+    saveProject();
+    renderFileList();
+    scheduleUpdate();
   }
-  saveProject();
-  renderFileList();
-  scheduleUpdate();
   toast("Archivo eliminado.");
 }
 
@@ -411,8 +416,13 @@ function compile(source) {
 
   source.split(/\r?\n/).forEach((raw,index) => {
     const line = index + 1;
-    if (!raw.trim() || raw.trim().startsWith("//")) return;
-    const c = parseLine(raw);
+    let cleanLine = raw;
+    const commentIdx = cleanLine.indexOf("//");
+    if (commentIdx !== -1) {
+      cleanLine = cleanLine.slice(0, commentIdx);
+    }
+    if (!cleanLine.trim()) return;
+    const c = parseLine(cleanLine);
     if (!c) {
       errors.push("Línea " + line + ": no se pudo leer el comando.");
       return;
@@ -432,7 +442,7 @@ function compile(source) {
         if (arity(c,1,line)) font = a[0];
         break;
       case "tamano":
-        if (arity(c,1,line)) size = a[0].endsWith("px") ? a[0] : a[0]+"px";
+        if (arity(c,1,line)) size = /^\d+(\.\d+)?$/.test(a[0].trim()) ? a[0].trim()+"px" : a[0].trim();
         break;
       case "texto":
         if (arity(c,1,line)) html.push("<p>"+esc(a[0])+"</p>");
@@ -495,7 +505,10 @@ function compile(source) {
       (()=>{const b=document.getElementById(${b});
       const t=document.getElementById(${t});
       if(!b||!t){errors.push("Línea ${a.line}: revisa limpiar()");return}
-      b.addEventListener("click",()=>{if("value" in t)t.value="";else t.textContent=""});})();`;
+      b.addEventListener("click",()=>{
+        if(t.tagName==="INPUT"||t.tagName==="TEXTAREA")t.value="";
+        else t.textContent="";
+      });})();`;
     const op = a.type === "sumar" ? "+" : "-";
     return `
       (()=>{const b=document.getElementById(${b});
@@ -503,11 +516,14 @@ function compile(source) {
       const t=document.getElementById(${t});
       if(!b||!x||!y||!t){errors.push("Línea ${a.line}: revisa los identificadores de ${a.type}()");return}
       b.addEventListener("click",()=>{
-        const xv=Number(x.value),yv=Number(y.value);
-        if(x.value.trim()===""||y.value.trim()===""||!Number.isFinite(xv)||!Number.isFinite(yv)){
-          t.textContent="Introduce dos números válidos";return;
+        const getV=el=>(el.tagName==="INPUT"||el.tagName==="TEXTAREA")?el.value:el.textContent;
+        const setV=(el,val)=>{if(el.tagName==="INPUT"||el.tagName==="TEXTAREA")el.value=val;else el.textContent=val;};
+        const xstr=getV(x)||"", ystr=getV(y)||"";
+        const xv=Number(xstr),yv=Number(ystr);
+        if(xstr.trim()===""||ystr.trim()===""||!Number.isFinite(xv)||!Number.isFinite(yv)){
+          setV(t,"Introduce dos números válidos");return;
         }
-        t.textContent=String(xv ${op} yv);
+        setV(t,String(xv ${op} yv));
       });})();`;
   }).join("\n");
 
@@ -546,11 +562,12 @@ function buildPage() {
   // en el orden del explorador. Los archivos no RC quedan en el ZIP.
   const rcFiles = project.files.filter(f =>
     f.type === "rc" && f.name.toLowerCase().endsWith(".rc"));
-  const main = rcFiles.find(f => f.name.toLowerCase() === "index.rc") ||
-    activeFile();
+  if (rcFiles.length === 0) {
+    return compile("");
+  }
+  const main = rcFiles.find(f => f.name.toLowerCase() === "index.rc") || rcFiles[0];
   const ordered = [main, ...rcFiles.filter(f => f.id !== main.id)];
-  const source = ordered.filter(f => f && f.type === "rc")
-    .map(f => f.content).join("\n");
+  const source = ordered.map(f => f.content).join("\n");
   return compile(source);
 }
 function update() {
@@ -571,16 +588,21 @@ function scheduleUpdate() {
 editor.addEventListener("input", scheduleUpdate);
 $("newRcFile").addEventListener("click",()=>createFile("rc"));
 $("newAssetFile").addEventListener("click",()=>createFile("asset"));
-$("toggleExplorer").addEventListener("click",()=>{
+function setExplorerOpen(open) {
+  explorer.classList.toggle("open", open);
+  const btn = $("toggleExplorer");
+  btn.textContent = open ? "‹" : "›";
+  btn.title = open ? "Ocultar archivos" : "Mostrar archivos";
+  btn.setAttribute("aria-expanded", String(open));
+}
+$("toggleExplorer").addEventListener("click", () => {
   const open = !explorer.classList.contains("open");
-  explorer.classList.toggle("open",open);
-  $("toggleExplorer").textContent = open ? "‹" : "›";
-  try {localStorage.setItem(EXPLORER_KEY,String(open))} catch {}
+  setExplorerOpen(open);
+  try { localStorage.setItem(EXPLORER_KEY, String(open)); } catch {}
 });
 try {
   const open = localStorage.getItem(EXPLORER_KEY) === "true";
-  explorer.classList.toggle("open",open);
-  $("toggleExplorer").textContent = open ? "‹" : "›";
+  setExplorerOpen(open);
 } catch {}
 
 $("clearBtn").addEventListener("click",()=>{
@@ -589,13 +611,24 @@ $("clearBtn").addEventListener("click",()=>{
   scheduleUpdate();
   editor.focus();
 });
-$("exportBtn").addEventListener("click",e=>{
+function closeExportMenu() {
+  exportMenu.classList.remove("open");
+  $("exportBtn").setAttribute("aria-expanded", "false");
+}
+$("exportBtn").addEventListener("click", e => {
   e.stopPropagation();
-  exportMenu.classList.toggle("open");
+  const open = exportMenu.classList.toggle("open");
+  $("exportBtn").setAttribute("aria-expanded", String(open));
 });
-document.addEventListener("click",e=>{
-  if(!exportMenu.contains(e.target) && e.target.id!=="exportBtn")
-    exportMenu.classList.remove("open");
+document.addEventListener("click", e => {
+  if (!exportMenu.contains(e.target) && !$("exportBtn").contains(e.target)) {
+    closeExportMenu();
+  }
+});
+document.addEventListener("keydown", e => {
+  if (e.key === "Escape") {
+    closeExportMenu();
+  }
 });
 function download(name,content,type) {
   const blob = new Blob([content],{type});
@@ -753,25 +786,36 @@ function applyRatio(ratio) {
     workspace.style.gridTemplateRows=
       `minmax(0,${ratio}fr) 8px minmax(0,${1-ratio}fr)`;
 }
-splitter.addEventListener("pointerdown",e=>{
-  dragging=true;startPos=window.innerWidth>700?e.clientX:e.clientY;
-  startRatio=getRatio();splitter.classList.add("dragging");
-  splitter.setPointerCapture(e.pointerId);e.preventDefault();
+splitter.addEventListener("pointerdown", e => {
+  dragging = true;
+  startPos = window.innerWidth > 700 ? e.clientX : e.clientY;
+  startRatio = getRatio();
+  splitter.classList.add("dragging");
+  document.body.style.userSelect = "none";
+  if (splitter.setPointerCapture) {
+    try { splitter.setPointerCapture(e.pointerId); } catch {}
+  }
+  e.preventDefault();
 });
-splitter.addEventListener("pointermove",e=>{
-  if(!dragging)return;
-  const mobile=window.innerWidth<=700;
-  const delta=(mobile?e.clientY:e.clientX)-startPos;
-  const total=mobile?workspace.clientHeight:workspace.clientWidth;
-  if(total>0)applyRatio(startRatio+delta/total);
+splitter.addEventListener("pointermove", e => {
+  if (!dragging) return;
+  const mobile = window.innerWidth <= 700;
+  const delta = (mobile ? e.clientY : e.clientX) - startPos;
+  const total = mobile ? workspace.clientHeight : workspace.clientWidth;
+  if (total > 0) applyRatio(startRatio + delta / total);
 });
-function stopDrag(){
-  if(!dragging)return;
-  dragging=false;splitter.classList.remove("dragging");
-  try{localStorage.setItem(SIZE_KEY,String(getRatio()))}catch{}
+function stopDrag(e) {
+  if (!dragging) return;
+  dragging = false;
+  splitter.classList.remove("dragging");
+  document.body.style.userSelect = "";
+  if (e && e.pointerId && splitter.releasePointerCapture) {
+    try { splitter.releasePointerCapture(e.pointerId); } catch {}
+  }
+  try { localStorage.setItem(SIZE_KEY, String(getRatio())); } catch {}
 }
-splitter.addEventListener("pointerup",stopDrag);
-splitter.addEventListener("pointercancel",stopDrag);
+splitter.addEventListener("pointerup", stopDrag);
+splitter.addEventListener("pointercancel", stopDrag);
 window.addEventListener("resize",()=>{
   try{
     const r=Number(localStorage.getItem(SIZE_KEY));
@@ -788,7 +832,7 @@ ensureMainFile();
 const initial=activeFile();
 editor.value=initial.content;
 $("activeFileName").textContent=initial.name;
-editor.readOnly=initial.type!=="rc";
+editor.readOnly=false;
 renderFileList();
 update();
 })();
