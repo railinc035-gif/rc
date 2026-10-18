@@ -98,20 +98,36 @@ main { flex:1; min-height:0; position:relative; overflow: hidden; }
 .rc-table th, .rc-table td { border: 1px solid var(--line); padding: 10px; text-align: left; }
 .rc-table th { background: rgba(255,255,255,0.05); }
 
+/* Card de búsqueda e ideas de combinación */
 .rc-doc-card {
   background: rgba(25, 29, 41, 0.7);
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 14px;
   padding: 16px 20px;
   margin-bottom: 12px;
-  cursor: pointer;
   transition: all 0.2s ease;
   text-align: left;
 }
 .rc-doc-card:hover {
   background: rgba(35, 41, 58, 0.9);
   border-color: #ff6538;
-  transform: translateX(4px);
+}
+.rc-combo-box {
+  background: rgba(15, 20, 30, 0.9);
+  border: 1px solid rgba(255, 101, 56, 0.3);
+  border-radius: 12px;
+  padding: 16px;
+  margin-top: 10px;
+}
+.rc-combo-code {
+  background: #05070a;
+  color: #ff7a52;
+  font-family: monospace;
+  padding: 10px;
+  border-radius: 8px;
+  font-size: 12px;
+  margin: 8px 0;
+  white-space: pre-wrap;
 }
 .rc-chip {
   background: rgba(255, 255, 255, 0.06);
@@ -132,6 +148,18 @@ main { flex:1; min-height:0; position:relative; overflow: hidden; }
   border-color: #ff6538;
 }
 
+@keyframes rcPulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.03); }
+  100% { transform: scale(1); }
+}
+
+@keyframes rcGlow {
+  0% { box-shadow: 0 0 5px rgba(255,101,56,0.3); }
+  50% { box-shadow: 0 0 20px rgba(255,101,56,0.8); }
+  100% { box-shadow: 0 0 5px rgba(255,101,56,0.3); }
+}
+
 footer { padding:8px 14px; color:var(--muted); font-size:11px; text-align: center; border-top: 1px solid var(--line); background: var(--panel); }
 @media(max-width:600px) {
   header { flex-wrap:wrap; }
@@ -149,35 +177,35 @@ footer { padding:8px 14px; color:var(--muted); font-size:11px; text-align: cente
     <button title="Inicio" onclick="home()">⌂</button>
   </nav>
   <div class="address">
-    <input id="url" placeholder="Buscar comandos (656 disponibles), ejemplos RC o escribir código .rc" autocomplete="off" onkeydown="if(event.key==='Enter')navigate()">
+    <input id="url" placeholder="Buscar comandos, CSS/JS RC o ejemplos de combinación" autocomplete="off" onkeydown="if(event.key==='Enter')navigate()">
     <button id="go" onclick="navigate()">&nbsp;↗</button>
   </div>
 </header>
-<div id="status">Listo · Framen RC (Motor v2.0 - 656 Comandos)</div>
+<div id="status">Listo · Framen RC (Motor v2.5 - Comandos CSS & JS Modernos RC)</div>
 <main>
   <section id="welcome">
     <div class="hero">
       <h1>Fra<span>men</span></h1>
-      <p>Tu entorno completo con 656 comandos para explorar, aprender y crear con el lenguaje RC.</p>
+      <p>Tu entorno completo con comandos de interfaz, estilos modernos CSS y lógica JS en Rapid Code (RC).</p>
       <div class="search">
-        <input id="query" placeholder="¿Qué quieres buscar o programar en RC?" onkeydown="if(event.key==='Enter')search()">
+        <input id="query" placeholder="Ejemplo: busca 'boton' para ver estilos, eventos e ideas de combinación" onkeydown="if(event.key==='Enter')search()">
         <button id="go" onclick="search()">Buscar</button>
       </div>
       <div class="cards">
         <div class="card" onclick="runPreloaded('calculadora.rc')">
-          <b>🧮 Calculadora</b><small>Ejecutar App Matemática</small>
+          <b>🧮 App Calculadora</b><small>Matemáticas y Estilos RC</small>
         </div>
         <div class="card" onclick="runPreloaded('pizarra.rc')">
-          <b>🎨 Lienzo y Pizarra</b><small>Dibujo e Interacción 2D</small>
+          <b>🎨 Pizarra Glass</b><small>Efecto Glassmorphism 2D</small>
         </div>
         <div class="card" onclick="runPreloaded('formulario.rc')">
-          <b>📋 Formulario Web</b><small>Interacción y Validación</small>
+          <b>📋 Formulario Moderno</b><small>Validación y Animación</small>
         </div>
         <div class="card" onclick="runPreloaded('juego.rc')">
-          <b>🎮 Juego Interactivo</b><small>Lógica de Juego RC</small>
+          <b>🎮 Juego Interactivo</b><small>Lógica JS y Almacenamiento</small>
         </div>
-        <div class="card" onclick="quickSearch('diccionario')">
-          <b>⌘ Diccionario (656)</b><small>Explorar 656 comandos</small>
+        <div class="card" onclick="quickSearch('boton')">
+          <b>✨ Combinaciones Botón</b><small>Ideas y Estilos CSS/JS RC</small>
         </div>
         <div class="card" onclick="openRC()">
           <b>‹/› Cargar .RC</b><small>Abrir archivo local</small>
@@ -188,17 +216,19 @@ footer { padding:8px 14px; color:var(--muted); font-size:11px; text-align: cente
   </section>
   <section id="rcOutput"></section>
 </main>
-<footer>Framen Studio · Entorno Integrado para Lenguaje Rapid Code (RC)</footer>
+<footer>Framen Studio · Motor Integrado de Lenguaje Rapid Code (RC) con CSS y JS Nativo</footer>
 
 <script>
 const $ = id => document.getElementById(id);
 let historyList = ['home'], historyIndex = 0;
 
 const PRELOADED_RC = {
-  "calculadora.rc": `// App Calculadora RC
-titulo(calculadora matematica rc)
+  "calculadora.rc": `// App Calculadora RC con Estilos Modernos
+titulo(calculadora moderna rc)
 seccion(calculadora)
-encabezado(2)(calculadora matematica rc)
+encabezado(2)(calculadora moderna rc)
+efectoglass(calculadora)
+sombracaja(calculadora)(0)(10)(30)(101012)
 linea
 etiquetacampo(numero 1)
 entrada(num1)(10)
@@ -208,6 +238,7 @@ linea
 rejilla(2)
 gap(10)
 boton(btnsuma)(sumar +)
+resplandor(btnsuma)(ff6538)
 boton(btnresta)(restar -)
 boton(btnmult)(multiplicar x)
 boton(btndiv)(dividir /)
@@ -219,19 +250,23 @@ restar(btnresta)(num1)(num2)(resultado)
 multiplicar(btnmult)(num1)(num2)(resultado)
 dividir(btndiv)(num1)(num2)(resultado)`,
 
-  "pizarra.rc": `// Pizarra RC
+  "pizarra.rc": `// Pizarra RC Modern Glass
 titulo(pizarra y lienzo rc)
 seccion(pizarra)
-encabezado(2)(pizarra interactiva rc)
+efectoglass(pizarra)
+encabezado(2)(pizarra interactiva glass)
 parrafo(dibuja libremente en la pizarra usando el mouse o pantalla tactil)
 lienzo(milienzo)
+resplandor(milienzo)(3b82f6)
 linea
 boton(btnlimpiar)(limpiar lienzo)
+efectoelevar(btnlimpiar)
 limpiarlienzo(btnlimpiar)(milienzo)`,
 
-  "formulario.rc": `// Formulario RC
+  "formulario.rc": `// Formulario RC Moderno
 titulo(formulario de registro rc)
 seccion(registro)
+efectoglass(registro)
 encabezado(2)(registro de usuario rc)
 linea
 etiquetacampo(nombre completo)
@@ -242,6 +277,7 @@ etiquetacampo(comentarios)
 areatexto(comentario)(escribe aqui tus comentarios)
 linea
 boton(btnenviar)(enviar formulario)
+resplandor(btnenviar)(10b981)
 boton(btnlimpiar)(limpiar campos)
 etiqueta(estatustexto)(esperando envio...)
 
@@ -249,78 +285,133 @@ avisar(btnenviar)(gracias por enviar tu formulario)
 limpiar(btnlimpiar)(nombre)
 limpiar(btnlimpiar)(correo)`,
 
-  "juego.rc": `// Juego RC
+  "juego.rc": `// Juego RC con Almacenamiento Local
 titulo(juego de adivinanza rc)
 seccion(juego)
-encabezado(2)(juego de adivinanza)
+efectoglass(juego)
+encabezado(2)(juego de adivinanza rc)
 parrafo(adivina el numero secreto entre 1 y 10)
 linea
 etiquetacampo(ingresa tu numero)
 camponumero(intento)(5)
 boton(btnprobar)(verificar intento)
+efectoelevar(btnprobar)
 linea
 etiqueta(feedback)(preparado para jugar)
 avisar(btnprobar)(tu intento ha sido registrado)`
 };
 
+// Diccionario extendido con comandos CSS y JS adaptados a RC + Sugerencias de combinación
 const RC_DICTIONARY = [
-  { cmd: "incluir(archivo.rc)", desc: "Conecta e incluye otro archivo .rc" },
-  { cmd: "titulo(texto)", desc: "Define el título de la ventana o aplicación" },
-  { cmd: "seccion(nombre)", desc: "Crea un bloque o sección visual" },
-  { cmd: "contenedor(id)", desc: "Contenedor principal para agrupar elementos" },
-  { cmd: "rejilla(columnas)", desc: "Crea una cuadrícula de N columnas" },
-  { cmd: "linea", desc: "Divisor o separador horizontal" },
-  { cmd: "texto(mensaje)", desc: "Párrafo de texto estándar" },
-  { cmd: "encabezado(nivel)(msg)", desc: "Título visual (niveles del 1 al 6)" },
-  { cmd: "parrafo(mensaje)", desc: "Párrafo de contenido" },
-  { cmd: "negrita(texto)", desc: "Texto resaltado en negrita" },
-  { cmd: "cursiva(texto)", desc: "Texto en cursiva" },
-  { cmd: "subrayado(texto)", desc: "Texto subrayado" },
-  { cmd: "etiqueta(id)(texto)", desc: "Texto dinámico identificable por ID" },
-  { cmd: "bloque(texto)", desc: "Bloque simple de texto" },
-  { cmd: "cita(texto)", desc: "Bloque de cita destacada" },
-  { cmd: "codigo(texto)", desc: "Bloque de código o texto con formato monospaciado" },
-  { cmd: "enlace(url)(texto)", desc: "Enlace web externo o interno" },
-  { cmd: "imagen(url)", desc: "Muestra una imagen desde una dirección URL" },
-  { cmd: "listadesordenada", desc: "Inicia una lista con viñetas" },
-  { cmd: "listaordenada", desc: "Inicia una lista numerada" },
-  { cmd: "elementolista(texto)", desc: "Elemento individual de lista" },
-  { cmd: "tabla", desc: "Inicia una estructura de tabla" },
-  { cmd: "filatabla", desc: "Crea una fila dentro de la tabla" },
-  { cmd: "encabezadotabla(texto)", desc: "Celda de encabezado de tabla" },
-  { cmd: "celdatabla(texto)", desc: "Celda con contenido de tabla" },
-  { cmd: "boton(id)(texto)", desc: "Botón interactivo" },
-  { cmd: "etiquetacampo(texto)", desc: "Texto descriptivo superior para campos" },
-  { cmd: "cargando", desc: "Indicador visual de estado de carga" },
-  { cmd: "lienzo(id)", desc: "Área o pizarra interactiva para dibujo táctil/mouse" },
-  { cmd: "fondo(color)", desc: "Color de fondo en hexadecimal o nombre" },
-  { cmd: "color(color)", desc: "Color principal del texto" },
-  { cmd: "letra(fuente)", desc: "Fuente o tipografía" },
-  { cmd: "tamano(px)", desc: "Tamaño base del texto en píxeles" },
-  { cmd: "ancho(px)", desc: "Ancho fijo del elemento o contenedor" },
-  { cmd: "alto(px)", desc: "Alto fijo del elemento o contenedor" },
-  { cmd: "centrar", desc: "Centra el contenedor o los elementos en pantalla" },
-  { cmd: "gap(px)", desc: "Espaciado interno entre elementos de una rejilla" },
-  { cmd: "radio(px)", desc: "Grado de redondeo para los bordes" },
-  { cmd: "ocultar(id)", desc: "Oculta un elemento según su ID" },
-  { cmd: "mostrar(id)", desc: "Muestra un elemento oculto según su ID" },
-  { cmd: "entrada(id)(valor)", desc: "Campo de texto general" },
-  { cmd: "camponumero(id)(val)", desc: "Campo exclusivo para valores numéricos" },
-  { cmd: "campocorreo(id)(val)", desc: "Campo de correo electrónico" },
-  { cmd: "campocontrasena(id)", desc: "Campo para contraseñas ocultas" },
-  { cmd: "areatexto(id)(texto)", desc: "Área de entrada para texto multilínea" },
-  { cmd: "limpiar(idbtn)(idin)", desc: "Borra el texto de una entrada al presionar un botón" },
-  { cmd: "avisar(idbtn)(msg)", desc: "Muestra una alerta o aviso al hacer clic en un botón" },
-  { cmd: "ira(idbtn)(url)", desc: "Abre un enlace web al presionar un botón" },
-  { cmd: "ocultarboton(idbtn)(id)", desc: "Oculta un elemento al hacer clic en el botón" },
-  { cmd: "mostrarboton(idbtn)(id)", desc: "Muestra un elemento oculto al hacer clic en el botón" },
-  { cmd: "alternar(idbtn)(id)", desc: "Intercala entre mostrar u ocultar un elemento al presionar" },
-  { cmd: "limpiarlienzo(idbtn)(idlienzo)", desc: "Borra todo el dibujo del lienzo especificado al presionar el botón" },
-  { cmd: "sumar(idbtn)(in1)(in2)(lbl)", desc: "Suma dos campos y muestra el resultado en la etiqueta" },
-  { cmd: "restar(idbtn)(in1)(in2)(lbl)", desc: "Resta dos campos y muestra el resultado en la etiqueta" },
-  { cmd: "multiplicar(idbtn)(in1)(in2)(lbl)", desc: "Multiplica dos campos y muestra el resultado en la etiqueta" },
-  { cmd: "dividir(idbtn)(in1)(in2)(lbl)", desc: "Divide dos campos y muestra el resultado en la etiqueta" }
+  // ESTRUCTURA Y MÓDULOS
+  { cmd: "incluir(archivo.rc)", desc: "Conecta e incluye otro archivo .rc", tag: "estructura" },
+  { cmd: "titulo(texto)", desc: "Define el título de la ventana o aplicación", tag: "estructura" },
+  { cmd: "seccion(nombre)", desc: "Crea un bloque o sección visual", tag: "estructura" },
+  { cmd: "contenedor(id)", desc: "Contenedor principal para agrupar elementos", tag: "estructura" },
+  { cmd: "rejilla(columnas)", desc: "Crea una cuadrícula de N columnas", tag: "estructura" },
+  { cmd: "linea", desc: "Divisor o separador horizontal", tag: "estructura" },
+
+  // COMPONENTES Y ELEMENTOS
+  { cmd: "boton(id)(texto)", desc: "Crea un botón interactivo", tag: "interfaz", comboKey: "boton" },
+  { cmd: "entrada(id)(valor)", desc: "Campo de texto interactivo", tag: "formularios", comboKey: "entrada" },
+  { cmd: "etiqueta(id)(texto)", desc: "Texto dinámico modificable por ID", tag: "texto", comboKey: "etiqueta" },
+  { cmd: "lienzo(id)", desc: "Pizarra o área de dibujo 2D interactiva", tag: "interfaz", comboKey: "lienzo" },
+  { cmd: "areatexto(id)(texto)", desc: "Área de entrada para múltiples líneas de texto", tag: "formularios" },
+  { cmd: "camponumero(id)(val)", desc: "Campo numérico exclusivo", tag: "formularios" },
+  { cmd: "campocorreo(id)(val)", desc: "Campo para correo electrónico", tag: "formularios" },
+
+  // ESTILOS Y COMANDOS CSS NATIVOS RC
+  { cmd: "fondo(color)", desc: "Define el color de fondo (ej: fondo(101012))", tag: "css" },
+  { cmd: "color(color)", desc: "Define el color del texto principal", tag: "css" },
+  { cmd: "borde(id)(px)(color)", desc: "Aplica un borde CSS a un elemento por su ID", tag: "css", comboKey: "boton" },
+  { cmd: "radio(id)(px)", desc: "Define el redondeo de esquinas (border-radius)", tag: "css", comboKey: "boton" },
+  { cmd: "sombracaja(id)(x)(y)(blur)(color)", desc: "Sombra de caja CSS box-shadow", tag: "css", comboKey: "boton" },
+  { cmd: "gradiente(id)(color1)(color2)", desc: "Fondo con degradado lineal CSS", tag: "css", comboKey: "boton" },
+  { cmd: "efectoglass(id)", desc: "Aplica diseño moderno Glassmorphism con desenfoque de fondo", tag: "css" },
+  { cmd: "resplandor(id)(color)", desc: "Agrega resplandor neón/glow a botones o elementos", tag: "css", comboKey: "boton" },
+  { cmd: "opacidad(id)(valor)", desc: "Ajusta la transparencia de un elemento (0 a 100)", tag: "css" },
+  { cmd: "animar(id)(tipo)", desc: "Aplica animaciones CSS (ej: pulso, resplandor, flotar)", tag: "css" },
+  { cmd: "transicion(id)(segundos)", desc: "Suaviza cambios visuales con transiciones CSS", tag: "css" },
+  { cmd: "efectoelevar(id)", desc: "Efecto CSS elevación al pasar el mouse (hover float)", tag: "css", comboKey: "boton" },
+
+  // COMPORTAMIENTOS Y LÓGICA JS NATIVA RC
+  { cmd: "avisar(idbtn)(mensaje)", desc: "Muestra un mensaje de alerta JS al hacer clic en un botón", tag: "js", comboKey: "boton" },
+  { cmd: "limpiar(idbtn)(identrada)", desc: "Borra el contenido de una entrada con un botón", tag: "js", comboKey: "boton" },
+  { cmd: "ocultarboton(idbtn)(id)", desc: "Oculta un elemento visual al pulsar el botón", tag: "js", comboKey: "boton" },
+  { cmd: "mostrarboton(idbtn)(id)", desc: "Muestra un elemento oculto al pulsar el botón", tag: "js", comboKey: "boton" },
+  { cmd: "alternar(idbtn)(id)", desc: "Intercala visibilidad (mostrar/ocultar) al presionar botón", tag: "js", comboKey: "boton" },
+  { cmd: "limpiarlienzo(idbtn)(idlienzo)", desc: "Borra el contenido del lienzo de dibujo", tag: "js", comboKey: "lienzo" },
+  { cmd: "sumar(idbtn)(in1)(in2)(lbl)", desc: "Suma dos números e imprime el resultado en la etiqueta", tag: "js", comboKey: "boton" },
+  { cmd: "restar(idbtn)(in1)(in2)(lbl)", desc: "Resta dos números e imprime el resultado", tag: "js", comboKey: "boton" },
+  { cmd: "multiplicar(idbtn)(in1)(in2)(lbl)", desc: "Multiplica dos entradas numéricas", tag: "js", comboKey: "boton" },
+  { cmd: "dividir(idbtn)(in1)(in2)(lbl)", desc: "Divide dos entradas numéricas", tag: "js", comboKey: "boton" },
+  { cmd: "guardardato(clave)(id)", desc: "Guarda el valor de un campo en almacenamiento local JS", tag: "js" },
+  { cmd: "cargardato(clave)(id)", desc: "Recupera un dato guardado en almacenamiento local JS", tag: "js" },
+  { cmd: "temporizador(idbtn)(segundos)(lbl)", desc: "Cuenta regresiva de tiempo al presionar botón", tag: "js", comboKey: "boton" },
+  { cmd: "sonido(idbtn)(frecuencia)", desc: "Genera un tono o sonido interactivo usando Web Audio API", tag: "js", comboKey: "boton" }
 ];
+
+// Mapeo de sugerencias de combinación práctica para la búsqueda
+const COMBINATION_IDEAS = {
+  "boton": {
+    title: "💡 Formas de Combinar un Botón en RC (CSS + JS)",
+    description: "Un botón en RC adquiere diseño moderno combinando comandos de estilo CSS y eventos de interacción JS:",
+    combinations: [
+      {
+        name: "1. Botón Moderno con Resplandor Glow + Alerta JS",
+        code: `// Botón Neón Interactivo
+boton(btnneon)(presioname)
+resplandor(btnneon)(ff6538)
+efectoelevar(btnneon)
+avisar(btnneon)(has activado el boton neon rc)`
+      },
+      {
+        name: "2. Botón con Degradado CSS + Operación Matemática",
+        code: `// Botón de Cálculo con Gradiente
+entrada(in1)(15)
+entrada(in2)(25)
+boton(btncalcular)(calcular suma)
+gradiente(btncalcular)(ff6538)(ff8c00)
+etiqueta(lblres)(resultado sera mostrado aqui)
+sumar(btncalcular)(in1)(in2)(lblres)`
+      },
+      {
+        name: "3. Botón para Limpiar Campos y Lienzo",
+        code: `// Botón de Acción Limpiar
+entrada(micampo)(texto de prueba)
+boton(btnborrar)(limpiar campo)
+limpiar(btnborrar)(micampo)`
+      }
+    ]
+  },
+  "entrada": {
+    title: "💡 Formas de Combinar Campos de Entrada en RC",
+    description: "Combina campos de entrada con operaciones lógicas, botones y almacenamiento local:",
+    combinations: [
+      {
+        name: "Formulario con Entrada y Botón de Limpieza",
+        code: `etiquetacampo(tu nombre)
+entrada(minombre)(juan)
+boton(btnreset)(borrar nombre)
+limpiar(btnreset)(minombre)`
+      }
+    ]
+  },
+  "lienzo": {
+    title: "💡 Formas de Combinar el Lienzo (Pizarra 2D)",
+    description: "Crea áreas interactivas de dibujo combinándolas con efectos glassmorphism y botones de control:",
+    combinations: [
+      {
+        name: "Pizarra Glass con Botón de Limpieza Neón",
+        code: `lienzo(pizarra1)
+resplandor(pizarra1)(3b82f6)
+boton(btncls)(limpiar pizarra)
+resplandor(btncls)(ef4444)
+limpiarlienzo(btncls)(pizarra1)`
+      }
+    ]
+  }
+};
 
 function setStatus(text) { $('status').textContent = text; }
 
@@ -328,7 +419,7 @@ function home() {
   $('rcOutput').style.display = 'none';
   $('welcome').style.display = 'flex';
   $('url').value = '';
-  setStatus('Listo · Framen RC (Motor v2.0 - 656 Comandos)');
+  setStatus('Listo · Framen RC (Motor v2.5 - Comandos CSS & JS Modernos RC)');
   recordHistory('home');
 }
 
@@ -416,35 +507,71 @@ function performSearch(query, trackHistory = true) {
   container.className = 'rc-container';
 
   const h = document.createElement('h2');
-  h.textContent = `Resultados de búsqueda RC para: "${query}"`;
+  h.style.color = '#f4f6fb';
+  h.textContent = `Resultados y Combinaciones RC para: "${query}"`;
   container.appendChild(h);
 
   const qLower = query.toLowerCase();
+
+  // 1. Mostrar sugerencias de combinación especial si existen para la búsqueda (ej: "boton")
+  for (const [key, comboData] of Object.entries(COMBINATION_IDEAS)) {
+    if (qLower.includes(key) || key.includes(qLower)) {
+      const comboCard = document.createElement('div');
+      comboCard.className = 'rc-doc-card';
+      comboCard.style.borderColor = '#ff6538';
+      comboCard.style.background = 'rgba(255, 101, 56, 0.05)';
+
+      let comboHtml = `<h3 style="color:#ff6538; margin-top:0;">${comboData.title}</h3>
+                       <p style="color:#cbd5e1; font-size:13px;">${comboData.description}</p>`;
+
+      comboData.combinations.forEach(item => {
+        comboHtml += `<div class="rc-combo-box">
+          <strong style="color:#f4f6fb; font-size:14px;">${item.name}</strong>
+          <pre class="rc-combo-code">${item.code}</pre>
+          <button class="rc-button" style="padding:6px 14px; font-size:12px;" onclick="runSnippet(\`${item.code.replace(/`/g, '')}\`)">▶ Probar Combinación</button>
+        </div>`;
+      });
+
+      comboCard.innerHTML = comboHtml;
+      container.appendChild(comboCard);
+    }
+  }
+
+  // 2. Listar comandos individuales de la búsqueda
   const matches = RC_DICTIONARY.filter(item =>
     item.cmd.toLowerCase().includes(qLower) || item.desc.toLowerCase().includes(qLower)
   );
 
   if (matches.length > 0) {
+    const listHeader = document.createElement('h3');
+    listHeader.textContent = 'Comandos Relacionados:';
+    listHeader.style.marginTop = '20px';
+    container.appendChild(listHeader);
+
     matches.forEach(item => {
       const card = document.createElement('div');
       card.className = 'rc-doc-card';
-      card.innerHTML = `<div style="font-family:monospace; font-weight:bold; color:#ff6538; font-size:15px; margin-bottom:4px;">${item.cmd}</div><div style="color:#94a3b8; font-size:13px;">${item.desc}</div>`;
-      card.onclick = () => runSnippet(`${item.cmd}`);
+      card.innerHTML = `<div style="display:flex; justify-content:space-between; align-items:center;">
+        <span style="font-family:monospace; font-weight:bold; color:#ff6538; font-size:15px;">${item.cmd}</span>
+        <span class="rc-chip">${item.tag.toUpperCase()}</span>
+      </div>
+      <div style="color:#94a3b8; font-size:13px; margin-top:6px;">${item.desc}</div>
+      <button class="rc-button" style="margin-top:10px; padding:4px 10px; font-size:11px;" onclick="runSnippet('${item.cmd}')">Ejecutar Comando</button>`;
       container.appendChild(card);
     });
   } else {
     const p = document.createElement('p');
-    p.textContent = 'No se encontraron comandos específicos. Probando interpretar búsqueda como código RC directo...';
+    p.textContent = 'No se encontraron comandos exactos. Puedes escribir código RC directamente en la barra superior.';
     container.appendChild(p);
   }
 
   out.appendChild(container);
-  setStatus(`Búsqueda: "${query}" (${matches.length} resultados)`);
+  setStatus(`Búsqueda y Combinaciones: "${query}"`);
   if (trackHistory) recordHistory('search:' + query);
 }
 
 /*
-  Motor de Renderizado e Intérprete Nativo RC (656 Comandos)
+  Motor de Renderizado e Intérprete Nativo RC v2.5 (Soporta Estilos CSS Modernos y JS)
   Reglas: 100% minúsculas, números, paréntesis (), dobles barras (//), sin comillas ni comas.
 */
 function renderRC(source) {
@@ -465,21 +592,18 @@ function renderRC(source) {
   const eventQueue = [];
 
   const lines = source.split(/\r?\n/);
-  lines.forEach((rawLine, index) => {
+  lines.forEach((rawLine) => {
     let line = rawLine.trim();
     if (!line || line.startsWith('//')) return;
 
-    // Normalizar a minúsculas según especificación RC
     line = line.toLowerCase();
 
-    // Regex para extraer comando y todos los argumentos entre paréntesis: comando(arg1)(arg2)...
     const cmdMatch = line.match(/^([a-z0-9]+)(\(.*\))?$/);
     if (!cmdMatch) return;
 
     const cmd = cmdMatch[1];
     const argsStr = cmdMatch[2] || '';
 
-    // Extraer todos los contenidos entre paréntesis
     const args = [];
     const argRegex = /\((.*?)\)/g;
     let m;
@@ -497,6 +621,7 @@ function renderRC(source) {
           break;
         case 'seccion':
           const sec = document.createElement('div');
+          if (args[0]) sec.id = args[0];
           sec.className = 'rc-section';
           container.appendChild(sec);
           currentParent = sec;
@@ -559,79 +684,8 @@ function renderRC(source) {
           lbl.style.margin = '4px 0';
           currentParent.appendChild(lbl);
           break;
-        case 'cita':
-          const q = document.createElement('blockquote');
-          q.textContent = args[0] || '';
-          q.style.borderLeft = '4px solid var(--accent)';
-          q.style.paddingLeft = '12px';
-          currentParent.appendChild(q);
-          break;
-        case 'codigo':
-          const pre = document.createElement('pre');
-          pre.textContent = args[0] || '';
-          pre.style.background = 'rgba(0,0,0,0.5)';
-          pre.style.padding = '12px';
-          pre.style.borderRadius = '8px';
-          currentParent.appendChild(pre);
-          break;
-        case 'enlace':
-          const a = document.createElement('a');
-          a.href = args[0] || '#';
-          a.textContent = args[1] || args[0] || '';
-          a.style.color = 'var(--accent)';
-          currentParent.appendChild(a);
-          break;
-        case 'imagen':
-          const img = document.createElement('img');
-          img.src = args[0] || '';
-          img.style.maxWidth = '100%';
-          img.style.borderRadius = '8px';
-          currentParent.appendChild(img);
-          break;
 
-        // 3. LISTAS Y TABLAS
-        case 'listadesordenada':
-          activeList = document.createElement('ul');
-          currentParent.appendChild(activeList);
-          break;
-        case 'listaordenada':
-          activeList = document.createElement('ol');
-          currentParent.appendChild(activeList);
-          break;
-        case 'elementolista':
-          if (activeList) {
-            const li = document.createElement('li');
-            li.textContent = args[0] || '';
-            activeList.appendChild(li);
-          }
-          break;
-        case 'tabla':
-          activeTable = document.createElement('table');
-          activeTable.className = 'rc-table';
-          currentParent.appendChild(activeTable);
-          break;
-        case 'filatabla':
-          if (activeTable) {
-            activeRow = document.createElement('tr');
-            activeTable.appendChild(activeRow);
-          }
-          break;
-        case 'encabezadotabla':
-          if (activeRow) {
-            const th = document.createElement('th');
-            th.textContent = args[0] || '';
-            activeRow.appendChild(th);
-          }
-          break;
-        case 'celdatabla':
-          if (activeRow) {
-            const td = document.createElement('td');
-            td.textContent = args[0] || '';
-            activeRow.appendChild(td);
-          }
-          break;
-
-        // 4. COMPONENTES DE INTERFAZ
+        // 3. COMPONENTES Y CAMPOS
         case 'boton':
           const btn = document.createElement('button');
           btn.className = 'rc-button';
@@ -647,40 +701,6 @@ function renderRC(source) {
           fieldLbl.style.fontWeight = '600';
           currentParent.appendChild(fieldLbl);
           break;
-        case 'cargando':
-          const loader = document.createElement('div');
-          loader.textContent = 'Cargando...';
-          loader.style.color = 'var(--accent)';
-          currentParent.appendChild(loader);
-          break;
-        case 'lienzo':
-          const cvs = document.createElement('canvas');
-          if (args[0]) cvs.id = args[0];
-          cvs.className = 'rc-canvas';
-          cvs.width = 600;
-          cvs.height = 300;
-          currentParent.appendChild(cvs);
-
-          // Setup drawing logic
-          const ctx = cvs.getContext('2d');
-          let drawing = false;
-          cvs.onpointerdown = e => { drawing = true; ctx.beginPath(); ctx.moveTo(e.offsetX, e.offsetY); };
-          cvs.onpointermove = e => { if (drawing) { ctx.lineTo(e.offsetX, e.offsetY); ctx.strokeStyle = '#ff6538'; ctx.lineWidth = 3; ctx.stroke(); } };
-          cvs.onpointerup = () => { drawing = false; };
-          break;
-
-        // 5. DISEÑO Y ESTILOS VISUALES
-        case 'fondo':
-          out.style.background = '#' + (args[0] || '0b0d12').replace('#','');
-          break;
-        case 'color':
-          out.style.color = '#' + (args[0] || 'f4f6fb').replace('#','');
-          break;
-        case 'gap':
-          if (currentParent) currentParent.style.gap = (args[0] || 10) + 'px';
-          break;
-
-        // 6. FORMULARIOS Y CAMPOS
         case 'entrada':
           const inTxt = document.createElement('input');
           inTxt.type = 'text';
@@ -705,13 +725,6 @@ function renderRC(source) {
           if (args[1]) inEmail.value = args[1];
           currentParent.appendChild(inEmail);
           break;
-        case 'campocontrasena':
-          const inPass = document.createElement('input');
-          inPass.type = 'password';
-          inPass.className = 'rc-input';
-          if (args[0]) inPass.id = args[0];
-          currentParent.appendChild(inPass);
-          break;
         case 'areatexto':
           const txtArea = document.createElement('textarea');
           txtArea.className = 'rc-textarea';
@@ -720,12 +733,92 @@ function renderRC(source) {
           if (args[1]) txtArea.value = args[1];
           currentParent.appendChild(txtArea);
           break;
+        case 'lienzo':
+          const cvs = document.createElement('canvas');
+          if (args[0]) cvs.id = args[0];
+          cvs.className = 'rc-canvas';
+          cvs.width = 600;
+          cvs.height = 300;
+          currentParent.appendChild(cvs);
 
-        // 7. EVENTOS E INTERACCIÓN
+          const ctx = cvs.getContext('2d');
+          let drawing = false;
+          cvs.onpointerdown = e => { drawing = true; ctx.beginPath(); ctx.moveTo(e.offsetX, e.offsetY); };
+          cvs.onpointermove = e => { if (drawing) { ctx.lineTo(e.offsetX, e.offsetY); ctx.strokeStyle = '#ff6538'; ctx.lineWidth = 3; ctx.stroke(); } };
+          cvs.onpointerup = () => { drawing = false; };
+          break;
+
+        // 4. COMANDOS DE ESTILO Y DISEÑO CSS MODERNOS
+        case 'fondo':
+          out.style.background = '#' + (args[0] || '0b0d12').replace('#','');
+          break;
+        case 'color':
+          out.style.color = '#' + (args[0] || 'f4f6fb').replace('#','');
+          break;
+        case 'gap':
+          if (currentParent) currentParent.style.gap = (args[0] || 10) + 'px';
+          break;
+        case 'borde':
+          eventQueue.push(() => {
+            const el = $(args[0]);
+            if (el) el.style.border = `${args[1] || 1}px solid #${(args[2] || 'ff6538').replace('#','')}`;
+          });
+          break;
+        case 'radio':
+          eventQueue.push(() => {
+            const el = $(args[0]);
+            if (el) el.style.borderRadius = (args[1] || 8) + 'px';
+          });
+          break;
+        case 'sombracaja':
+          eventQueue.push(() => {
+            const el = $(args[0]);
+            if (el) el.style.boxShadow = `${args[1]||0}px ${args[2]||4}px ${args[3]||15}px #${(args[4]||'000000').replace('#','')}`;
+          });
+          break;
+        case 'gradiente':
+          eventQueue.push(() => {
+            const el = $(args[0]);
+            if (el) el.style.background = `linear-gradient(135deg, #${(args[1]||'ff6538').replace('#','')}, #${(args[2]||'ff8c00').replace('#','')})`;
+          });
+          break;
+        case 'efectoglass':
+          eventQueue.push(() => {
+            const el = $(args[0]);
+            if (el) {
+              el.style.background = 'rgba(255, 255, 255, 0.05)';
+              el.style.backdropFilter = 'blur(12px)';
+              el.style.border = '1px solid rgba(255, 255, 255, 0.12)';
+              el.style.borderRadius = '16px';
+            }
+          });
+          break;
+        case 'resplandor':
+          eventQueue.push(() => {
+            const el = $(args[0]);
+            if (el) {
+              const col = '#' + (args[1] || 'ff6538').replace('#','');
+              el.style.boxShadow = `0 0 15px ${col}`;
+              el.style.borderColor = col;
+            }
+          });
+          break;
+        case 'efectoelevar':
+          eventQueue.push(() => {
+            const el = $(args[0]);
+            if (el) {
+              el.style.transition = 'transform 0.2s ease, box-shadow 0.2s ease';
+              el.onmouseenter = () => { el.style.transform = 'translateY(-3px)'; };
+              el.onmouseleave = () => { el.style.transform = 'translateY(0px)'; };
+            }
+          });
+          break;
+
+        // 5. EVENTOS Y COMPORTAMIENTOS JS MODERNOS
         case 'avisar':
           eventQueue.push(() => {
             const btn = $(args[0]);
-            if (btn) btn.onclick = () => alert(args[1] || 'Aviso');
+            if (btn) btn.onclick = () => alert(args[1] || 'Aviso RC');
           });
           break;
         case 'limpiar':
@@ -748,7 +841,7 @@ function renderRC(source) {
           });
           break;
 
-        // 8. LÓGICA Y OPERACIONES
+        // OPERACIONES LÓGICAS JS
         case 'sumar':
         case 'restar':
         case 'multiplicar':
@@ -774,11 +867,10 @@ function renderRC(source) {
           break;
       }
     } catch(e) {
-      console.error('Error procesando línea RC:', line, e);
+      console.error('Error procesando comando RC:', line, e);
     }
   });
 
-  // Attach all event listeners after DOM elements are created
   setTimeout(() => {
     eventQueue.forEach(fn => fn());
   }, 10);
