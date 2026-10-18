@@ -1,367 +1,250 @@
 <!DOCTYPE html>
-<html lang="es"><head>
-
-
-
-
+<html lang="es">
+<head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Framen Browser</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Editor doble RC + HTML</title>
 <style>
-:root {
-  color-scheme: dark;
-  --bg: #090b10;
-  --panel: #11151d;
-  --line: #242b38;
-  --accent: #ff6538;
-  --text: #f4f6fb;
-  --muted: #8e98aa;
-}
-* { box-sizing: border-box; }
-body {
-  margin: 0; background: var(--bg); color: var(--text);
-  font: 14px system-ui, sans-serif; height: 100dvh;
-  display: flex; flex-direction: column;
-}
-header {
-  display:flex; align-items:center; gap:12px;
-  padding:12px 16px; background:var(--panel);
-  border-bottom:1px solid var(--line);
-}
-.logo { font-size:22px; font-weight:850; letter-spacing:-1px; }
-.logo span { color:var(--accent); }
-nav { display:flex; gap:7px; }
-button {
-  color:var(--text); background:#1b2230; border:1px solid var(--line);
-  border-radius:9px; padding:9px 12px; cursor:pointer;
-}
-button:hover { border-color:var(--accent); }
-.address {
-  display:flex; flex:1; gap:8px; min-width:0;
-}
-input {
-  width:100%; min-width:0; padding:11px 14px;
-  border-radius:10px; border:1px solid var(--line);
-  color:var(--text); background:#090d14; outline:none;
-}
-input:focus { border-color:var(--accent); }
-#go { background:var(--accent); color:white; font-weight:700; }
-#status {
-  padding:7px 14px; color:var(--muted);
-  border-bottom:1px solid var(--line); font-size:12px;
-}
-main { flex:1; min-height:0; position:relative; }
-iframe { width:100%; height:100%; border:0; background:white; }
-#welcome {
-  position:absolute; inset:0; overflow:auto;
-  display:flex; align-items:center; justify-content:center;
-  text-align:center; padding:24px;
-  background:radial-gradient(ellipse at top,#24202b,#090b10 65%);
-}
-.hero { max-width:650px; width:100%; }
-.hero h1 { font-size:clamp(44px,9vw,80px); margin:0; letter-spacing:-5px; }
-.hero h1 span { color:var(--accent); }
-.hero p { color:var(--muted); line-height:1.7; }
-.search { display:flex; gap:8px; margin:24px 0; }
-.cards { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; }
-.card {
-  background:var(--panel); border:1px solid var(--line);
-  padding:16px 8px; border-radius:12px; cursor:pointer;
-}
-.card b { display:block; margin-bottom:6px; }
-.card small { color:var(--muted); }
-#rcOutput {
-  display:none; position:absolute; inset:0; overflow:auto;
-  padding:24px; background:#fff; color:#171717;
-}
-#rcOutput button { color:#171717; background:#eee; }
-footer { padding:8px 14px; color:var(--muted); font-size:11px; }
-@media(max-width:560px) {
-  header { flex-wrap:wrap; }
-  .address { order:3; flex-basis:100%; }
-  .cards { grid-template-columns:1fr; }
-  .card { padding:12px; }
-}
+  :root{color-scheme:dark;--bg:#111217;--panel:#191b22;--panel2:#22252e;--line:#343844;--text:#e8eaf0;--muted:#9299aa;--blue:#68b5ff;--orange:#ffad70}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--text);font:14px/1.45 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;height:100vh;overflow:hidden}
+  button,input{font:inherit}
+  button{cursor:pointer;border:1px solid var(--line);background:var(--panel2);color:var(--text);border-radius:7px;padding:7px 10px}
+  button:hover{background:#303542}
+  .topbar{height:52px;display:flex;align-items:center;gap:8px;padding:0 12px;border-bottom:1px solid var(--line);background:#15161c}
+  .topbar .spacer{flex:1}
+  .topbar button{min-width:36px}
+  .layout{display:flex;height:calc(100vh - 52px);padding:8px;gap:8px;min-height:0}
+  .editor{display:flex;flex:1;min-width:0;flex-direction:column;border:1px solid var(--line);border-radius:9px;overflow:hidden;background:#0e1015}
+  .tabs{height:43px;display:flex;align-items:stretch;gap:4px;padding:5px 7px 0;background:#191b22;border-bottom:1px solid var(--line);overflow:auto}
+  .tab{white-space:nowrap;border:0;border-radius:6px 6px 0 0;background:transparent;color:var(--muted);padding:8px 12px}
+  .tab.active{background:#272b36;color:var(--text);border:1px solid var(--line);border-bottom-color:#272b36}
+  .editor textarea{resize:none;flex:1;width:100%;min-height:0;border:0;outline:0;background:#0e1015;color:#d9e2f2;padding:17px;font:14px/1.75 ui-monospace,SFMono-Regular,Consolas,monospace;tab-size:2;white-space:pre;overflow:auto}
+  .status{height:30px;display:flex;align-items:center;gap:15px;padding:0 12px;border-top:1px solid var(--line);color:var(--muted);font-size:12px}
+  .status .spacer{flex:1}
+  .explorer{width:250px;flex:0 0 250px;display:flex;flex-direction:column;background:var(--panel);border:1px solid var(--line);border-radius:9px;overflow:hidden}
+  .explorer.hidden{display:none}
+  .explorer-head{display:flex;align-items:center;gap:7px;padding:12px;border-bottom:1px solid var(--line);font-weight:600}
+  .explorer-head span{flex:1}
+  .new-actions{display:flex;gap:6px;padding:10px;border-bottom:1px solid var(--line)}
+  .new-actions button{flex:1;padding:7px 4px}
+  .file-list{padding:7px;overflow:auto;flex:1}
+  .file-row{display:flex;align-items:center;gap:7px;padding:8px;border-radius:6px;margin-bottom:3px}
+  .file-row.active{background:#2a3040}
+  .file-row .filename{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;cursor:pointer}
+  .file-row .ext{font-size:11px;color:var(--muted)}
+  .file-row .mini{padding:3px 6px;font-size:12px}
+  .explorer-note{padding:10px;border-top:1px solid var(--line);font-size:12px;color:var(--muted)}
+  .empty{padding:15px;color:var(--muted);text-align:center}
+  .toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:#292d38;border:1px solid #454b5a;padding:9px 14px;border-radius:8px;display:none}
+  @media(max-width:720px){.layout{padding:5px;gap:5px}.explorer{width:205px;flex-basis:205px}.editor textarea{padding:10px;font-size:12px}.tab{padding:8px}.topbar{padding:0 7px}}
+  @media(max-width:560px){.layout{position:relative}.editor{min-width:0}.explorer{position:absolute;z-index:5;right:5px;top:5px;bottom:5px;box-shadow:0 10px 35px #0009}.explorer.hidden{display:none}}
 </style>
-<style>
-/* TEMAS: CLARO Y OSCURO */
-body.theme-claro {
-    --bg-dark: #f8fafc;
-    --bg-panel: #ffffff;
-    --bg-card: #f1f5f9;
-    --border-color: #cbd5e1;
-    --text-primary: #0f172a;
-    --text-secondary: #475569;
-    --editor-bg: #ffffff;
-    --header-bg: #f1f5f9;
-    color: #0f172a;
-}
-body.theme-claro .workspace, 
-body.theme-claro .code-panel, 
-body.theme-claro .preview-panel, 
-body.theme-claro .panel-header, 
-body.theme-claro .miwy-gallery {
-    background: #f8fafc;
-    color: #0f172a;
-}
-body.theme-claro .file-tree, body.theme-claro .editor-container {
-    background: #ffffff;
-    color: #0f172a;
-}
-
-</style><style>
-/* TEMAS: CLARO Y OSCURO */
-body.theme-claro {
-    --bg-dark: #f8fafc;
-    --bg-panel: #ffffff;
-    --bg-card: #f1f5f9;
-    --border-color: #cbd5e1;
-    --text-primary: #0f172a;
-    --text-secondary: #475569;
-    --editor-bg: #ffffff;
-    --header-bg: #f1f5f9;
-    color: #0f172a;
-}
-body.theme-claro .workspace, 
-body.theme-claro .code-panel, 
-body.theme-claro .preview-panel, 
-body.theme-claro .panel-header, 
-body.theme-claro .miwy-gallery {
-    background: #f8fafc;
-    color: #0f172a;
-}
-body.theme-claro .file-tree, body.theme-claro .editor-container {
-    background: #ffffff;
-    color: #0f172a;
-}
-
-</style></head>
+</head>
 <body>
-<header style="border-radius: 18px;">
-  <div class="logo">FRA<span>MEN</span></div>
-  <nav>
-    <button title="Atrás" onclick="back()">←</button>
-    <button title="Adelante" onclick="forward()">→</button>
-    <button title="Inicio" onclick="home()">⌂</button>
-  </nav>
-  <div class="address">
-    <input id="url" placeholder="Buscar en Internet o escribir una dirección" autocomplete="url" onkeydown="if(event.key==='Enter')navigate()">
-    <button id="go" onclick="navigate()" style="position: relative; left: 1px; top: 0px; width: 43px; height: 40px;">&nbsp;↗</button>
-  </div>
+<header class="topbar">
+  <button id="saveBtn" title="Descargar archivo abierto">Guardar archivo</button>
+  <button id="saveAllBtn" title="Descargar todos los archivos como JSON">Exportar proyecto</button>
+  <div class="spacer"></div>
+  <button id="toggleExplorer" aria-expanded="true" title="Mostrar u ocultar explorador">Explorador ▣</button>
 </header>
-<div id="status">Listo · Framen Browser</div>
-<main>
-  <section id="welcome">
-    <div class="hero">
-      <h1>Fra<span>men</span></h1>
-      <p>Tu espacio para explorar Internet y experimentar con el lenguaje RC.</p>
-      <div class="search">
-        <input id="query" placeholder="¿Qué quieres encontrar?" onkeydown="if(event.key==='Enter')search()" style="border-radius: 22px;">
-        <button id="go" onclick="search()">Buscar</button>
-      </div>
-      <div class="cards">
-        <div class="card" onclick="quickSearch('documentación de programación')">
-          <b>⌘ Explorar</b><small>Buscar en Internet</small>
-        </div>
-        <div class="card" onclick="openRC()">
-          <b>‹/› Lenguaje RC</b><small>Abrir un archivo .rc</small>
-        </div>
-        <div class="card" onclick="quickSearch('noticias de tecnología')">
-          <b>◈ Tecnología</b><small>Descubrir novedades</small>
-        </div>
-      </div>
-      <input type="file" id="rcFile" accept=".rc,.txt" hidden="" onchange="loadRC(event)">
-    </div>
+
+<main class="layout">
+  <section class="editor" aria-label="Editor RC">
+    <div class="tabs" id="rcTabs"></div>
+    <textarea id="rcEditor" spellcheck="false" aria-label="Código RC" autocapitalize="off" autocomplete="off"></textarea>
+    <div class="status"><span id="rcStatusName">main.rc</span><span class="spacer"></span><span id="rcStatusLine">Línea 1, Col 1</span></div>
   </section>
-  <iframe id="web" hidden="" sandbox="allow-forms allow-scripts allow-same-origin allow-popups" referrerpolicy="no-referrer"></iframe>
-  <section id="rcOutput"></section>
+  <section class="editor" aria-label="Editor HTML">
+    <div class="tabs" id="htmlTabs"></div>
+    <textarea id="htmlEditor" spellcheck="false" aria-label="Código HTML" autocapitalize="off" autocomplete="off"></textarea>
+    <div class="status"><span id="htmlStatusName">index.html</span><span class="spacer"></span><span id="htmlStatusLine">Línea 1, Col 1</span></div>
+  </section>
+  <aside class="explorer" id="explorer">
+    <div class="explorer-head"><span>Archivos del proyecto</span><button id="closeExplorer" title="Ocultar explorador">×</button></div>
+    <div class="new-actions">
+      <button id="newRc">+ .rc</button>
+      <button id="newHtml">+ HTML</button>
+    </div>
+    <div class="file-list" id="fileList"></div>
+    <div class="explorer-note">Selecciona un archivo para abrirlo. Usa ✎ para renombrar o × para eliminar.</div>
+  </aside>
 </main>
-<footer>Framen · Prototipo experimental · Motor RC integrado en desarrollo</footer>
+<div class="toast" id="toast" role="status"></div>
 
 <script>
-const $ = id => document.getElementById(id);
-let historyList = [], historyIndex = -1;
+(() => {
+  const files = new Map([
+    ["main.rc", {type:"rc", content:'// Archivo RC principal\\nventana {\\n  titulo: "Mi Aplicación"\\n  ancho: 900\\n  alto: 600\\n  color_fondo: "#111217"\\n}\\n'}],
+    ["index.html", {type:"html", content:'<!DOCTYPE html>\\n<html lang="es">\\n<head>\\n  <meta charset="UTF-8">\\n  <meta name="viewport" content="width=device-width, initial-scale=1.0">\\n  <title>Mi aplicación</title>\\n</head>\\n<body>\\n  <h1>Hola mundo</h1>\\n  <p>Este es mi archivo HTML.</p>\\n</body>\\n</html>\\n'}]
+  ]);
+  const active = {rc:"main.rc", html:"index.html"};
+  const editors = {rc:document.getElementById("rcEditor"), html:document.getElementById("htmlEditor")};
+  const tabs = {rc:document.getElementById("rcTabs"), html:document.getElementById("htmlTabs")};
+  const list = document.getElementById("fileList");
+  const explorer = document.getElementById("explorer");
+  let toastTimer;
 
-function setStatus(text) { $('status').textContent = text; }
-
-function home() {
-  $('web').hidden = true;
-  $('rcOutput').style.display = 'none';
-  $('welcome').style.display = 'flex';
-  $('url').value = '';
-  setStatus('Inicio · Framen Browser');
-}
-
-function normalizeAddress(value) {
-  value = value.trim();
-  if (!value) return '';
-  if (/^[a-z][a-z0-9+.-]*:/i.test(value)) return value;
-  if (/^(localhost|[\w-]+\.[a-z]{2,})(:\d+)?(\/.*)?$/i.test(value))
-    return 'https://' + value;
-  return 'https://www.google.com/search?q=' + encodeURIComponent(value);
-}
-
-function navigate(addHistory = true) {
-  const target = normalizeAddress($('url').value);
-  if (!target) return;
-  if (target.toLowerCase().endsWith('.rc')) {
-    setStatus('Los archivos RC locales se abren mediante «Lenguaje RC».');
-    return;
+  function notify(message) {
+    const el = document.getElementById("toast");
+    el.textContent = message; el.style.display = "block";
+    clearTimeout(toastTimer); toastTimer = setTimeout(() => el.style.display = "none", 2200);
   }
-  if (!/^https?:\/\//i.test(target)) {
-    setStatus('Por seguridad, solo se admiten direcciones HTTP o HTTPS.');
-    return;
+  function paneFor(name) { return files.get(name).type; }
+  function escapeHtml(s) { return s.replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
+  function saveCurrentContent(type) {
+    const name = active[type];
+    if (name && files.has(name)) files.get(name).content = editors[type].value;
   }
-  $('welcome').style.display = 'none';
-  $('rcOutput').style.display = 'none';
-  $('web').hidden = false;
-  $('url').value = target;
-  $('web').src = target;
-  setStatus('Intentando abrir: ' + target);
-  if (addHistory) {
-    historyList = historyList.slice(0, historyIndex + 1);
-    historyList.push(target);
-    historyIndex = historyList.length - 1;
+  function renderTabs(type) {
+    tabs[type].innerHTML = "";
+    const visibleFiles = [...files.keys()].filter(name => paneFor(name) === type);
+    visibleFiles.forEach(name => {
+      const b = document.createElement("button");
+      b.className = "tab" + (active[type] === name ? " active" : "");
+      b.textContent = name;
+      b.title = "Abrir " + name;
+      b.onclick = () => openFile(name);
+      tabs[type].appendChild(b);
+    });
   }
-}
-
-function search() {
-  const value = $('query').value.trim();
-  if (!value) return;
-  $('url').value = value;
-  navigate();
-}
-function quickSearch(value) {
-  $('url').value = value;
-  navigate();
-}
-function back() {
-  if (historyIndex > 0) {
-    historyIndex--;
-    $('url').value = historyList[historyIndex];
-    navigate(false);
+  function renderExplorer() {
+    list.innerHTML = "";
+    if (!files.size) { list.innerHTML = '<div class="empty">No hay archivos.</div>'; return; }
+    [...files.keys()].sort((a,b) => a.localeCompare(b)).forEach(name => {
+      const file = files.get(name), type = file.type;
+      const row = document.createElement("div");
+      row.className = "file-row" + (active[type] === name ? " active" : "");
+      const label = document.createElement("span");
+      label.className = "filename";
+      label.textContent = name;
+      label.title = "Abrir " + name;
+      label.onclick = () => openFile(name);
+      const ext = document.createElement("span");
+      ext.className = "ext"; ext.textContent = type === "rc" ? ".rc" : "HTML";
+      const rename = document.createElement("button");
+      rename.className = "mini"; rename.textContent = "✎"; rename.title = "Cambiar nombre";
+      rename.onclick = () => renameFile(name);
+      const del = document.createElement("button");
+      del.className = "mini"; del.textContent = "×"; del.title = "Eliminar archivo";
+      del.onclick = () => deleteFile(name);
+      row.append(label, ext, rename, del); list.appendChild(row);
+    });
   }
-}
-function forward() {
-  if (historyIndex < historyList.length - 1) {
-    historyIndex++;
-    $('url').value = historyList[historyIndex];
-    navigate(false);
-  }
-}
-function openRC() { $('rcFile').click(); }
-
-function loadRC(event) {
-  const file = event.target.files[0];
-  if (!file) return;
-  const reader = new FileReader();
-  reader.onload = () => renderRC(String(reader.result));
-  reader.readAsText(file);
-  event.target.value = '';
-}
-
-/*
-  Intérprete RC experimental.
-  Este ejemplo solo implementa los comandos declarados abajo.
-  Para reconocer toda la sintaxis oficial de tu lenguaje, conecta
-  aquí la gramática y el intérprete reales de RC.
-*/
-function renderRC(source) {
-  const out = $('rcOutput');
-  out.replaceChildren();
-  out.style.display = 'block';
-  $('welcome').style.display = 'none';
-  $('web').hidden = true;
-
-  let background = '#ffffff';
-  let color = '#171717';
-  let title = 'Página RC';
-  const elements = [];
-
-  function parseColor(value) {
-    const colors = {
-      NEGRO:'#000000', BLANCO:'#ffffff', ROJO:'#ff0000',
-      AZUL:'#0000ff', VERDE:'#008000', AMARILLO:'#ffff00',
-      NARANJA:'#ff8800', MORADO:'#800080'
-    };
-    return colors[value.toUpperCase()] || value;
-  }
-
-  for (const [index, raw] of source.split(/\r?\n/).entries()) {
-    const line = raw.trim();
-    if (!line || line.startsWith('//') || line.startsWith('#')) continue;
-
-    let match;
-    if ((match = line.match(/^VENTANA\s+["'](.*?)["']$/i))) {
-      title = match[1];
-    } else if ((match = line.match(/^FONDO\s+(\S+)$/i))) {
-      background = parseColor(match[1]);
-    } else if ((match = line.match(/^COLOR\s+(\S+)$/i))) {
-      color = parseColor(match[1]);
-    } else if ((match = line.match(/^TEXTO\s+["'](.*?)["']$/i))) {
-      elements.push({type:'text', value:match[1]});
-    } else if ((match = line.match(/^BOTON\s+["'](.*?)["']$/i))) {
-      elements.push({type:'button', value:match[1]});
-    } else if ((match = line.match(/^BRILLO\s+(\d+)$/i))) {
-      const amount = Number(match[1]);
-      if (amount > 100) {
-        showError(`Línea ${index+1}: BRILLO admite valores de 0 a 100.`);
-        return;
+  function renderAll() {
+    for (const type of ["rc","html"]) {
+      renderTabs(type);
+      const name = active[type];
+      if (name && files.has(name)) {
+        editors[type].value = files.get(name).content;
+        document.getElementById(type + "StatusName").textContent = name;
+      } else {
+        editors[type].value = "";
+        document.getElementById(type + "StatusName").textContent = "Sin archivo abierto";
       }
-      elements.push({type:'brightness', value:amount});
-    } else {
-      showError(`Línea ${index+1}: comando no reconocido por este prototipo: ${line}`);
-      return;
+      updateCursor(type);
     }
+    renderExplorer();
   }
-
-  out.style.background = background;
-  out.style.color = color;
-  out.style.filter = '';
-  const heading = document.createElement('h1');
-  heading.textContent = title;
-  out.appendChild(heading);
-
-  for (const el of elements) {
-    if (el.type === 'text') {
-      const p = document.createElement('p');
-      p.textContent = el.value;
-      out.appendChild(p);
-    } else if (el.type === 'button') {
-      const button = document.createElement('button');
-      button.textContent = el.value;
-      button.onclick = () => alert(el.value);
-      out.appendChild(button);
-    } else if (el.type === 'brightness') {
-      out.style.filter = `brightness(${el.value}%)`;
-    }
+  function openFile(name) {
+    for (const type of ["rc","html"]) saveCurrentContent(type);
+    const type = paneFor(name); active[type] = name;
+    renderAll();
   }
-  setStatus('Archivo RC cargado · ' + title);
-}
-
-function showError(message) {
-  const out = $('rcOutput');
-  out.replaceChildren();
-  out.style.display = 'block';
-  $('welcome').style.display = 'none';
-  $('web').hidden = true;
-  const error = document.createElement('pre');
-  error.style.color = '#c62828';
-  error.textContent = message;
-  out.appendChild(error);
-  setStatus('Error al interpretar RC');
-}
-
-$('web').addEventListener('load', () => {
-  setStatus('Página cargada o intento de carga finalizado. Algunos sitios bloquean la inserción en marcos.');
-});
-</script>
-<script>
-
-</script>
-
-<script>
-
+  function uniqueName(base, type) {
+    const ext = type === "rc" ? ".rc" : ".html";
+    let name = base;
+    if (!name.toLowerCase().endsWith(ext)) name += ext;
+    if (!files.has(name)) return name;
+    let i = 2;
+    while (files.has(name.slice(0, -ext.length) + "-" + i + ext)) i++;
+    return name.slice(0, -ext.length) + "-" + i + ext;
+  }
+  function createFile(type) {
+    saveCurrentContent("rc"); saveCurrentContent("html");
+    const requested = prompt("Nombre del nuevo archivo:", type === "rc" ? "nuevo.rc" : "pagina.html");
+    if (requested === null) return;
+    let base = requested.trim().replace(/[\\\\/:*?"<>|]/g, "");
+    if (!base) { notify("Escribe un nombre válido."); return; }
+    const name = uniqueName(base, type);
+    const content = type === "rc" ? '// Nuevo archivo RC\\n\\n' : '<!DOCTYPE html>\\n<html lang="es">\\n<head>\\n  <meta charset="UTF-8">\\n  <title>Nuevo documento</title>\\n</head>\\n<body>\\n\\n</body>\\n</html>\\n';
+    files.set(name, {type, content}); active[type] = name;
+    renderAll(); editors[type].focus(); notify("Archivo creado: " + name);
+  }
+  function renameFile(oldName) {
+    saveCurrentContent("rc"); saveCurrentContent("html");
+    const file = files.get(oldName);
+    const requested = prompt("Nuevo nombre del archivo:", oldName);
+    if (requested === null) return;
+    let base = requested.trim().replace(/[\\\\/:*?"<>|]/g, "");
+    if (!base) { notify("Escribe un nombre válido."); return; }
+    const ext = file.type === "rc" ? ".rc" : ".html";
+    if (!base.toLowerCase().endsWith(ext)) base += ext;
+    if (base !== oldName && files.has(base)) { notify("Ya existe un archivo con ese nombre."); return; }
+    files.delete(oldName); files.set(base, file);
+    if (active[file.type] === oldName) active[file.type] = base;
+    renderAll(); notify("Archivo renombrado.");
+  }
+  function deleteFile(name) {
+    if (!confirm('¿Eliminar "' + name + '"? Esta acción no se puede deshacer.')) return;
+    saveCurrentContent("rc"); saveCurrentContent("html");
+    const type = paneFor(name); files.delete(name);
+    if (active[type] === name) active[type] = [...files.keys()].find(n => paneFor(n) === type) || null;
+    renderAll(); notify("Archivo eliminado.");
+  }
+  function updateCursor(type) {
+    const el = editors[type], before = el.value.slice(0, el.selectionStart);
+    const line = before.split("\\n").length;
+    const col = before.length - before.lastIndexOf("\\n");
+    document.getElementById(type + "StatusLine").textContent = `Línea ${line}, Col ${col}`;
+  }
+  for (const type of ["rc","html"]) {
+    editors[type].addEventListener("input", () => {
+      saveCurrentContent(type); updateCursor(type);
+    });
+    editors[type].addEventListener("click", () => updateCursor(type));
+    editors[type].addEventListener("keyup", () => updateCursor(type));
+    editors[type].addEventListener("keydown", e => {
+      if (e.key === "Tab") {
+        e.preventDefault();
+        const start = editors[type].selectionStart, end = editors[type].selectionEnd;
+        editors[type].setRangeText("  ", start, end, "end");
+        saveCurrentContent(type); updateCursor(type);
+      }
+    });
+  }
+  document.getElementById("newRc").onclick = () => createFile("rc");
+  document.getElementById("newHtml").onclick = () => createFile("html");
+  document.getElementById("toggleExplorer").onclick = () => {
+    explorer.classList.toggle("hidden");
+    document.getElementById("toggleExplorer").setAttribute("aria-expanded", String(!explorer.classList.contains("hidden")));
+  };
+  document.getElementById("closeExplorer").onclick = () => {
+    explorer.classList.add("hidden");
+    document.getElementById("toggleExplorer").setAttribute("aria-expanded", "false");
+  };
+  document.getElementById("saveBtn").onclick = () => {
+    saveCurrentContent("rc"); saveCurrentContent("html");
+    const focused = document.activeElement === editors.html ? "html" :
+      document.activeElement === editors.rc ? "rc" :
+      (active.rc && active.html ? (active.html === document.getElementById("htmlStatusName").textContent ? "html" : "rc") : (active.rc ? "rc" : "html"));
+    const name = active[focused];
+    if (!name || !files.has(name)) { notify("No hay un archivo abierto para guardar."); return; }
+    const blob = new Blob([files.get(name).content], {type:"text/plain;charset=utf-8"});
+    const url = URL.createObjectURL(blob), a = document.createElement("a");
+    a.href = url; a.download = name; a.click(); URL.revokeObjectURL(url);
+    notify("Descargando " + name);
+  };
+  document.getElementById("saveAllBtn").onclick = () => {
+    saveCurrentContent("rc"); saveCurrentContent("html");
+    const obj = Object.fromEntries([...files.entries()].map(([name,file]) => [name,{type:file.type,content:file.content}]));
+    const blob = new Blob([JSON.stringify(obj,null,2)], {type:"application/json;charset=utf-8"});
+    const url = URL.createObjectURL(blob), a = document.createElement("a");
+    a.href = url; a.download = "proyecto-editor.json"; a.click(); URL.revokeObjectURL(url);
+    notify("Proyecto exportado como JSON.");
+  };
+  renderAll();
+})();
 </script>
 </body>
 </html>
