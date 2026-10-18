@@ -81,6 +81,50 @@
       .trim();
   }
 
+  function parseRcLine(line) {
+    line = line.trim();
+    if (!line || line.startsWith('//')) return null;
+
+    const parenIndex = line.indexOf('(');
+    if (parenIndex === -1) {
+      return { cmd: line.toLowerCase(), args: [] };
+    }
+
+    const cmd = line.slice(0, parenIndex).trim().toLowerCase();
+    const rest = line.slice(parenIndex);
+    const args = [];
+
+    let depth = 0;
+    let currentArg = '';
+    let inArg = false;
+
+    for (let i = 0; i < rest.length; i++) {
+      const ch = rest[i];
+      if (ch === '(') {
+        if (depth === 0) {
+          inArg = true;
+          currentArg = '';
+        } else {
+          currentArg += ch;
+        }
+        depth++;
+      } else if (ch === ')') {
+        depth--;
+        if (depth === 0) {
+          inArg = false;
+          args.push(currentArg.trim());
+          currentArg = '';
+        } else {
+          currentArg += ch;
+        }
+      } else {
+        if (inArg) currentArg += ch;
+      }
+    }
+
+    return { cmd, args };
+  }
+
   function rcToHtml(rcCode) {
     if (!rcCode) return '';
     const lines = rcCode.split('\n');
@@ -108,14 +152,14 @@
         return;
       }
 
-      const match = line.match(/^([a-z0-9_]+)(?:\(([^)]*)\))?(?:\(([^)]*)\))?(?:\(([^)]*)\))?(?:\(([^)]*)\))?$/i);
-      if (!match) return;
+      const parsed = parseRcLine(line);
+      if (!parsed) return;
 
-      const cmd = match[1].toLowerCase();
-      const a1 = match[2] !== undefined ? match[2].trim() : '';
-      const a2 = match[3] !== undefined ? match[3].trim() : '';
-      const a3 = match[4] !== undefined ? match[4].trim() : '';
-      const a4 = match[5] !== undefined ? match[5].trim() : '';
+      const { cmd, args } = parsed;
+      const a1 = args[0] || '';
+      const a2 = args[1] || '';
+      const a3 = args[2] || '';
+      const a4 = args[3] || '';
 
       const indent = ' '.repeat(openStack.length * 2 + 2);
 
