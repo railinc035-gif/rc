@@ -164,19 +164,19 @@ footer { padding:8px 14px; color:var(--muted); font-size:11px; text-align: cente
     <button id="go" onclick="navigate()">&nbsp;↗</button>
   </div>
 </header>
-<div id="status">Listo · Framen RC (Asistente e Intérprete Inteligente RC)</div>
+<div id="status">Listo · Framen RC (Motor con 70 Comandos RC)</div>
 <main>
   <section id="welcome">
     <div class="hero">
       <h1>Fra<span>men</span></h1>
-      <p>Entorno minimalista e inteligente para programar en Lenguaje Rapid Code (RC).</p>
+      <p>Entorno minimalista e inteligente con exactamente 70 comandos oficiales del Lenguaje Rapid Code (RC).</p>
       <div class="search">
-        <input id="query" placeholder="Ej: ¿Cómo puedo combinar un botón con estilos o campos?" onkeydown="if(event.key==='Enter')search()">
+        <input id="query" placeholder="Ej: ¿Cómo puedo combinar un botón con diseño y lógica?" onkeydown="if(event.key==='Enter')search()">
         <button id="go" onclick="search()">Buscar</button>
       </div>
       <div class="cards">
         <div class="card" onclick="quickSearch('diccionario')">
-          <b>⌘ Diccionario RC</b><small>Ver todos los comandos</small>
+          <b>⌘ Diccionario RC (70)</b><small>Ver los 70 comandos</small>
         </div>
         <div class="card" onclick="openRC()">
           <b>‹/› Cargar archivo .RC</b><small>Abrir archivo local</small>
@@ -187,130 +187,150 @@ footer { padding:8px 14px; color:var(--muted); font-size:11px; text-align: cente
   </section>
   <section id="rcOutput"></section>
 </main>
-<footer>Framen Studio · Motor Inteligente y Diccionario para Lenguaje Rapid Code (RC)</footer>
+<footer>Framen Studio · Motor Nativo RC de 70 Comandos</footer>
 
 <script>
 const $ = id => document.getElementById(id);
 let historyList = ['home'], historyIndex = 0;
 
-// Diccionario completo de todos los comandos RC organizados por categoría
+// Exactamente 70 Comandos Oficiales del Lenguaje RC divididos en Estructura (25), Diseño (25) y Lógica (20)
 const RC_DICTIONARY = [
-  // 1. ESTRUCTURA Y MÓDULOS
-  { cmd: "incluir(archivo.rc)", desc: "Conecta e incluye otro archivo .rc", tag: "estructura" },
-  { cmd: "titulo(texto)", desc: "Define el título de la ventana o aplicación", tag: "estructura" },
-  { cmd: "seccion(nombre)", desc: "Crea un bloque o sección visual", tag: "estructura" },
-  { cmd: "contenedor(id)", desc: "Contenedor principal para agrupar elementos", tag: "estructura" },
-  { cmd: "rejilla(columnas)", desc: "Crea una cuadrícula de N columnas", tag: "estructura" },
-  { cmd: "linea", desc: "Divisor o separador horizontal", tag: "estructura" },
+  // --- ESTRUCTURA DE INTERFAZ (25) ---
+  { cmd: "incluir(archivo.rc)", desc: "Conecta e incluye otro archivo .rc en la aplicación", tag: "estructura" },
+  { cmd: "titulo(texto)", desc: "Establece el título principal de la ventana o aplicación", tag: "estructura" },
+  { cmd: "seccion(id)", desc: "Crea una sección o bloque contenedor delimitado", tag: "estructura" },
+  { cmd: "contenedor(id)", desc: "Crea un contenedor flexible agrupador de elementos", tag: "estructura" },
+  { cmd: "rejilla(columnas)", desc: "Crea una cuadrícula adaptable de N columnas", tag: "estructura" },
+  { cmd: "linea", desc: "Inserta un separador visual horizontal", tag: "estructura" },
+  { cmd: "texto(mensaje)", desc: "Muestra un mensaje o párrafo de texto libre", tag: "estructura" },
+  { cmd: "encabezado(nivel)(mensaje)", desc: "Inserta un título visual destacado del nivel 1 al 6", tag: "estructura" },
+  { cmd: "parrafo(mensaje)", desc: "Crea un bloque de párrafo explicativo", tag: "estructura" },
+  { cmd: "negrita(texto)", desc: "Resalta un fragmento de texto en negrita", tag: "estructura" },
+  { cmd: "cursiva(texto)", desc: "Formatea un fragmento de texto en cursiva", tag: "estructura" },
+  { cmd: "subrayado(texto)", desc: "Aplica subrayado continuo al texto indicado", tag: "estructura" },
+  { cmd: "etiqueta(id)(texto)", desc: "Crea un elemento de texto dinámico modificable por id", tag: "estructura" },
+  { cmd: "cita(texto)", desc: "Crea un bloque destacado de cita textual", tag: "estructura" },
+  { cmd: "codigo(texto)", desc: "Muestra un bloque formateado de código monospaciado", tag: "estructura" },
+  { cmd: "enlace(url)(texto)", desc: "Inserta un hipervínculo navegable", tag: "estructura" },
+  { cmd: "imagen(url)", desc: "Muestra una imagen desde la dirección url", tag: "estructura" },
+  { cmd: "boton(id)(texto)", desc: "Crea un botón interactivo identificado por id", tag: "estructura" },
+  { cmd: "etiquetacampo(texto)", desc: "Muestra una etiqueta descriptiva sobre un campo", tag: "estructura" },
+  { cmd: "entrada(id)(valor)", desc: "Crea un campo para ingreso de texto general", tag: "estructura" },
+  { cmd: "camponumero(id)(val)", desc: "Crea un campo para ingreso exclusivo de números", tag: "estructura" },
+  { cmd: "campocorreo(id)(val)", desc: "Crea un campo especializado en direcciones de correo", tag: "estructura" },
+  { cmd: "campocontrasena(id)", desc: "Crea un campo con caracteres ocultos para contraseña", tag: "estructura" },
+  { cmd: "areatexto(id)(texto)", desc: "Crea un área de entrada multilínea para textos largos", tag: "estructura" },
+  { cmd: "lienzo(id)", desc: "Crea una pizarra o lienzo 2D interactivo para dibujo", tag: "estructura" },
 
-  // 2. TEXTO Y CONTENIDO
-  { cmd: "texto(mensaje)", desc: "Párrafo de texto estándar", tag: "texto" },
-  { cmd: "encabezado(nivel)(msg)", desc: "Título visual (niveles del 1 al 6)", tag: "texto" },
-  { cmd: "parrafo(mensaje)", desc: "Párrafo de contenido", tag: "texto" },
-  { cmd: "negrita(texto)", desc: "Texto resaltado en negrita", tag: "texto" },
-  { cmd: "cursiva(texto)", desc: "Texto en cursiva", tag: "texto" },
-  { cmd: "subrayado(texto)", desc: "Texto subrayado", tag: "texto" },
-  { cmd: "etiqueta(id)(texto)", desc: "Texto dinámico identificable por ID", tag: "texto" },
-  { cmd: "bloque(texto)", desc: "Bloque simple de texto", tag: "texto" },
-  { cmd: "cita(texto)", desc: "Bloque de cita destacada", tag: "texto" },
-  { cmd: "codigo(texto)", desc: "Bloque de código o monospaciado", tag: "texto" },
-  { cmd: "enlace(url)(texto)", desc: "Enlace web externo o interno", tag: "texto" },
-  { cmd: "imagen(url)", desc: "Muestra una imagen desde una URL", tag: "texto" },
+  // --- DISEÑO Y ESTILOS VISUALES (25) ---
+  { cmd: "fondo(color)", desc: "Aplica el color de fondo general de la aplicación", tag: "diseño" },
+  { cmd: "color(color)", desc: "Establece el color principal del texto", tag: "diseño" },
+  { cmd: "letra(fuente)", desc: "Cambia la tipografía de letra de la aplicación", tag: "diseño" },
+  { cmd: "tamano(id)(px)", desc: "Define el tamaño de texto en píxeles para un elemento", tag: "diseño" },
+  { cmd: "ancho(id)(px)", desc: "Ajusta el ancho fijo en píxeles de un elemento", tag: "diseño" },
+  { cmd: "alto(id)(px)", desc: "Ajusta el alto fijo en píxeles de un elemento", tag: "diseño" },
+  { cmd: "centrar(id)", desc: "Centra horizontalmente un contenedor o elemento", tag: "diseño" },
+  { cmd: "gap(id)(px)", desc: "Ajusta la separación interna entre elementos de una rejilla", tag: "diseño" },
+  { cmd: "borde(id)(px)(color)", desc: "Aplica un borde de N píxeles y color al elemento", tag: "diseño" },
+  { cmd: "radio(id)(px)", desc: "Aplica curvatura o redondeo a las esquinas del elemento", tag: "diseño" },
+  { cmd: "sombracaja(id)(x)(y)(blur)(color)", desc: "Aplica sombra difuminada con coordenadas x y blur al elemento", tag: "diseño" },
+  { cmd: "gradiente(id)(color1)(color2)", desc: "Aplica un fondo con degradado suave de dos colores", tag: "diseño" },
+  { cmd: "efectoglass(id)", desc: "Aplica diseño de cristal translúcido con desenfoque de fondo", tag: "diseño" },
+  { cmd: "resplandor(id)(color)", desc: "Crea un resplandor o brillo neón alrededor del elemento", tag: "diseño" },
+  { cmd: "efectoelevar(id)", desc: "Agrega animación de elevación al pasar el puntero sobre el elemento", tag: "diseño" },
+  { cmd: "opacidad(id)(valor)", desc: "Establece el nivel de transparencia del 0 al 100", tag: "diseño" },
+  { cmd: "pad(id)(px)", desc: "Ajusta el relleno interno de espacio del elemento", tag: "diseño" },
+  { cmd: "margen(id)(px)", desc: "Ajusta el margen externo de separación alrededor del elemento", tag: "diseño" },
+  { cmd: "alineartexto(id)(modo)", desc: "Alinea el texto al centro izquierda o derecha", tag: "diseño" },
+  { cmd: "transformar(id)(escala)", desc: "Escala proporcionalmente el tamaño visual del elemento", tag: "diseño" },
+  { cmd: "rotar(id)(grados)", desc: "Gira visualmente el elemento N grados", tag: "diseño" },
+  { cmd: "fijarposicion(id)(modo)", desc: "Modifica la posición estática o fija del elemento", tag: "diseño" },
+  { cmd: "capa(id)(nivel)", desc: "Ajusta la profundidad o nivel de capa de superposición", tag: "diseño" },
+  { cmd: "ocultar(id)", desc: "Vuelve invisible cualquier elemento por su id", tag: "diseño" },
+  { cmd: "mostrar(id)", desc: "Restablece la visibilidad de un elemento oculto", tag: "diseño" },
 
-  // 3. COMPONENTES DE INTERFAZ Y FORMULARIOS
-  { cmd: "boton(id)(texto)", desc: "Botón interactivo", tag: "interfaz" },
-  { cmd: "etiquetacampo(texto)", desc: "Texto descriptivo superior para campos", tag: "formularios" },
-  { cmd: "cargando", desc: "Indicador visual de estado de carga", tag: "interfaz" },
-  { cmd: "lienzo(id)", desc: "Área o pizarra interactiva para dibujo", tag: "interfaz" },
-  { cmd: "entrada(id)(valor)", desc: "Campo de texto general", tag: "formularios" },
-  { cmd: "camponumero(id)(val)", desc: "Campo exclusivo para valores numéricos", tag: "formularios" },
-  { cmd: "campocorreo(id)(val)", desc: "Campo de correo electrónico", tag: "formularios" },
-  { cmd: "campocontrasena(id)", desc: "Campo para contraseñas ocultas", tag: "formularios" },
-  { cmd: "areatexto(id)(texto)", desc: "Área de entrada para texto multilínea", tag: "formularios" },
-
-  // 4. DISEÑO Y ESTILOS VISUALES (CSS RC)
-  { cmd: "fondo(color)", desc: "Color de fondo en hexadecimal o nombre", tag: "diseño" },
-  { cmd: "color(color)", desc: "Color principal del texto", tag: "diseño" },
-  { cmd: "borde(id)(px)(color)", desc: "Aplica un borde CSS por ID", tag: "diseño" },
-  { cmd: "radio(id)(px)", desc: "Grado de redondeo para los bordes", tag: "diseño" },
-  { cmd: "sombracaja(id)(x)(y)(blur)(color)", desc: "Sombra de caja CSS", tag: "diseño" },
-  { cmd: "gradiente(id)(color1)(color2)", desc: "Fondo con degradado lineal CSS", tag: "diseño" },
-  { cmd: "efectoglass(id)", desc: "Aplica efecto Glassmorphism cristalino", tag: "diseño" },
-  { cmd: "resplandor(id)(color)", desc: "Agrega brillo o resplandor neón", tag: "diseño" },
-  { cmd: "efectoelevar(id)", desc: "Eleva el elemento al pasar el mouse", tag: "diseño" },
-  { cmd: "gap(px)", desc: "Espaciado interno entre elementos de una rejilla", tag: "diseño" },
-
-  // 5. EVENTOS, INTERACCIÓN Y OPERACIONES (JS RC)
-  { cmd: "avisar(idbtn)(msg)", desc: "Muestra una alerta al hacer clic en botón", tag: "eventos" },
-  { cmd: "limpiar(idbtn)(idin)", desc: "Borra el texto de una entrada al presionar botón", tag: "eventos" },
-  { cmd: "limpiarlienzo(idbtn)(idlienzo)", desc: "Borra el dibujo del lienzo al presionar botón", tag: "eventos" },
-  { cmd: "ocultarboton(idbtn)(id)", desc: "Oculta un elemento al hacer clic en el botón", tag: "eventos" },
-  { cmd: "mostrarboton(idbtn)(id)", desc: "Muestra un elemento oculto al pulsar botón", tag: "eventos" },
-  { cmd: "alternar(idbtn)(id)", desc: "Intercala visibilidad al presionar botón", tag: "eventos" },
-  { cmd: "sumar(idbtn)(in1)(in2)(lbl)", desc: "Suma dos campos y muestra el resultado en la etiqueta", tag: "operaciones" },
-  { cmd: "restar(idbtn)(in1)(in2)(lbl)", desc: "Resta dos campos y muestra resultado en etiqueta", tag: "operaciones" },
-  { cmd: "multiplicar(idbtn)(in1)(in2)(lbl)", desc: "Multiplica dos campos numéricos", tag: "operaciones" },
-  { cmd: "dividir(idbtn)(in1)(in2)(lbl)", desc: "Divide dos campos numéricos", tag: "operaciones" }
+  // --- LÓGICA Y COMPORTAMIENTO (20) ---
+  { cmd: "avisar(idbtn)(msg)", desc: "Muestra una ventana de notificación o alerta al pulsar un botón", tag: "lógica" },
+  { cmd: "limpiar(idbtn)(idin)", desc: "Vacía el contenido de un campo de entrada al pulsar un botón", tag: "lógica" },
+  { cmd: "limpiarlienzo(idbtn)(idlienzo)", desc: "Borra todos los trazos realizados en un lienzo al pulsar un botón", tag: "lógica" },
+  { cmd: "ocultarboton(idbtn)(id)", desc: "Oculta un elemento especificado al presionar el botón", tag: "lógica" },
+  { cmd: "mostrarboton(idbtn)(id)", desc: "Muestra un elemento oculto al presionar el botón", tag: "lógica" },
+  { cmd: "alternar(idbtn)(id)", desc: "Intercala entre mostrar u ocultar un elemento al presionar el botón", tag: "lógica" },
+  { cmd: "sumar(idbtn)(in1)(in2)(lbl)", desc: "Suma dos campos y muestra el resultado en la etiqueta", tag: "lógica" },
+  { cmd: "restar(idbtn)(in1)(in2)(lbl)", desc: "Resta dos campos y muestra el resultado en la etiqueta", tag: "lógica" },
+  { cmd: "multiplicar(idbtn)(in1)(in2)(lbl)", desc: "Multiplica dos campos y muestra el resultado en la etiqueta", tag: "lógica" },
+  { cmd: "dividir(idbtn)(in1)(in2)(lbl)", desc: "Divide dos campos y muestra el resultado en la etiqueta", tag: "lógica" },
+  { cmd: "deshabilitar(idbtn)(id)", desc: "Desactiva la interacción de un campo o botón", tag: "lógica" },
+  { cmd: "habilitar(idbtn)(id)", desc: "Reactiva la interacción de un elemento desactivado", tag: "lógica" },
+  { cmd: "copiartexto(idbtn)(idin)", desc: "Copia el contenido de un campo al portapapeles al pulsar el botón", tag: "lógica" },
+  { cmd: "fijartexto(idbtn)(lbl)(msg)", desc: "Asigna dinámicamente un texto a una etiqueta al pulsar un botón", tag: "lógica" },
+  { cmd: "alternarclase(idbtn)(id)(estilo)", desc: "Activa o desactiva un efecto visual al pulsar un botón", tag: "lógica" },
+  { cmd: "guardardato(idbtn)(clave)(idin)", desc: "Almacena localmente un dato capturado en un campo", tag: "lógica" },
+  { cmd: "cargardato(idbtn)(clave)(lbl)", desc: "Recupera un dato almacenado y lo muestra en la etiqueta", tag: "lógica" },
+  { cmd: "borrardato(idbtn)(clave)", desc: "Elimina un dato almacenado localmente por su clave", tag: "lógica" },
+  { cmd: "temporizador(idbtn)(seg)(lbl)", desc: "Inicia una cuenta regresiva de segundos en la etiqueta", tag: "lógica" },
+  { cmd: "sonido(idbtn)(tono)", desc: "Emite un tono o señal acústica al presionar un botón", tag: "lógica" }
 ];
 
-// Base de conocimiento inteligente para preguntas de combinación en RC
+// Base de respuestas para combinaciones de comandos RC
 const INTELLIGENT_COMBINATIONS = {
   "boton": {
     topic: "Botón (boton)",
-    explanation: "Un botón en Lenguaje RC se puede combinar de múltiples formas según lo que quieras lograr:",
+    explanation: "Un botón en RC se combina con comandos de estructura, diseño visual y lógica de interacción:",
     options: [
       {
-        title: "✨ Combinar Botón con Estilo Neón / Resplandor",
-        details: "Usa resplandor() y efectoelevar() para darle un diseño moderno:",
+        title: "✨ Combinar Botón con Estilo Resplandor Neón y Alerta",
+        details: "Aplica resplandor() y efectoelevar() al botón y conéctalo con avisar():",
         code: `boton(btnneon)(presioname)
 resplandor(btnneon)(ff6538)
 efectoelevar(btnneon)
-avisar(btnneon)(has pulsado un boton con estilo neon)`
+avisar(btnneon)(has activado un boton moderno en rc)`
       },
       {
-        title: "⚡ Combinar Botón con Entradas de Texto y Limpieza",
-        details: "Conecta el botón con una entrada usando el comando limpiar():",
-        code: `etiquetacampo(ingresa tu texto)
-entrada(micampo)(hola mundo)
-boton(btnlimpiar)(borrar campo)
-limpiar(btnlimpiar)(micampo)`
+        title: "⚡ Combinar Botón con Campo de Entrada y Borrador",
+        details: "Crea una entrada() y vacíala al pulsar el botón con limpiar():",
+        code: `etiquetacampo(ingresa un texto)
+entrada(micampo)(texto de prueba)
+boton(btnborrar)(limpiar entrada)
+limpiar(btnborrar)(micampo)`
       },
       {
-        title: "🧮 Combinar Botón con Operaciones Matemáticas",
-        details: "Realiza cálculos entre dos entradas e imprime la respuesta en una etiqueta:",
-        code: `entrada(n1)(12)
-entrada(n2)(8)
-boton(btncalcular)(sumar numeros)
-etiqueta(miresultado)(esperando calculo...)
-sumar(btncalcular)(n1)(n2)(miresultado)`
+        title: "🧮 Combinar Botón con Cálculo de Suma",
+        details: "Conecta dos campos numéricos y un botón con sumar() para mostrar el resultado:",
+        code: `camponumero(num1)(15)
+camponumero(num2)(35)
+boton(btncalc)(calcular suma)
+etiqueta(lblres)(resultado de la suma)
+sumar(btncalc)(num1)(num2)(lblres)`
       }
     ]
   },
   "entrada": {
-    topic: "Campos de Entrada (entrada)",
-    explanation: "Las entradas en RC capturan texto o datos. Se combinan con etiquetas, botones y operaciones:",
+    topic: "Campo de Entrada (entrada)",
+    explanation: "Las entradas capturan texto y se combinan con etiquetas, botones de acción y limpieza:",
     options: [
       {
-        title: "📋 Combinación Formulario Básico",
-        details: "Entrada con etiqueta descriptiva y respuesta interactiva:",
+        title: "📋 Combinación de Formulario Completo",
+        details: "Campo de entrada con diseño de borde y confirmación por botón:",
         code: `etiquetacampo(nombre de usuario)
-entrada(usuario)(juan)
-boton(btnenviar)(confirmar)
-avisar(btnenviar)(usuario registrado con exito)`
+entrada(inusuario)(juan)
+borde(inusuario)(2)(ff6538)
+boton(btnconfirmar)(guardar)
+avisar(btnconfirmar)(datos guardados con exito)`
       }
     ]
   },
   "lienzo": {
     topic: "Lienzo y Pizarra (lienzo)",
-    explanation: "El lienzo en RC sirve para dibujar en 2D. Se combina idealmente con resplandor() y un botón de limpieza:",
+    explanation: "El lienzo permite realizar trazos 2D interactivos y se combina con resplandor() y limpiarlienzo():",
     options: [
       {
-        title: "🎨 Pizarra Interactiva Neón",
-        details: "Dibujo 2D con borde iluminado y borrador:",
-        code: `lienzo(mipizarrita)
-resplandor(mipizarrita)(3b82f6)
-boton(btnreset)(limpiar lienzo)
-limpiarlienzo(btnreset)(mipizarrita)`
+        title: "🎨 Pizarra con Resplandor y Borrador",
+        details: "Lienzo rodeado de brillo con un botón para limpiar trazos:",
+        code: `lienzo(pizarra2d)
+resplandor(pizarra2d)(3b82f6)
+boton(btnlimpiar)(borrar lienzo)
+limpiarlienzo(btnlimpiar)(pizarra2d)`
       }
     ]
   }
@@ -322,7 +342,7 @@ function home() {
   $('rcOutput').style.display = 'none';
   $('welcome').style.display = 'flex';
   $('url').value = '';
-  setStatus('Listo · Framen RC');
+  setStatus('Listo · Framen RC (70 Comandos)');
   recordHistory('home');
 }
 
@@ -390,7 +410,7 @@ function navigate() {
   }
 }
 
-// Búsqueda Inteligente que entiende preguntas sobre cómo combinar elementos RC
+// Búsqueda Inteligente para el Lenguaje RC
 function performSearch(query, trackHistory = true) {
   const out = $('rcOutput');
   out.replaceChildren();
@@ -400,14 +420,12 @@ function performSearch(query, trackHistory = true) {
   const container = document.createElement('div');
   container.className = 'rc-container';
 
-  // Quitar acentos para comparaciones sin fallas
   const normalizeText = str => str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
   const qClean = normalizeText(query);
 
-  // Encabezado de búsqueda inteligente
   const h = document.createElement('h2');
   h.style.color = '#f4f6fb';
-  h.textContent = `Asistente Inteligente RC: "${query}"`;
+  h.textContent = `Asistente e Intérprete RC: "${query}"`;
   container.appendChild(h);
 
   let handledIntelligent = false;
@@ -421,7 +439,7 @@ function performSearch(query, trackHistory = true) {
       aiCard.style.borderColor = '#ff6538';
       aiCard.style.background = 'rgba(255, 101, 56, 0.06)';
 
-      let cardHtml = `<h3 style="color:#ff6538; margin-top:0;">💡 Formas recomendadas de combinar ${key.toUpperCase()}</h3>
+      let cardHtml = `<h3 style="color:#ff6538; margin-top:0;">💡 Combinaciones Inteligentes para ${key.toUpperCase()}</h3>
                       <p style="color:#cbd5e1; font-size:14px; line-height:1.5;">${comboInfo.explanation}</p>`;
 
       comboInfo.options.forEach(opt => {
@@ -438,7 +456,6 @@ function performSearch(query, trackHistory = true) {
     }
   }
 
-  // Búsqueda en el diccionario de comandos
   const matches = RC_DICTIONARY.filter(item => {
     const cmdNorm = normalizeText(item.cmd);
     const descNorm = normalizeText(item.desc);
@@ -447,7 +464,7 @@ function performSearch(query, trackHistory = true) {
 
   if (matches.length > 0) {
     const listHeader = document.createElement('h3');
-    listHeader.textContent = qClean.includes('diccionario') ? 'Diccionario Completo de Comandos RC:' : 'Comandos RC Relacionados:';
+    listHeader.textContent = qClean.includes('diccionario') ? 'Diccionario Oficial de 70 Comandos RC:' : 'Comandos RC Encontrados:';
     listHeader.style.marginTop = '20px';
     container.appendChild(listHeader);
 
@@ -464,17 +481,17 @@ function performSearch(query, trackHistory = true) {
     });
   } else if (!handledIntelligent) {
     const p = document.createElement('p');
-    p.textContent = 'No se encontraron resultados específicos. Puedes escribir comandos RC directamente en la barra superior o preguntar por ej: "¿cómo combinar un botón?"';
+    p.textContent = 'No se encontraron comandos exactos. Escribe código RC directamente o busca por ej: "¿cómo combinar un botón?"';
     container.appendChild(p);
   }
 
   out.appendChild(container);
-  setStatus(`Búsqueda Inteligente: "${query}"`);
+  setStatus(`Búsqueda RC: "${query}"`);
   if (trackHistory) recordHistory('search:' + query);
 }
 
 /*
-  Motor Intérprete Nativo RC v2.5
+  Motor Intérprete Nativo para los 70 Comandos Oficiales del Lenguaje RC
 */
 function renderRC(source) {
   const out = $('rcOutput');
@@ -511,6 +528,7 @@ function renderRC(source) {
 
     try {
       switch (cmd) {
+        // --- ESTRUCTURA DE INTERFAZ (25) ---
         case 'incluir':
           break;
         case 'titulo':
@@ -556,6 +574,21 @@ function renderRC(source) {
           h.textContent = args[1] || args[0] || '';
           currentParent.appendChild(h);
           break;
+        case 'negrita':
+          const b = document.createElement('strong');
+          b.textContent = args[0] || '';
+          currentParent.appendChild(b);
+          break;
+        case 'cursiva':
+          const em = document.createElement('em');
+          em.textContent = args[0] || '';
+          currentParent.appendChild(em);
+          break;
+        case 'subrayado':
+          const u = document.createElement('u');
+          u.textContent = args[0] || '';
+          currentParent.appendChild(u);
+          break;
         case 'etiqueta':
           const lbl = document.createElement('span');
           if (args[0]) lbl.id = args[0];
@@ -563,6 +596,35 @@ function renderRC(source) {
           lbl.style.display = 'inline-block';
           lbl.style.margin = '4px 0';
           currentParent.appendChild(lbl);
+          break;
+        case 'cita':
+          const q = document.createElement('blockquote');
+          q.textContent = args[0] || '';
+          q.style.borderLeft = '4px solid var(--accent)';
+          q.style.paddingLeft = '12px';
+          currentParent.appendChild(q);
+          break;
+        case 'codigo':
+          const pre = document.createElement('pre');
+          pre.textContent = args[0] || '';
+          pre.style.background = 'rgba(0,0,0,0.5)';
+          pre.style.padding = '12px';
+          pre.style.borderRadius = '8px';
+          currentParent.appendChild(pre);
+          break;
+        case 'enlace':
+          const a = document.createElement('a');
+          a.href = args[0] || '#';
+          a.textContent = args[1] || args[0] || '';
+          a.style.color = 'var(--accent)';
+          currentParent.appendChild(a);
+          break;
+        case 'imagen':
+          const img = document.createElement('img');
+          img.src = args[0] || '';
+          img.style.maxWidth = '100%';
+          img.style.borderRadius = '8px';
+          currentParent.appendChild(img);
           break;
         case 'boton':
           const btn = document.createElement('button');
@@ -587,6 +649,37 @@ function renderRC(source) {
           if (args[1]) inTxt.value = args[1];
           currentParent.appendChild(inTxt);
           break;
+        case 'camponumero':
+          const inNum = document.createElement('input');
+          inNum.type = 'number';
+          inNum.className = 'rc-input';
+          if (args[0]) inNum.id = args[0];
+          if (args[1]) inNum.value = args[1];
+          currentParent.appendChild(inNum);
+          break;
+        case 'campocorreo':
+          const inEmail = document.createElement('input');
+          inEmail.type = 'email';
+          inEmail.className = 'rc-input';
+          if (args[0]) inEmail.id = args[0];
+          if (args[1]) inEmail.value = args[1];
+          currentParent.appendChild(inEmail);
+          break;
+        case 'campocontrasena':
+          const inPass = document.createElement('input');
+          inPass.type = 'password';
+          inPass.className = 'rc-input';
+          if (args[0]) inPass.id = args[0];
+          currentParent.appendChild(inPass);
+          break;
+        case 'areatexto':
+          const txtArea = document.createElement('textarea');
+          txtArea.className = 'rc-textarea';
+          txtArea.rows = 4;
+          if (args[0]) txtArea.id = args[0];
+          if (args[1]) txtArea.value = args[1];
+          currentParent.appendChild(txtArea);
+          break;
         case 'lienzo':
           const cvs = document.createElement('canvas');
           if (args[0]) cvs.id = args[0];
@@ -600,6 +693,82 @@ function renderRC(source) {
           cvs.onpointerdown = e => { drawing = true; ctx.beginPath(); ctx.moveTo(e.offsetX, e.offsetY); };
           cvs.onpointermove = e => { if (drawing) { ctx.lineTo(e.offsetX, e.offsetY); ctx.strokeStyle = '#ff6538'; ctx.lineWidth = 3; ctx.stroke(); } };
           cvs.onpointerup = () => { drawing = false; };
+          break;
+
+        // --- DISEÑO Y ESTILOS VISUALES (25) ---
+        case 'fondo':
+          out.style.background = '#' + (args[0] || '0b0d12').replace('#','');
+          break;
+        case 'color':
+          out.style.color = '#' + (args[0] || 'f4f6fb').replace('#','');
+          break;
+        case 'letra':
+          out.style.fontFamily = args[0] || 'sans-serif';
+          break;
+        case 'tamano':
+          eventQueue.push(() => {
+            const el = $(args[0]);
+            if (el) el.style.fontSize = (args[1] || 14) + 'px';
+          });
+          break;
+        case 'ancho':
+          eventQueue.push(() => {
+            const el = $(args[0]);
+            if (el) el.style.width = (args[1] || 200) + 'px';
+          });
+          break;
+        case 'alto':
+          eventQueue.push(() => {
+            const el = $(args[0]);
+            if (el) el.style.height = (args[1] || 100) + 'px';
+          });
+          break;
+        case 'centrar':
+          eventQueue.push(() => {
+            const el = $(args[0]);
+            if (el) { el.style.margin = '0 auto'; el.style.textAlign = 'center'; }
+          });
+          break;
+        case 'gap':
+          eventQueue.push(() => {
+            const el = $(args[0]);
+            if (el) el.style.gap = (args[1] || 10) + 'px';
+          });
+          break;
+        case 'borde':
+          eventQueue.push(() => {
+            const el = $(args[0]);
+            if (el) el.style.border = `${args[1] || 1}px solid #${(args[2] || 'ff6538').replace('#','')}`;
+          });
+          break;
+        case 'radio':
+          eventQueue.push(() => {
+            const el = $(args[0]);
+            if (el) el.style.borderRadius = (args[1] || 8) + 'px';
+          });
+          break;
+        case 'sombracaja':
+          eventQueue.push(() => {
+            const el = $(args[0]);
+            if (el) el.style.boxShadow = `${args[1]||0}px ${args[2]||4}px ${args[3]||15}px #${(args[4]||'000000').replace('#','')}`;
+          });
+          break;
+        case 'gradiente':
+          eventQueue.push(() => {
+            const el = $(args[0]);
+            if (el) el.style.background = `linear-gradient(135deg, #${(args[1]||'ff6538').replace('#','')}, #${(args[2]||'ff8c00').replace('#','')})`;
+          });
+          break;
+        case 'efectoglass':
+          eventQueue.push(() => {
+            const el = $(args[0]);
+            if (el) {
+              el.style.background = 'rgba(255, 255, 255, 0.05)';
+              el.style.backdropFilter = 'blur(12px)';
+              el.style.border = '1px solid rgba(255, 255, 255, 0.12)';
+              el.style.borderRadius = '16px';
+            }
+          });
           break;
         case 'resplandor':
           eventQueue.push(() => {
@@ -621,6 +790,68 @@ function renderRC(source) {
             }
           });
           break;
+        case 'opacidad':
+          eventQueue.push(() => {
+            const el = $(args[0]);
+            if (el) el.style.opacity = (parseFloat(args[1]) || 100) / 100;
+          });
+          break;
+        case 'pad':
+          eventQueue.push(() => {
+            const el = $(args[0]);
+            if (el) el.style.padding = (args[1] || 10) + 'px';
+          });
+          break;
+        case 'margen':
+          eventQueue.push(() => {
+            const el = $(args[0]);
+            if (el) el.style.margin = (args[1] || 10) + 'px';
+          });
+          break;
+        case 'alineartexto':
+          eventQueue.push(() => {
+            const el = $(args[0]);
+            if (el) el.style.textAlign = args[1] || 'center';
+          });
+          break;
+        case 'transformar':
+          eventQueue.push(() => {
+            const el = $(args[0]);
+            if (el) el.style.transform = `scale(${args[1] || 1})`;
+          });
+          break;
+        case 'rotar':
+          eventQueue.push(() => {
+            const el = $(args[0]);
+            if (el) el.style.transform = `rotate(${args[1] || 0}deg)`;
+          });
+          break;
+        case 'fijarposicion':
+          eventQueue.push(() => {
+            const el = $(args[0]);
+            if (el) el.style.position = args[1] || 'relative';
+          });
+          break;
+        case 'capa':
+          eventQueue.push(() => {
+            const el = $(args[0]);
+            if (el) el.style.zIndex = args[1] || 1;
+          });
+          break;
+        case 'ocultar':
+          eventQueue.push(() => {
+            const el = $(args[0]);
+            if (el) el.style.display = 'none';
+          });
+          break;
+        case 'mostrar':
+          eventQueue.push(() => {
+            const el = $(args[0]);
+            if (el) el.style.display = 'block';
+          });
+          break;
+
+        // --- LÓGICA Y COMPORTAMIENTO (20) ---
         case 'avisar':
           eventQueue.push(() => {
             const btn = $(args[0]);
@@ -646,7 +877,33 @@ function renderRC(source) {
             }
           });
           break;
+        case 'ocultarboton':
+          eventQueue.push(() => {
+            const btn = $(args[0]);
+            const target = $(args[1]);
+            if (btn && target) btn.onclick = () => { target.style.display = 'none'; };
+          });
+          break;
+        case 'mostrarboton':
+          eventQueue.push(() => {
+            const btn = $(args[0]);
+            const target = $(args[1]);
+            if (btn && target) btn.onclick = () => { target.style.display = 'block'; };
+          });
+          break;
+        case 'alternar':
+          eventQueue.push(() => {
+            const btn = $(args[0]);
+            const target = $(args[1]);
+            if (btn && target) btn.onclick = () => {
+              target.style.display = target.style.display === 'none' ? 'block' : 'none';
+            };
+          });
+          break;
         case 'sumar':
+        case 'restar':
+        case 'multiplicar':
+        case 'dividir':
           eventQueue.push(() => {
             const btn = $(args[0]);
             const in1 = $(args[1]);
@@ -656,9 +913,101 @@ function renderRC(source) {
               btn.onclick = () => {
                 const v1 = parseFloat(in1.value) || 0;
                 const v2 = parseFloat(in2.value) || 0;
-                lbl.textContent = 'Resultado: ' + (v1 + v2);
+                let res = 0;
+                if (cmd === 'sumar') res = v1 + v2;
+                if (cmd === 'restar') res = v1 - v2;
+                if (cmd === 'multiplicar') res = v1 * v2;
+                if (cmd === 'dividir') res = v2 !== 0 ? v1 / v2 : 'Error Div/0';
+                lbl.textContent = 'Resultado: ' + res;
               };
             }
+          });
+          break;
+        case 'deshabilitar':
+          eventQueue.push(() => {
+            const btn = $(args[0]);
+            const target = $(args[1]);
+            if (btn && target) btn.onclick = () => { target.disabled = true; };
+          });
+          break;
+        case 'habilitar':
+          eventQueue.push(() => {
+            const btn = $(args[0]);
+            const target = $(args[1]);
+            if (btn && target) btn.onclick = () => { target.disabled = false; };
+          });
+          break;
+        case 'copiartexto':
+          eventQueue.push(() => {
+            const btn = $(args[0]);
+            const target = $(args[1]);
+            if (btn && target) btn.onclick = () => { navigator.clipboard.writeText(target.value || target.textContent); alert('Texto copiado'); };
+          });
+          break;
+        case 'fijartexto':
+          eventQueue.push(() => {
+            const btn = $(args[0]);
+            const target = $(args[1]);
+            if (btn && target) btn.onclick = () => { target.textContent = args[2] || ''; };
+          });
+          break;
+        case 'alternarclase':
+          eventQueue.push(() => {
+            const btn = $(args[0]);
+            const target = $(args[1]);
+            if (btn && target) btn.onclick = () => { target.classList.toggle('activo'); };
+          });
+          break;
+        case 'guardardato':
+          eventQueue.push(() => {
+            const btn = $(args[0]);
+            const input = $(args[2]);
+            if (btn && input) btn.onclick = () => { localStorage.setItem(args[1], input.value); alert('Dato guardado en RC'); };
+          });
+          break;
+        case 'cargardato':
+          eventQueue.push(() => {
+            const btn = $(args[0]);
+            const lbl = $(args[2]);
+            if (btn && lbl) btn.onclick = () => { lbl.textContent = localStorage.getItem(args[1]) || 'No hay dato'; };
+          });
+          break;
+        case 'borrardato':
+          eventQueue.push(() => {
+            const btn = $(args[0]);
+            if (btn) btn.onclick = () => { localStorage.removeItem(args[1]); alert('Dato eliminado'); };
+          });
+          break;
+        case 'temporizador':
+          eventQueue.push(() => {
+            const btn = $(args[0]);
+            const lbl = $(args[2]);
+            if (btn && lbl) {
+              btn.onclick = () => {
+                let seg = parseInt(args[1]) || 5;
+                lbl.textContent = 'Tiempo: ' + seg;
+                const timer = setInterval(() => {
+                  seg--;
+                  lbl.textContent = 'Tiempo: ' + seg;
+                  if (seg <= 0) { clearInterval(timer); lbl.textContent = 'Tiempo finalizado!'; }
+                }, 1000);
+              };
+            }
+          });
+          break;
+        case 'sonido':
+          eventQueue.push(() => {
+            const btn = $(args[0]);
+            if (btn) btn.onclick = () => {
+              try {
+                const ctx = new (window.AudioContext || window.webkitAudioContext)();
+                const osc = ctx.createOscillator();
+                osc.frequency.value = parseInt(args[1]) || 440;
+                osc.connect(ctx.destination);
+                osc.start();
+                setTimeout(() => osc.stop(), 200);
+              } catch(e){}
+            };
           });
           break;
       }
