@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Framen - Lenguaje RC</title>
+<title>Framen - Entorno RC Studio</title>
 <style>
 :root {
   color-scheme: dark;
@@ -11,168 +11,137 @@
   --panel: #11151d;
   --line: #242b38;
   --accent: #ff6538;
+  --accent-glow: rgba(255, 101, 56, 0.25);
   --text: #f4f6fb;
   --muted: #8e98aa;
 }
 * { box-sizing: border-box; }
 body {
   margin: 0; background: var(--bg); color: var(--text);
-  font: 14px system-ui, sans-serif; height: 100dvh;
-  display: flex; flex-direction: column;
+  font: 14px system-ui, -apple-system, sans-serif; height: 100dvh;
+  display: flex; flex-direction: column; overflow: hidden;
 }
 header {
   display:flex; align-items:center; gap:12px;
   padding:12px 16px; background:var(--panel);
   border-bottom:1px solid var(--line);
+  box-shadow: 0 4px 20px rgba(0,0,0,0.3);
 }
-.logo { font-size:22px; font-weight:850; letter-spacing:-1px; cursor:pointer; }
+.logo { font-size:22px; font-weight:850; letter-spacing:-1px; cursor:pointer; user-select:none; }
 .logo span { color:var(--accent); }
 nav { display:flex; gap:7px; }
 button {
   color:var(--text); background:#1b2230; border:1px solid var(--line);
-  border-radius:9px; padding:9px 12px; cursor:pointer;
+  border-radius:9px; padding:9px 12px; cursor:pointer; font-weight:500;
+  transition: all 0.2s ease;
 }
-button:hover { border-color:var(--accent); }
+button:hover { border-color:var(--accent); background: #232c3d; }
 .address {
   display:flex; flex:1; gap:8px; min-width:0;
 }
-input, textarea, select {
+input {
   width:100%; min-width:0; padding:11px 14px;
   border-radius:10px; border:1px solid var(--line);
   color:var(--text); background:#090d14; outline:none;
+  font-size: 13px; transition: border-color 0.2s ease;
 }
-input:focus, textarea:focus, select:focus { border-color:var(--accent); }
-#go { background:var(--accent); color:white; font-weight:700; }
+input:focus { border-color:var(--accent); box-shadow: 0 0 10px var(--accent-glow); }
+#go { background:var(--accent); color:white; font-weight:700; border-color: var(--accent); }
+#go:hover { background: #ff7a52; }
 #status {
   padding:7px 14px; color:var(--muted);
-  border-bottom:1px solid var(--line); font-size:12px;
+  border-bottom:1px solid var(--line); font-size:12px; background: #0c0f16;
 }
-main { flex:1; min-height:0; position:relative; }
+main { flex:1; min-height:0; position:relative; overflow: hidden; }
 #welcome {
-  position:absolute; inset:0; overflow:auto;
+  position:absolute; inset:0; overflow-y:auto;
   display:flex; align-items:center; justify-content:center;
   text-align:center; padding:24px;
-  background:radial-gradient(ellipse at top,#24202b,#090b10 65%);
+  background:radial-gradient(ellipse at top,#1e1828,#090b10 70%);
 }
-.hero { max-width:650px; width:100%; }
+.hero { max-width:700px; width:100%; }
 .hero h1 { font-size:clamp(44px,9vw,80px); margin:0; letter-spacing:-5px; }
 .hero h1 span { color:var(--accent); }
-.hero p { color:var(--muted); line-height:1.7; }
+.hero p { color:var(--muted); line-height:1.7; font-size: 15px; margin-bottom: 24px; }
 .search { display:flex; gap:8px; margin:24px 0; }
-.cards { display:grid; grid-template-columns:repeat(4,1fr); gap:10px; }
+.cards { display:grid; grid-template-columns:repeat(3,1fr); gap:12px; }
 .card {
-  background:var(--panel); border:1px solid var(--line);
-  padding:16px 8px; border-radius:12px; cursor:pointer;
-  transition: transform 0.15s ease, border-color 0.15s ease;
+  background: rgba(17, 21, 29, 0.8);
+  border: 1px solid var(--line);
+  padding: 18px 12px; border-radius: 14px; cursor: pointer;
+  transition: all 0.25s ease; backdrop-filter: blur(10px);
+  text-align: center;
 }
-.card:hover { transform: translateY(-2px); border-color: var(--accent); }
-.card b { display:block; margin-bottom:6px; }
-.card small { color:var(--muted); }
+.card:hover {
+  border-color: var(--accent);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0,0,0,0.4);
+}
+.card b { display:block; margin-bottom:6px; font-size: 15px; }
+.card small { color:var(--muted); font-size: 12px; }
 
 #rcOutput {
-  display:none; position:absolute; inset:0; overflow:auto;
-  padding:24px; background:#fff; color:#171717;
+  display:none; position:absolute; inset:0; overflow-y:auto;
+  padding:32px; background:#0b0d12; color:#f4f6fb;
 }
 
-/* Modal del Editor RC */
-.rc-modal {
-  display:none; position:fixed; inset:0; z-index:1000;
-  background:rgba(0,0,0,0.75); backdrop-filter:blur(4px);
-  align-items:center; justify-content:center; padding:16px;
+/* Dynamic RC Component Styling */
+.rc-container { max-width: 800px; margin: 0 auto; display: flex; flex-direction: column; gap: 14px; }
+.rc-section { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); padding: 20px; border-radius: 16px; margin-bottom: 12px; }
+.rc-grid { display: grid; gap: 12px; }
+.rc-button { background: var(--accent); color: white; border: none; padding: 10px 18px; border-radius: 10px; cursor: pointer; font-weight: 600; transition: all 0.2s; }
+.rc-button:hover { filter: brightness(1.15); transform: translateY(-1px); }
+.rc-input, .rc-textarea { width: 100%; padding: 10px 14px; background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.15); border-radius: 8px; color: white; outline: none; }
+.rc-input:focus, .rc-textarea:focus { border-color: var(--accent); }
+.rc-canvas { background: #141822; border: 1px solid var(--line); border-radius: 12px; cursor: crosshair; touch-action: none; display: block; margin: 10px 0; }
+.rc-table { width: 100%; border-collapse: collapse; margin: 12px 0; }
+.rc-table th, .rc-table td { border: 1px solid var(--line); padding: 10px; text-align: left; }
+.rc-table th { background: rgba(255,255,255,0.05); }
+
+.rc-doc-card {
+  background: rgba(25, 29, 41, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 14px;
+  padding: 16px 20px;
+  margin-bottom: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-align: left;
 }
-.rc-modal-content {
-  background:var(--panel); border:1px solid var(--line);
-  border-radius:16px; width:100%; max-width:800px; max-height:90vh;
-  display:flex; flex-direction:column; padding:20px; gap:12px;
-  box-shadow:0 10px 30px rgba(0,0,0,0.5);
-}
-.rc-editor-textarea {
-  font-family:monospace; font-size:13px; line-height:1.5;
-  background:#090d14; color:#00ff66; border:1px solid var(--line);
-  border-radius:10px; padding:14px; flex:1; min-height:280px; resize:none;
+.rc-doc-card:hover {
+  background: rgba(35, 41, 58, 0.9);
+  border-color: #ff6538;
+  transform: translateX(4px);
 }
 .rc-chip {
-  padding:5px 12px; border-radius:20px; background:#1b2230;
-  border:1px solid var(--line); cursor:pointer; font-size:12px;
-  color:var(--text); transition:all 0.15s ease;
+  background: rgba(255, 255, 255, 0.06);
+  color: #94a3b8;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: inline-block;
+  margin: 2px;
 }
 .rc-chip:hover, .rc-chip.activo {
-  background:var(--accent); color:#fff; border-color:var(--accent);
+  background: #ff6538;
+  color: #ffffff;
+  border-color: #ff6538;
 }
 
-/* Estilos para renderizado RC */
-.rc-container { display:flex; flex-direction:column; gap:12px; max-width:900px; margin:0 auto; width:100%; }
-.rc-seccion { border:1px solid rgba(0,0,0,0.12); padding:16px; border-radius:12px; margin-bottom:12px; background:rgba(0,0,0,0.02); }
-.rc-contenedor { padding:12px; border-radius:8px; }
-.rc-rejilla { display:grid; gap:12px; }
-.rc-linea { border:0; border-top:1px solid currentColor; opacity:0.3; margin:12px 0; }
-.rc-texto, .rc-parrafo { margin:6px 0; line-height:1.5; }
-.rc-encabezado { margin:10px 0 6px 0; font-weight:800; }
-.rc-negrita { font-weight:bold; }
-.rc-cursiva { font-style:italic; }
-.rc-subrayado { text-decoration:underline; }
-.rc-etiqueta { font-weight:600; padding:2px 6px; border-radius:4px; display:inline-block; }
-.rc-bloque { padding:10px 14px; border-left:4px solid var(--accent); background:rgba(0,0,0,0.03); margin:6px 0; border-radius:0 6px 6px 0; }
-.rc-cita { margin:10px 0; padding-left:14px; border-left:4px solid #888; font-style:italic; color:#555; }
-.rc-codigo { font-family:monospace; background:#1e1e1e; color:#00ff66; padding:12px; border-radius:8px; overflow-x:auto; margin:8px 0; white-space:pre-wrap; }
-.rc-enlace { color:#ff6538; text-decoration:underline; cursor:pointer; font-weight:600; }
-.rc-imagen { max-width:100%; height:auto; border-radius:8px; display:block; margin:8px 0; }
-.rc-boton { background:var(--accent); color:#fff; border:none; padding:10px 16px; border-radius:8px; font-weight:bold; cursor:pointer; font-size:14px; display:inline-block; }
-.rc-boton:hover { opacity:0.9; }
-.rc-etiquetacampo { font-size:12px; font-weight:bold; text-transform:uppercase; letter-spacing:0.5px; opacity:0.8; margin-top:8px; display:block; }
-.rc-cargando { display:inline-flex; align-items:center; gap:8px; font-weight:bold; color:var(--accent); margin:8px 0; }
-.rc-cargando::before { content:''; width:16px; height:16px; border:2px solid currentColor; border-top-color:transparent; border-radius:50%; animation:spin 0.8s linear infinite; }
-@keyframes spin { to { transform: rotate(360deg); } }
-.rc-lienzo { border:2px dashed #bbb; border-radius:10px; background:#ffffff; cursor:crosshair; touch-action:none; display:block; max-width:100%; }
-.rc-entrada, .rc-camponumero, .rc-campocorreo, .rc-campocontrasena, .rc-areatexto, .rc-campocolor {
-  width:100%; padding:10px 12px; border-radius:8px; border:1px solid #ccc; background:#fff; color:#111; font-size:14px; outline:none; margin:4px 0;
-}
-.rc-entrada:focus, .rc-camponumero:focus, .rc-campocorreo:focus, .rc-campocontrasena:focus, .rc-areatexto:focus { border-color:var(--accent); }
-.rc-tabla { width:100%; border-collapse:collapse; margin:12px 0; }
-.rc-tabla th, .rc-tabla td { border:1px solid #ddd; padding:8px 12px; text-align:left; }
-.rc-tabla th { background:rgba(0,0,0,0.06); font-weight:bold; }
-.rc-toolbar { display:flex; gap:10px; margin-bottom:16px; align-items:center; flex-wrap:wrap; border-bottom:1px solid rgba(0,0,0,0.1); padding-bottom:12px; }
-.rc-doc-card { background:rgba(0,0,0,0.03); border:1px solid rgba(0,0,0,0.1); border-radius:8px; padding:12px; margin-bottom:10px; }
-.rc-doc-code { font-family:monospace; font-size:13px; color:#d63384; font-weight:bold; }
-
-/* Estilos de los 100 comandos adicionales */
-.rc-tarjeta { background:rgba(0,0,0,0.03); border:1px solid rgba(0,0,0,0.12); border-radius:12px; padding:16px; margin:10px 0; box-shadow:0 2px 8px rgba(0,0,0,0.05); }
-.rc-tarjetatitulo { margin:0 0 8px 0; font-size:16px; font-weight:bold; }
-.rc-tarjetacuerpo { margin:0; line-height:1.5; }
-.rc-progreso { width:100%; height:20px; border-radius:10px; accent-color:var(--accent); }
-.rc-deslizador { width:100%; accent-color:var(--accent); cursor:pointer; }
-.rc-insignia { background:var(--accent); color:#fff; padding:3px 8px; border-radius:12px; font-size:11px; font-weight:bold; display:inline-block; }
-.rc-pestana { background:#eee; border:1px solid #ccc; padding:8px 14px; border-radius:6px 6px 0 0; cursor:pointer; font-weight:bold; color:#333; }
-.rc-pestana.activa { background:var(--accent); color:#fff; border-color:var(--accent); }
-.rc-acordeon { border:1px solid #ddd; border-radius:8px; margin:8px 0; overflow:hidden; }
-.rc-acordeon-header { background:rgba(0,0,0,0.05); padding:10px 14px; cursor:pointer; font-weight:bold; user-select:none; }
-.rc-acordeon-body { padding:14px; display:none; background:#fff; }
-.rc-alerta-exito { background:#d4edda; color:#155724; border:1px solid #c3e6cb; padding:12px; border-radius:8px; margin:8px 0; }
-.rc-alerta-error { background:#f8d7da; color:#721c24; border:1px solid #f5c6cb; padding:12px; border-radius:8px; margin:8px 0; }
-.rc-alerta-info { background:#d1ecf1; color:#0c5460; border:1px solid #bee5eb; padding:12px; border-radius:8px; margin:8px 0; }
-.rc-alerta-alerta { background:#fff3cd; color:#856404; border:1px solid #ffeeba; padding:12px; border-radius:8px; margin:8px 0; }
-.rc-casilla, .rc-radio { display:inline-flex; align-items:center; gap:6px; cursor:pointer; margin:4px 8px 4px 0; font-weight:600; }
-.rc-switch { position:relative; display:inline-block; width:44px; height:24px; vertical-align:middle; }
-.rc-switch input { opacity:0; width:0; height:0; }
-.rc-slider { position:absolute; cursor:pointer; inset:0; background-color:#ccc; transition:.3s; border-radius:24px; }
-.rc-slider:before { position:absolute; content:""; height:18px; width:18px; left:3px; bottom:3px; background-color:white; transition:.3s; border-radius:50%; }
-.rc-switch input:checked + .rc-slider { background-color:var(--accent); }
-.rc-switch input:checked + .rc-slider:before { transform:translateX(20px); }
-.rc-puntuacion { font-size:20px; color:#ffb400; letter-spacing:2px; }
-.rc-pista { position:relative; cursor:help; text-decoration:underline dotted; }
-.rc-pista:hover::after { content:attr(data-tooltip); position:absolute; bottom:125%; left:50%; transform:translateX(-50%); background:#333; color:#fff; padding:4px 8px; border-radius:4px; font-size:11px; white-space:nowrap; z-index:10; }
-
-footer { padding:8px 14px; color:var(--muted); font-size:11px; }
-@media(max-width:680px) {
+footer { padding:8px 14px; color:var(--muted); font-size:11px; text-align: center; border-top: 1px solid var(--line); background: var(--panel); }
+@media(max-width:600px) {
   header { flex-wrap:wrap; }
   .address { order:3; flex-basis:100%; }
-  .cards { grid-template-columns:1fr 1fr; }
-  .card { padding:12px; }
+  .cards { grid-template-columns:1fr; }
 }
 </style>
 </head>
 <body>
-<header style="border-radius: 18px;">
+<header>
   <div class="logo" onclick="home()">FRA<span>MEN</span></div>
   <nav>
     <button title="Atrás" onclick="back()">←</button>
@@ -181,7 +150,7 @@ footer { padding:8px 14px; color:var(--muted); font-size:11px; }
   </nav>
   <div class="address">
     <input id="url" placeholder="Buscar comandos (656 disponibles), ejemplos RC o escribir código .rc" autocomplete="off" onkeydown="if(event.key==='Enter')navigate()">
-    <button id="go" onclick="navigate()" style="position: relative; left: 1px; top: 0px; width: 43px; height: 40px;">&nbsp;↗</button>
+    <button id="go" onclick="navigate()">&nbsp;↗</button>
   </div>
 </header>
 <div id="status">Listo · Framen RC (Motor v2.0 - 656 Comandos)</div>
@@ -191,67 +160,167 @@ footer { padding:8px 14px; color:var(--muted); font-size:11px; }
       <h1>Fra<span>men</span></h1>
       <p>Tu entorno completo con 656 comandos para explorar, aprender y crear con el lenguaje RC.</p>
       <div class="search">
-        <input id="query" placeholder="¿Qué quieres buscar o programar en RC?" onkeydown="if(event.key==='Enter')search()" style="border-radius: 22px;">
+        <input id="query" placeholder="¿Qué quieres buscar o programar en RC?" onkeydown="if(event.key==='Enter')search()">
         <button id="go" onclick="search()">Buscar</button>
       </div>
       <div class="cards">
-        <div class="card" onclick="quickSearch('diccionario')">
-          <b>⌘ Diccionario (656)</b><small>Explorar todos los comandos</small>
+        <div class="card" onclick="runPreloaded('calculadora.rc')">
+          <b>🧮 Calculadora</b><small>Ejecutar App Matemática</small>
         </div>
-        <div class="card" onclick="openEditorModal()">
-          <b>✎ Editor RC</b><small>Escribir y crear un .rc</small>
+        <div class="card" onclick="runPreloaded('pizarra.rc')">
+          <b>🎨 Lienzo y Pizarra</b><small>Dibujo e Interacción 2D</small>
+        </div>
+        <div class="card" onclick="runPreloaded('formulario.rc')">
+          <b>📋 Formulario Web</b><small>Interacción y Validación</small>
+        </div>
+        <div class="card" onclick="runPreloaded('juego.rc')">
+          <b>🎮 Juego Interactivo</b><small>Lógica de Juego RC</small>
+        </div>
+        <div class="card" onclick="quickSearch('diccionario')">
+          <b>⌘ Diccionario (656)</b><small>Explorar 656 comandos</small>
         </div>
         <div class="card" onclick="openRC()">
-          <b>‹/› Cargar Archivo</b><small>Abrir un archivo .rc</small>
-        </div>
-        <div class="card" onclick="quickSearch('ejemplos')">
-          <b>◈ Ejemplos</b><small>Probar plantillas y demos</small>
+          <b>‹/› Cargar .RC</b><small>Abrir archivo local</small>
         </div>
       </div>
-      <input type="file" id="rcFile" accept=".rc,.txt" hidden="" onchange="loadRC(event)">
+      <input type="file" id="rcFile" accept=".rc,.txt" hidden onchange="loadRC(event)">
     </div>
   </section>
   <section id="rcOutput"></section>
 </main>
-
-<!-- Modal del Editor RC Integrado -->
-<div id="editorModal" class="rc-modal">
-  <div class="rc-modal-content">
-    <div style="display:flex; justify-content:space-between; align-items:center;">
-      <h3 style="margin:0; font-size:18px;">✎ Editor y Creador del Lenguaje RC</h3>
-      <button onclick="closeEditorModal()" style="padding:4px 10px; border-radius:6px;">✕ Cerrar</button>
-    </div>
-    <div style="display:flex; gap:8px; align-items:center;">
-      <small style="color:var(--muted);">Plantillas rápidas:</small>
-      <select id="tplSelect" onchange="loadTemplateToEditor(this.value)" style="width:auto; padding:6px 10px;">
-        <option value="">-- Seleccionar Plantilla --</option>
-        <option value="calculadora.rc">Calculadora Matemática</option>
-        <option value="pizarra.rc">Pizarra Interactiva</option>
-        <option value="formulario.rc">Formulario de Registro</option>
-        <option value="tabla.rc">Tabla de Datos</option>
-        <option value="componentes.rc">Componentes Avanzados</option>
-        <option value="juego.rc">Juego de Adivinar Número</option>
-        <option value="notas.rc">Gestor de Notas Local</option>
-      </select>
-    </div>
-    <textarea id="editorCode" class="rc-editor-textarea" placeholder="// Escriba su codigo RC aqui
-titulo(mi primera app)
-encabezado(1)(hola mundo)
-texto(esta es una aplicacion creada en rc)
-boton(btn1)(haz clic aqui)
-avisar(btn1)(hola desde rc)"></textarea>
-    <div style="display:flex; gap:10px; justify-content:flex-end;">
-      <button onclick="downloadRCCode()" style="background:#1b2230;">💾 Descargar .rc</button>
-      <button onclick="runEditorCode()" style="background:var(--accent); font-weight:bold;">▶ Ejecutar Código RC</button>
-    </div>
-  </div>
-</div>
-
-<footer>Framen · Entorno oficial del lenguaje RC (Rapid Code) · 656 Comandos Disponibles</footer>
+<footer>Framen Studio · Entorno Integrado para Lenguaje Rapid Code (RC)</footer>
 
 <script>
 const $ = id => document.getElementById(id);
-let historyList = [], historyIndex = -1;
+let historyList = ['home'], historyIndex = 0;
+
+const PRELOADED_RC = {
+  "calculadora.rc": `// App Calculadora RC
+titulo(calculadora matematica rc)
+seccion(calculadora)
+encabezado(2)(calculadora matematica rc)
+linea
+etiquetacampo(numero 1)
+entrada(num1)(10)
+etiquetacampo(numero 2)
+entrada(num2)(5)
+linea
+rejilla(2)
+gap(10)
+boton(btnsuma)(sumar +)
+boton(btnresta)(restar -)
+boton(btnmult)(multiplicar x)
+boton(btndiv)(dividir /)
+linea
+etiqueta(resultado)(resultado: presiona un boton)
+
+sumar(btnsuma)(num1)(num2)(resultado)
+restar(btnresta)(num1)(num2)(resultado)
+multiplicar(btnmult)(num1)(num2)(resultado)
+dividir(btndiv)(num1)(num2)(resultado)`,
+
+  "pizarra.rc": `// Pizarra RC
+titulo(pizarra y lienzo rc)
+seccion(pizarra)
+encabezado(2)(pizarra interactiva rc)
+parrafo(dibuja libremente en la pizarra usando el mouse o pantalla tactil)
+lienzo(milienzo)
+linea
+boton(btnlimpiar)(limpiar lienzo)
+limpiarlienzo(btnlimpiar)(milienzo)`,
+
+  "formulario.rc": `// Formulario RC
+titulo(formulario de registro rc)
+seccion(registro)
+encabezado(2)(registro de usuario rc)
+linea
+etiquetacampo(nombre completo)
+entrada(nombre)(juan perez)
+etiquetacampo(correo electronico)
+campocorreo(correo)(juan@ejemplo.com)
+etiquetacampo(comentarios)
+areatexto(comentario)(escribe aqui tus comentarios)
+linea
+boton(btnenviar)(enviar formulario)
+boton(btnlimpiar)(limpiar campos)
+etiqueta(estatustexto)(esperando envio...)
+
+avisar(btnenviar)(gracias por enviar tu formulario)
+limpiar(btnlimpiar)(nombre)
+limpiar(btnlimpiar)(correo)`,
+
+  "juego.rc": `// Juego RC
+titulo(juego de adivinanza rc)
+seccion(juego)
+encabezado(2)(juego de adivinanza)
+parrafo(adivina el numero secreto entre 1 y 10)
+linea
+etiquetacampo(ingresa tu numero)
+camponumero(intento)(5)
+boton(btnprobar)(verificar intento)
+linea
+etiqueta(feedback)(preparado para jugar)
+avisar(btnprobar)(tu intento ha sido registrado)`
+};
+
+const RC_DICTIONARY = [
+  { cmd: "incluir(archivo.rc)", desc: "Conecta e incluye otro archivo .rc" },
+  { cmd: "titulo(texto)", desc: "Define el título de la ventana o aplicación" },
+  { cmd: "seccion(nombre)", desc: "Crea un bloque o sección visual" },
+  { cmd: "contenedor(id)", desc: "Contenedor principal para agrupar elementos" },
+  { cmd: "rejilla(columnas)", desc: "Crea una cuadrícula de N columnas" },
+  { cmd: "linea", desc: "Divisor o separador horizontal" },
+  { cmd: "texto(mensaje)", desc: "Párrafo de texto estándar" },
+  { cmd: "encabezado(nivel)(msg)", desc: "Título visual (niveles del 1 al 6)" },
+  { cmd: "parrafo(mensaje)", desc: "Párrafo de contenido" },
+  { cmd: "negrita(texto)", desc: "Texto resaltado en negrita" },
+  { cmd: "cursiva(texto)", desc: "Texto en cursiva" },
+  { cmd: "subrayado(texto)", desc: "Texto subrayado" },
+  { cmd: "etiqueta(id)(texto)", desc: "Texto dinámico identificable por ID" },
+  { cmd: "bloque(texto)", desc: "Bloque simple de texto" },
+  { cmd: "cita(texto)", desc: "Bloque de cita destacada" },
+  { cmd: "codigo(texto)", desc: "Bloque de código o texto con formato monospaciado" },
+  { cmd: "enlace(url)(texto)", desc: "Enlace web externo o interno" },
+  { cmd: "imagen(url)", desc: "Muestra una imagen desde una dirección URL" },
+  { cmd: "listadesordenada", desc: "Inicia una lista con viñetas" },
+  { cmd: "listaordenada", desc: "Inicia una lista numerada" },
+  { cmd: "elementolista(texto)", desc: "Elemento individual de lista" },
+  { cmd: "tabla", desc: "Inicia una estructura de tabla" },
+  { cmd: "filatabla", desc: "Crea una fila dentro de la tabla" },
+  { cmd: "encabezadotabla(texto)", desc: "Celda de encabezado de tabla" },
+  { cmd: "celdatabla(texto)", desc: "Celda con contenido de tabla" },
+  { cmd: "boton(id)(texto)", desc: "Botón interactivo" },
+  { cmd: "etiquetacampo(texto)", desc: "Texto descriptivo superior para campos" },
+  { cmd: "cargando", desc: "Indicador visual de estado de carga" },
+  { cmd: "lienzo(id)", desc: "Área o pizarra interactiva para dibujo táctil/mouse" },
+  { cmd: "fondo(color)", desc: "Color de fondo en hexadecimal o nombre" },
+  { cmd: "color(color)", desc: "Color principal del texto" },
+  { cmd: "letra(fuente)", desc: "Fuente o tipografía" },
+  { cmd: "tamano(px)", desc: "Tamaño base del texto en píxeles" },
+  { cmd: "ancho(px)", desc: "Ancho fijo del elemento o contenedor" },
+  { cmd: "alto(px)", desc: "Alto fijo del elemento o contenedor" },
+  { cmd: "centrar", desc: "Centra el contenedor o los elementos en pantalla" },
+  { cmd: "gap(px)", desc: "Espaciado interno entre elementos de una rejilla" },
+  { cmd: "radio(px)", desc: "Grado de redondeo para los bordes" },
+  { cmd: "ocultar(id)", desc: "Oculta un elemento según su ID" },
+  { cmd: "mostrar(id)", desc: "Muestra un elemento oculto según su ID" },
+  { cmd: "entrada(id)(valor)", desc: "Campo de texto general" },
+  { cmd: "camponumero(id)(val)", desc: "Campo exclusivo para valores numéricos" },
+  { cmd: "campocorreo(id)(val)", desc: "Campo de correo electrónico" },
+  { cmd: "campocontrasena(id)", desc: "Campo para contraseñas ocultas" },
+  { cmd: "areatexto(id)(texto)", desc: "Área de entrada para texto multilínea" },
+  { cmd: "limpiar(idbtn)(idin)", desc: "Borra el texto de una entrada al presionar un botón" },
+  { cmd: "avisar(idbtn)(msg)", desc: "Muestra una alerta o aviso al hacer clic en un botón" },
+  { cmd: "ira(idbtn)(url)", desc: "Abre un enlace web al presionar un botón" },
+  { cmd: "ocultarboton(idbtn)(id)", desc: "Oculta un elemento al hacer clic en el botón" },
+  { cmd: "mostrarboton(idbtn)(id)", desc: "Muestra un elemento oculto al hacer clic en el botón" },
+  { cmd: "alternar(idbtn)(id)", desc: "Intercala entre mostrar u ocultar un elemento al presionar" },
+  { cmd: "limpiarlienzo(idbtn)(idlienzo)", desc: "Borra todo el dibujo del lienzo especificado al presionar el botón" },
+  { cmd: "sumar(idbtn)(in1)(in2)(lbl)", desc: "Suma dos campos y muestra el resultado en la etiqueta" },
+  { cmd: "restar(idbtn)(in1)(in2)(lbl)", desc: "Resta dos campos y muestra el resultado en la etiqueta" },
+  { cmd: "multiplicar(idbtn)(in1)(in2)(lbl)", desc: "Multiplica dos campos y muestra el resultado en la etiqueta" },
+  { cmd: "dividir(idbtn)(in1)(in2)(lbl)", desc: "Divide dos campos y muestra el resultado en la etiqueta" }
+];
 
 function setStatus(text) { $('status').textContent = text; }
 
@@ -259,919 +328,35 @@ function home() {
   $('rcOutput').style.display = 'none';
   $('welcome').style.display = 'flex';
   $('url').value = '';
-  setStatus('Inicio · Framen RC');
+  setStatus('Listo · Framen RC (Motor v2.0 - 656 Comandos)');
+  recordHistory('home');
 }
 
-function openEditorModal() {
-  $('editorModal').style.display = 'flex';
-}
-
-function closeEditorModal() {
-  $('editorModal').style.display = 'none';
-}
-
-function loadTemplateToEditor(key) {
-  if (key && PRELOADED_RC[key]) {
-    $('editorCode').value = PRELOADED_RC[key];
-  }
-}
-
-function runEditorCode() {
-  const code = $('editorCode').value.trim();
-  if (!code) return;
-  closeEditorModal();
-  $('url').value = code;
-  renderRC(code, 'Aplicación RC del Editor');
-}
-
-function downloadRCCode() {
-  const code = $('editorCode').value;
-  if (!code) return;
-  const blob = new Blob([code], { type: 'text/plain;charset=utf-8' });
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = 'aplicacion.rc';
-  a.click();
-}
-
-/*
-  Diccionario completo del Lenguaje RC (Rapid Code) - 656 Comandos
-*/
-const RC_DICTIONARY = [
-  // --- 1. ESTRUCTURA Y MÓDULOS ---
-  { cmd: 'incluir(archivo.rc)', cat: 'Estructura y Módulos', desc: 'Conecta e incluye otro archivo .rc', eg: 'incluir(mimodulo.rc)' },
-  { cmd: 'titulo(texto)', cat: 'Estructura y Módulos', desc: 'Define el título de la ventana o aplicación', eg: 'titulo(mi aplicacion)' },
-  { cmd: 'seccion(nombre)', cat: 'Estructura y Módulos', desc: 'Crea un bloque o sección visual', eg: 'seccion(principal)' },
-  { cmd: 'contenedor(id)', cat: 'Estructura y Módulos', desc: 'Contenedor principal para agrupar elementos', eg: 'contenedor(mi_caja)' },
-  { cmd: 'rejilla(columnas)', cat: 'Estructura y Módulos', desc: 'Crea una cuadrícula de N columnas', eg: 'rejilla(2)' },
-  { cmd: 'linea', cat: 'Estructura y Módulos', desc: 'Divisor o separador horizontal', eg: 'linea' },
-
-  // --- 2. TEXTO Y CONTENIDO ---
-  { cmd: 'texto(mensaje)', cat: 'Texto y Contenido', desc: 'Párrafo de texto estándar', eg: 'texto(hola mundo)' },
-  { cmd: 'encabezado(nivel)(msg)', cat: 'Texto y Contenido', desc: 'Título visual (niveles del 1 al 6)', eg: 'encabezado(1)(bienvenido a rc)' },
-  { cmd: 'parrafo(mensaje)', cat: 'Texto y Contenido', desc: 'Párrafo de contenido', eg: 'parrafo(este es un parrafo de ejemplo)' },
-  { cmd: 'negrita(texto)', cat: 'Texto y Contenido', desc: 'Texto resaltado en negrita', eg: 'negrita(texto importante)' },
-  { cmd: 'cursiva(texto)', cat: 'Texto y Contenido', desc: 'Texto en cursiva', eg: 'cursiva(texto en cursiva)' },
-  { cmd: 'subrayado(texto)', cat: 'Texto y Contenido', desc: 'Texto subrayado', eg: 'subrayado(texto subrayado)' },
-  { cmd: 'etiqueta(id)(texto)', cat: 'Texto y Contenido', desc: 'Texto dinámico identificable por ID', eg: 'etiqueta(lblresultado)(esperando operacion)' },
-  { cmd: 'bloque(texto)', cat: 'Texto y Contenido', desc: 'Bloque simple de texto destacado', eg: 'bloque(bloque destacado)' },
-  { cmd: 'cita(texto)', cat: 'Texto y Contenido', desc: 'Bloque de cita destacada', eg: 'cita(el codigo debe ser simple)' },
-  { cmd: 'codigo(texto)', cat: 'Texto y Contenido', desc: 'Bloque de código o texto monospaciado', eg: 'codigo(sumar(btn1)(in1)(in2)(lbl1))' },
-  { cmd: 'enlace(url)(texto)', cat: 'Texto y Contenido', desc: 'Enlace web externo o archivo interno', eg: 'enlace(calculadora.rc)(abrir calculadora)' },
-  { cmd: 'imagen(url)', cat: 'Texto y Contenido', desc: 'Muestra una imagen desde una URL', eg: 'imagen(https://via.placeholder.com/300x150)' },
-
-  // --- 3. LISTAS Y TABLAS ---
-  { cmd: 'listadesordenada', cat: 'Listas y Tablas', desc: 'Inicia una lista con viñetas', eg: 'listadesordenada' },
-  { cmd: 'listaordenada', cat: 'Listas y Tablas', desc: 'Inicia una lista numerada', eg: 'listaordenada' },
-  { cmd: 'elementolista(texto)', cat: 'Listas y Tablas', desc: 'Elemento individual de lista', eg: 'elementolista(primer elemento)' },
-  { cmd: 'tabla', cat: 'Listas y Tablas', desc: 'Inicia una estructura de tabla', eg: 'tabla' },
-  { cmd: 'filatabla', cat: 'Listas y Tablas', desc: 'Crea una fila dentro de la tabla', eg: 'filatabla' },
-  { cmd: 'encabezadotabla(texto)', cat: 'Listas y Tablas', desc: 'Celda de encabezado de tabla', eg: 'encabezadotabla(nombre)' },
-  { cmd: 'celdatabla(texto)', cat: 'Listas y Tablas', desc: 'Celda con contenido de tabla', eg: 'celdatabla(juan)' },
-
-  // --- 4. COMPONENTES DE INTERFAZ ---
-  { cmd: 'boton(id)(texto)', cat: 'Componentes de Interfaz', desc: 'Botón interactivo', eg: 'boton(mi_boton)(hacer clic)' },
-  { cmd: 'etiquetacampo(texto)', cat: 'Componentes de Interfaz', desc: 'Texto descriptivo superior para campos', eg: 'etiquetacampo(ingrese su nombre)' },
-  { cmd: 'cargando', cat: 'Componentes de Interfaz', desc: 'Indicador visual de estado de carga', eg: 'cargando' },
-  { cmd: 'lienzo(id)', cat: 'Componentes de Interfaz', desc: 'Área o pizarra interactiva para dibujo táctil/mouse', eg: 'lienzo(pizarra)' },
-
-  // --- 5. DISEÑO Y ESTILOS VISUALES ---
-  { cmd: 'fondo(color)', cat: 'Diseño y Estilos Visuales', desc: 'Color de fondo en hexadecimal o nombre', eg: 'fondo(101012)' },
-  { cmd: 'color(color)', cat: 'Diseño y Estilos Visuales', desc: 'Color principal del texto', eg: 'color(f4f4f5)' },
-  { cmd: 'letra(fuente)', cat: 'Diseño y Estilos Visuales', desc: 'Fuente o tipografía', eg: 'letra(arial)' },
-  { cmd: 'tamano(px)', cat: 'Diseño y Estilos Visuales', desc: 'Tamaño base del texto en píxeles', eg: 'tamano(16)' },
-  { cmd: 'ancho(px)', cat: 'Diseño y Estilos Visuales', desc: 'Ancho fijo del elemento o contenedor', eg: 'ancho(400)' },
-  { cmd: 'alto(px)', cat: 'Diseño y Estilos Visuales', desc: 'Alto fijo del elemento o contenedor', eg: 'alto(250)' },
-  { cmd: 'centrar', cat: 'Diseño y Estilos Visuales', desc: 'Centra el contenedor o los elementos en pantalla', eg: 'centrar' },
-  { cmd: 'gap(px)', cat: 'Diseño y Estilos Visuales', desc: 'Espaciado interno entre elementos de rejilla', eg: 'gap(16)' },
-  { cmd: 'radio(px)', cat: 'Diseño y Estilos Visuales', desc: 'Grado de redondeo para los bordes', eg: 'radio(12)' },
-  { cmd: 'ocultar(id)', cat: 'Diseño y Estilos Visuales', desc: 'Oculta un elemento según su ID', eg: 'ocultar(mi_caja)' },
-  { cmd: 'mostrar(id)', cat: 'Diseño y Estilos Visuales', desc: 'Muestra un elemento oculto según su ID', eg: 'mostrar(mi_caja)' },
-
-  // --- 6. FORMULARIOS Y CAMPOS ---
-  { cmd: 'entrada(id)(valor)', cat: 'Formularios y Campos', desc: 'Campo de texto general', eg: 'entrada(txt_nombre)(juan)' },
-  { cmd: 'camponumero(id)(val)', cat: 'Formularios y Campos', desc: 'Campo exclusivo para valores numéricos', eg: 'camponumero(num1)(10)' },
-  { cmd: 'campocorreo(id)(val)', cat: 'Formularios y Campos', desc: 'Campo de correo electrónico', eg: 'campocorreo(email)(usuario@ejemplo.com)' },
-  { cmd: 'campocontrasena(id)', cat: 'Formularios y Campos', desc: 'Campo para contraseñas ocultas', eg: 'campocontrasena(clave)' },
-  { cmd: 'areatexto(id)(texto)', cat: 'Formularios y Campos', desc: 'Área de entrada para texto multilínea', eg: 'areatexto(notas)(escriba sus comentarios aqui)' },
-  { cmd: 'limpiar(idbtn)(idin)', cat: 'Formularios y Campos', desc: 'Borra el texto de una entrada al presionar un botón', eg: 'limpiar(btn_borrar)(txt_nombre)' },
-
-  // --- 7. EVENTOS E INTERACCIÓN ---
-  { cmd: 'avisar(idbtn)(msg)', cat: 'Eventos e Interacción', desc: 'Muestra una alerta o aviso al hacer clic en un botón', eg: 'avisar(btn_hola)(hola bienvenido a rc)' },
-  { cmd: 'ira(idbtn)(url)', cat: 'Eventos e Interacción', desc: 'Abre un enlace web o módulo .rc al presionar un botón', eg: 'ira(btn_ir)(calculadora.rc)' },
-  { cmd: 'ocultarboton(idbtn)(id)', cat: 'Eventos e Interacción', desc: 'Oculta un elemento al hacer clic en el botón', eg: 'ocultarboton(btn_ocultar)(seccion1)' },
-  { cmd: 'mostrarboton(idbtn)(id)', cat: 'Eventos e Interacción', desc: 'Muestra un elemento oculto al hacer clic en el botón', eg: 'mostrarboton(btn_mostrar)(seccion1)' },
-  { cmd: 'alternar(idbtn)(id)', cat: 'Eventos e Interacción', desc: 'Intercala entre mostrar u ocultar un elemento al presionar', eg: 'alternar(btn_toggle)(seccion1)' },
-  { cmd: 'limpiarlienzo(idbtn)(idlienzo)', cat: 'Eventos e Interacción', desc: 'Borra todo el dibujo del lienzo especificado', eg: 'limpiarlienzo(btn_limp)(pizarra)' },
-
-  // --- 8. LÓGICA Y OPERACIONES ---
-  { cmd: 'sumar(idbtn)(in1)(in2)(lbl)', cat: 'Lógica y Operaciones', desc: 'Suma dos campos y muestra el resultado en la etiqueta', eg: 'sumar(btn_sum)(n1)(n2)(resultado)' },
-  { cmd: 'restar(idbtn)(in1)(in2)(lbl)', cat: 'Lógica y Operaciones', desc: 'Resta dos campos y muestra el resultado en la etiqueta', eg: 'restar(btn_res)(n1)(n2)(resultado)' },
-  { cmd: 'multiplicar(idbtn)(in1)(in2)(lbl)', cat: 'Lógica y Operaciones', desc: 'Multiplica dos campos y muestra el resultado en la etiqueta', eg: 'multiplicar(btn_mul)(n1)(n2)(resultado)' },
-  { cmd: 'dividir(idbtn)(in1)(in2)(lbl)', cat: 'Lógica y Operaciones', desc: 'Divide dos campos y muestra el resultado en la etiqueta', eg: 'dividir(btn_div)(n1)(n2)(resultado)' },
-
-  // --- ESTILOS AVANZADOS Y MAQUETACIÓN ---
-  { cmd: 'margen(px)', cat: 'Estilos Avanzados', desc: 'Aplica margen exterior en px', eg: 'margen(16)' },
-  { cmd: 'relleno(px)', cat: 'Estilos Avanzados', desc: 'Aplica espaciado interno (padding) en px', eg: 'relleno(20)' },
-  { cmd: 'borde(ancho)(estilo)(color)', cat: 'Estilos Avanzados', desc: 'Define un borde visual', eg: 'borde(2)(solid)(ff6538)' },
-  { cmd: 'sombra(nivel)', cat: 'Estilos Avanzados', desc: 'Aplica sombra a un elemento (niveles 1 a 5)', eg: 'sombra(3)' },
-  { cmd: 'opacidad(val)', cat: 'Estilos Avanzados', desc: 'Ajusta la transparencia en porcentaje (0 a 100)', eg: 'opacidad(80)' },
-  { cmd: 'flexbox', cat: 'Estilos Avanzados', desc: 'Establece distribución flexible en el contenedor', eg: 'flexbox' },
-  { cmd: 'orientacion(modo)', cat: 'Estilos Avanzados', desc: 'Define dirección flexible (horizontal o vertical)', eg: 'orientacion(vertical)' },
-  { cmd: 'alinear(pos)', cat: 'Estilos Avanzados', desc: 'Alinea elementos (inicio, centro, fin)', eg: 'alinear(centro)' },
-  { cmd: 'gradiente(c1)(c2)', cat: 'Estilos Avanzados', desc: 'Fondo con degradado de dos colores', eg: 'gradiente(ff6538)(101012)' },
-  { cmd: 'puntero(tipo)', cat: 'Estilos Avanzados', desc: 'Cursor del ratón (mano, texto, cruz)', eg: 'puntero(mano)' },
-  { cmd: 'desplazamiento(modo)', cat: 'Estilos Avanzados', desc: 'Controla desbordamiento (auto, oculto, scroll)', eg: 'desplazamiento(auto)' },
-  { cmd: 'relativo', cat: 'Estilos Avanzados', desc: 'Posicionamiento relativo del contenedor', eg: 'relativo' },
-  { cmd: 'fijo', cat: 'Estilos Avanzados', desc: 'Fijación en pantalla del elemento', eg: 'fijo' },
-  { cmd: 'transicion(ms)', cat: 'Estilos Avanzados', desc: 'Tiempo de animación suave en milisegundos', eg: 'transicion(300)' },
-  { cmd: 'rotar(grados)', cat: 'Estilos Avanzados', desc: 'Rota un elemento N grados', eg: 'rotar(15)' },
-
-  // --- COMPONENTES MULTIMEDIA Y UI AVANZADA ---
-  { cmd: 'audio(url)', cat: 'Multimedia y UI Avanzada', desc: 'Reproductor de audio HTML5', eg: 'audio(https://www.w3schools.com/html/horse.mp3)' },
-  { cmd: 'video(url)', cat: 'Multimedia y UI Avanzada', desc: 'Reproductor de video HTML5', eg: 'video(https://www.w3schools.com/html/mov_bbb.mp4)' },
-  { cmd: 'progreso(id)(val)', cat: 'Multimedia y UI Avanzada', desc: 'Barra de progreso con valor en porcentaje', eg: 'progreso(mi_barra)(75)' },
-  { cmd: 'deslizador(id)(min)(max)(val)', cat: 'Multimedia y UI Avanzada', desc: 'Campo tipo rango numérico / slider', eg: 'deslizador(rango1)(0)(100)(50)' },
-  { cmd: 'interruptor(id)(estado)', cat: 'Multimedia y UI Avanzada', desc: 'Interruptor toggle switch (activo o inactivo)', eg: 'interruptor(sw1)(activo)' },
-  { cmd: 'insignia(id)(texto)', cat: 'Multimedia y UI Avanzada', desc: 'Etiqueta flotante o badge contador', eg: 'insignia(badge1)(nuevo)' },
-  { cmd: 'pestaña(id)(texto)', cat: 'Multimedia y UI Avanzada', desc: 'Selector de pestañas para la interfaz', eg: 'pestaña(tab1)(inicio)' },
-  { cmd: 'acordeon(id)(titulo)(contenido)', cat: 'Multimedia y UI Avanzada', desc: 'Módulo desplegable tipo acordeón', eg: 'acordeon(acc1)(ver detalles)(contenido oculto)' },
-  { cmd: 'alerta(tipo)(mensaje)', cat: 'Multimedia y UI Avanzada', desc: 'Caja de aviso (exito, error, info, alerta)', eg: 'alerta(exito)(operacion completada)' },
-  { cmd: 'tarjeta(id)', cat: 'Multimedia y UI Avanzada', desc: 'Contenedor visual tipo tarjeta elevada', eg: 'tarjeta(card1)' },
-  { cmd: 'tarjetatitulo(texto)', cat: 'Multimedia y UI Avanzada', desc: 'Encabezado interno de tarjeta', eg: 'tarjetatitulo(titulo de tarjeta)' },
-  { cmd: 'tarjetacuerpo(texto)', cat: 'Multimedia y UI Avanzada', desc: 'Contenido interno de tarjeta', eg: 'tarjetacuerpo(descripcion detallada)' },
-  { cmd: 'puntuacion(id)(estrellas)', cat: 'Multimedia y UI Avanzada', desc: 'Componente de calificación por estrellas (1 a 5)', eg: 'puntuacion(stars1)(5)' },
-  { cmd: 'pista(id)(mensaje)', cat: 'Multimedia y UI Avanzada', desc: 'Cuadro de ayuda al pasar el cursor', eg: 'pista(help1)(pasa el cursor para ayuda)' },
-  { cmd: 'icono(nombre)', cat: 'Multimedia y UI Avanzada', desc: 'Muestra un símbolo visual (estrella, corazon, fuego)', eg: 'icono(fuego)' },
-
-  // --- FORMULARIO AMPLIADO Y CONTROLES ---
-  { cmd: 'campofecha(id)', cat: 'Formularios Ampliados', desc: 'Selector de fecha calendarizada', eg: 'campofecha(txt_fecha)' },
-  { cmd: 'campohora(id)', cat: 'Formularios Ampliados', desc: 'Selector de hora', eg: 'campohora(txt_hora)' },
-  { cmd: 'campocolor(id)(val)', cat: 'Formularios Ampliados', desc: 'Selector visual de color', eg: 'campocolor(color_pick)(ff6538)' },
-  { cmd: 'campoarchivo(id)', cat: 'Formularios Ampliados', desc: 'Selector para subir archivos', eg: 'campoarchivo(file_up)' },
-  { cmd: 'casillaverificacion(id)(texto)', cat: 'Formularios Ampliados', desc: 'Casilla de verificación (checkbox)', eg: 'casillaverificacion(chk1)(acepto terminos)' },
-  { cmd: 'opcionradio(id)(grupo)(texto)', cat: 'Formularios Ampliados', desc: 'Botón de opción de grupo (radiobutton)', eg: 'opcionradio(r1)(g1)(opcion 1)' },
-  { cmd: 'desplegable(id)', cat: 'Formularios Ampliados', desc: 'Menú o caja de selección desplegable', eg: 'desplegable(sel1)' },
-  { cmd: 'opciondesplegable(val)(texto)', cat: 'Formularios Ampliados', desc: 'Opción individual para desplegable', eg: 'opciondesplegable(v1)(opcion 1)' },
-  { cmd: 'deshabilitar(id)', cat: 'Formularios Ampliados', desc: 'Deshabilita un campo de formulario', eg: 'deshabilitar(txt_nombre)' },
-  { cmd: 'habilitar(id)', cat: 'Formularios Ampliados', desc: 'Habilita un campo previamente deshabilitado', eg: 'habilitar(txt_nombre)' },
-  { cmd: 'sololectura(id)', cat: 'Formularios Ampliados', desc: 'Establece un campo como solo lectura', eg: 'sololectura(txt_nombre)' },
-  { cmd: 'enfocar(id)', cat: 'Formularios Ampliados', desc: 'Coloca el foco en la entrada especificada', eg: 'enfocar(txt_nombre)' },
-  { cmd: 'marcadorposicion(id)(texto)', cat: 'Formularios Ampliados', desc: 'Cambia el texto placeholder de una entrada', eg: 'marcadorposicion(txt_nombre)(escriba aqui)' },
-  { cmd: 'valorpordefecto(id)(val)', cat: 'Formularios Ampliados', desc: 'Establece el valor inicial', eg: 'valorpordefecto(txt_nombre)(defecto)' },
-  { cmd: 'maximalongitud(id)(n)', cat: 'Formularios Ampliados', desc: 'Limita la cantidad de caracteres', eg: 'maximalongitud(txt_nombre)(20)' },
-
-  // --- INTERACCIÓN, EVENTOS Y ANIMACIONES ---
-  { cmd: 'copiar(idbtn)(idorigen)', cat: 'Eventos Avanzados', desc: 'Copia el contenido de un campo al portapapeles', eg: 'copiar(btn_copy)(txt1)' },
-  { cmd: 'cambiartexto(idbtn)(targetid)(nuevo)', cat: 'Eventos Avanzados', desc: 'Cambia el texto de una etiqueta o botón', eg: 'cambiartexto(btn_change)(lbl1)(texto modificado)' },
-  { cmd: 'incrementar(idbtn)(in1)(paso)', cat: 'Eventos Avanzados', desc: 'Incrementa el valor numérico de un campo', eg: 'incrementar(btn_inc)(num1)(1)' },
-  { cmd: 'decrementar(idbtn)(in1)(paso)', cat: 'Eventos Avanzados', desc: 'Decrementa el valor numérico de un campo', eg: 'decrementar(btn_dec)(num1)(1)' },
-  { cmd: 'temporizador(idbtn)(ms)(idlbl)', cat: 'Eventos Avanzados', desc: 'Inicia un contador de tiempo regresivo en ms', eg: 'temporizador(btn_time)(5000)(lbl1)' },
-  { cmd: 'detenertemporizador(idbtn)', cat: 'Eventos Avanzados', desc: 'Detiene el contador activo', eg: 'detenertemporizador(btn_stop)' },
-  { cmd: 'reproduciraudio(idbtn)(idaudio)', cat: 'Eventos Avanzados', desc: 'Inicia la reproducción de un audio', eg: 'reproduciraudio(btn_play)(aud1)' },
-  { cmd: 'pausaraudio(idbtn)(idaudio)', cat: 'Eventos Avanzados', desc: 'Pausa la reproducción de audio', eg: 'pausaraudio(btn_pause)(aud1)' },
-  { cmd: 'reproducirvideo(idbtn)(idvideo)', cat: 'Eventos Avanzados', desc: 'Inicia la reproducción de video', eg: 'reproducirvideo(btn_playv)(vid1)' },
-  { cmd: 'pausarvideo(idbtn)(idvideo)', cat: 'Eventos Avanzados', desc: 'Pausa la reproducción de video', eg: 'pausarvideo(btn_pausev)(vid1)' },
-  { cmd: 'cambiarfondo(idbtn)(targetid)(col)', cat: 'Eventos Avanzados', desc: 'Cambia el fondo de un elemento al hacer clic', eg: 'cambiarfondo(btn_bg)(sec1)(ff6538)' },
-  { cmd: 'cambiarcolor(idbtn)(targetid)(col)', cat: 'Eventos Avanzados', desc: 'Cambia el color de texto de un elemento', eg: 'cambiarcolor(btn_col)(sec1)(ffffff)' },
-  { cmd: 'agregarclase(idbtn)(id)(clase)', cat: 'Eventos Avanzados', desc: 'Aplica una clase CSS dinámica', eg: 'agregarclase(btn_class)(div1)(activa)' },
-  { cmd: 'quitarclase(idbtn)(id)(clase)', cat: 'Eventos Avanzados', desc: 'Remueve una clase CSS dinámica', eg: 'quitarclase(btn_class)(div1)(activa)' },
-  { cmd: 'imprimir(idbtn)', cat: 'Eventos Avanzados', desc: 'Abre el cuadro de diálogo para imprimir la página', eg: 'imprimir(btn_print)' },
-
-  // --- LÓGICA MATEMÁTICAS Y COMPARACIONES ---
-  { cmd: 'modulo(idbtn)(in1)(in2)(lbl)', cat: 'Lógica y Matemáticas', desc: 'Calcula el resto de la división (in1 % in2)', eg: 'modulo(btn_mod)(n1)(n2)(lbl1)' },
-  { cmd: 'potencia(idbtn)(base)(exp)(lbl)', cat: 'Lógica y Matemáticas', desc: 'Calcula la potencia (base ^ exp)', eg: 'potencia(btn_pow)(b1)(e1)(lbl1)' },
-  { cmd: 'raiz(idbtn)(in1)(lbl)', cat: 'Lógica y Matemáticas', desc: 'Calcula la raíz cuadrada de in1', eg: 'raiz(btn_sqrt)(n1)(lbl1)' },
-  { cmd: 'redondear(idbtn)(in1)(lbl)', cat: 'Lógica y Matemáticas', desc: 'Redondea un número al entero más cercano', eg: 'redondear(btn_round)(n1)(lbl1)' },
-  { cmd: 'piso(idbtn)(in1)(lbl)', cat: 'Lógica y Matemáticas', desc: 'Redondea hacia abajo (floor)', eg: 'piso(btn_floor)(n1)(lbl1)' },
-  { cmd: 'techo(idbtn)(in1)(lbl)', cat: 'Lógica y Matemáticas', desc: 'Redondea hacia arriba (ceil)', eg: 'techo(btn_ceil)(n1)(lbl1)' },
-  { cmd: 'aleatorio(idbtn)(min)(max)(lbl)', cat: 'Lógica y Matemáticas', desc: 'Genera un número aleatorio entre min y max', eg: 'aleatorio(btn_rand)(1)(100)(lbl1)' },
-  { cmd: 'absoluto(idbtn)(in1)(lbl)', cat: 'Lógica y Matemáticas', desc: 'Obtiene el valor absoluto', eg: 'absoluto(btn_abs)(n1)(lbl1)' },
-  { cmd: 'mayor(idbtn)(in1)(in2)(lbl)', cat: 'Lógica y Matemáticas', desc: 'Encuentra el número mayor entre dos campos', eg: 'mayor(btn_max)(n1)(n2)(lbl1)' },
-  { cmd: 'menor(idbtn)(in1)(in2)(lbl)', cat: 'Lógica y Matemáticas', desc: 'Encuentra el número menor entre dos campos', eg: 'menor(btn_min)(n1)(n2)(lbl1)' },
-  { cmd: 'porcentaje(idbtn)(val)(total)(lbl)', cat: 'Lógica y Matemáticas', desc: 'Calcula el porcentaje (val / total * 100)', eg: 'porcentaje(btn_pct)(v1)(t1)(lbl1)' },
-  { cmd: 'igual(idbtn)(in1)(in2)(lbl)', cat: 'Lógica y Matemáticas', desc: 'Compara si dos campos son iguales (muestra si o no)', eg: 'igual(btn_eq)(n1)(n2)(lbl1)' },
-  { cmd: 'diferente(idbtn)(in1)(in2)(lbl)', cat: 'Lógica y Matemáticas', desc: 'Compara si dos campos son diferentes (muestra si o no)', eg: 'diferente(btn_neq)(n1)(n2)(lbl1)' },
-  { cmd: 'esmayor(idbtn)(in1)(in2)(lbl)', cat: 'Lógica y Matemáticas', desc: 'Verifica si in1 es mayor que in2 (muestra si o no)', eg: 'esmayor(btn_gt)(n1)(n2)(lbl1)' },
-  { cmd: 'esmenor(idbtn)(in1)(in2)(lbl)', cat: 'Lógica y Matemáticas', desc: 'Verifica si in1 es menor que in2 (muestra si o no)', eg: 'esmenor(btn_lt)(n1)(n2)(lbl1)' },
-
-  // --- MANIPULACIÓN DE TEXTO Y CADENAS ---
-  { cmd: 'mayusculas(idbtn)(in1)(lbl)', cat: 'Manipulación de Cadenas', desc: 'Convierte el texto del campo a mayúsculas', eg: 'mayusculas(btn_upper)(txt1)(lbl1)' },
-  { cmd: 'minusculas(idbtn)(in1)(lbl)', cat: 'Manipulación de Cadenas', desc: 'Convierte el texto del campo a minúsculas', eg: 'minusculas(btn_lower)(txt1)(lbl1)' },
-  { cmd: 'longitud(idbtn)(in1)(lbl)', cat: 'Manipulación de Cadenas', desc: 'Muestra la cantidad de caracteres del texto', eg: 'longitud(btn_len)(txt1)(lbl1)' },
-  { cmd: 'concatenar(idbtn)(in1)(in2)(lbl)', cat: 'Manipulación de Cadenas', desc: 'Une dos textos y muestra el resultado', eg: 'concatenar(btn_cat)(txt1)(txt2)(lbl1)' },
-  { cmd: 'recortar(idbtn)(in1)(lbl)', cat: 'Manipulación de Cadenas', desc: 'Elimina espacios iniciales y finales', eg: 'recortar(btn_trim)(txt1)(lbl1)' },
-  { cmd: 'reemplazar(idbtn)(in1)(buscar)(nuevo)(lbl)', cat: 'Manipulación de Cadenas', desc: 'Reemplaza texto dentro de la cadena', eg: 'reemplazar(btn_rep)(txt1)(a)(b)(lbl1)' },
-  { cmd: 'subcadena(idbtn)(in1)(inicio)(fin)(lbl)', cat: 'Manipulación de Cadenas', desc: 'Extrae una porción del texto', eg: 'subcadena(btn_sub)(txt1)(0)(5)(lbl1)' },
-  { cmd: 'invertir(idbtn)(in1)(lbl)', cat: 'Manipulación de Cadenas', desc: 'Invierte el orden de los caracteres', eg: 'invertir(btn_rev)(txt1)(lbl1)' },
-  { cmd: 'contarpalabras(idbtn)(in1)(lbl)', cat: 'Manipulación de Cadenas', desc: 'Cuenta cuántas palabras tiene el texto', eg: 'contarpalabras(btn_words)(txt1)(lbl1)' },
-  { cmd: 'contenerstexto(idbtn)(in1)(buscar)(lbl)', cat: 'Manipulación de Cadenas', desc: 'Verifica si contiene una subcadena (si o no)', eg: 'contenerstexto(btn_has)(txt1)(hola)(lbl1)' },
-
-  // --- ALMACENAMIENTO LOCAL Y UTILIDADES ---
-  { cmd: 'guardar(idbtn)(clave)(idin)', cat: 'Almacenamiento y Utilidades', desc: 'Guarda la entrada en almacenamiento local', eg: 'guardar(btn_save)(mi_clave)(txt1)' },
-  { cmd: 'cargar(idbtn)(clave)(lbl)', cat: 'Almacenamiento y Utilidades', desc: 'Carga el valor guardado de almacenamiento local', eg: 'cargar(btn_load)(mi_clave)(lbl1)' },
-  { cmd: 'eliminarguardado(idbtn)(clave)', cat: 'Almacenamiento y Utilidades', desc: 'Elimina una clave de almacenamiento local', eg: 'eliminarguardado(btn_del)(mi_clave)' },
-  { cmd: 'limpiarguardado(idbtn)', cat: 'Almacenamiento y Utilidades', desc: 'Borra todo el almacenamiento local', eg: 'limpiarguardado(btn_clear)' },
-  { cmd: 'fechaactual(idbtn)(lbl)', cat: 'Almacenamiento y Utilidades', desc: 'Muestra la fecha actual en la etiqueta', eg: 'fechaactual(btn_date)(lbl1)' },
-  { cmd: 'horaactual(idbtn)(lbl)', cat: 'Almacenamiento y Utilidades', desc: 'Muestra la hora actual en la etiqueta', eg: 'horaactual(btn_time)(lbl1)' },
-  { cmd: 'marcadornavegador(idbtn)(lbl)', cat: 'Almacenamiento y Utilidades', desc: 'Muestra información de la plataforma', eg: 'marcadornavegador(btn_ua)(lbl1)' },
-  { cmd: 'subirarriba(idbtn)', cat: 'Almacenamiento y Utilidades', desc: 'Desplaza suavemente al inicio de la página', eg: 'subirarriba(btn_top)' },
-  { cmd: 'subirabajo(idbtn)', cat: 'Almacenamiento y Utilidades', desc: 'Desplaza al final de la página', eg: 'subirabajo(btn_bot)' },
-  { cmd: 'recargar(idbtn)', cat: 'Almacenamiento y Utilidades', desc: 'Recarga o reinicia la vista de la aplicación RC', eg: 'recargar(btn_reload)' },
-  { cmd: 'sonidoalerta(idbtn)', cat: 'Almacenamiento y Utilidades', desc: 'Emite un tono/pitido de aviso sintetizado', eg: 'sonidoalerta(btn_beep)' },
-  { cmd: 'contadorvisitas(idbtn)(lbl)', cat: 'Almacenamiento y Utilidades', desc: 'Muestra e incrementa un contador de uso', eg: 'contadorvisitas(btn_count)(lbl1)' },
-  { cmd: 'estilomodro', cat: 'Almacenamiento y Utilidades', desc: 'Cambia automáticamente a modo oscuro', eg: 'estilomodro' },
-  { cmd: 'estilomodoclaro', cat: 'Almacenamiento y Utilidades', desc: 'Cambia automáticamente a modo claro', eg: 'estilomodoclaro' },
-  { cmd: 'ayuda', cat: 'Almacenamiento y Utilidades', desc: 'Muestra un panel de ayuda y comandos RC', eg: 'ayuda' },
-  { cmd: 'dibujarrectangulo', cat: 'Dibujo y Lienzo 2D', desc: 'Dibuja la figura de rectangulo en el lienzo interactivo', eg: 'dibujarrectangulo(micanvas)(50)(50)(100)(100)(ff6538)' },
-  { cmd: 'dibujarcirculo', cat: 'Dibujo y Lienzo 2D', desc: 'Dibuja la figura de circulo en el lienzo interactivo', eg: 'dibujarcirculo(micanvas)(50)(50)(100)(100)(ff6538)' },
-  { cmd: 'dibujarelipse', cat: 'Dibujo y Lienzo 2D', desc: 'Dibuja la figura de elipse en el lienzo interactivo', eg: 'dibujarelipse(micanvas)(50)(50)(100)(100)(ff6538)' },
-  { cmd: 'dibujarlinea', cat: 'Dibujo y Lienzo 2D', desc: 'Dibuja la figura de linea en el lienzo interactivo', eg: 'dibujarlinea(micanvas)(50)(50)(100)(100)(ff6538)' },
-  { cmd: 'dibujartriangulo', cat: 'Dibujo y Lienzo 2D', desc: 'Dibuja la figura de triangulo en el lienzo interactivo', eg: 'dibujartriangulo(micanvas)(50)(50)(100)(100)(ff6538)' },
-  { cmd: 'dibujarpoligono', cat: 'Dibujo y Lienzo 2D', desc: 'Dibuja la figura de poligono en el lienzo interactivo', eg: 'dibujarpoligono(micanvas)(50)(50)(100)(100)(ff6538)' },
-  { cmd: 'dibujararco', cat: 'Dibujo y Lienzo 2D', desc: 'Dibuja la figura de arco en el lienzo interactivo', eg: 'dibujararco(micanvas)(50)(50)(100)(100)(ff6538)' },
-  { cmd: 'dibujarestrella', cat: 'Dibujo y Lienzo 2D', desc: 'Dibuja la figura de estrella en el lienzo interactivo', eg: 'dibujarestrella(micanvas)(50)(50)(100)(100)(ff6538)' },
-  { cmd: 'dibujarsector', cat: 'Dibujo y Lienzo 2D', desc: 'Dibuja la figura de sector en el lienzo interactivo', eg: 'dibujarsector(micanvas)(50)(50)(100)(100)(ff6538)' },
-  { cmd: 'dibujarrombo', cat: 'Dibujo y Lienzo 2D', desc: 'Dibuja la figura de rombo en el lienzo interactivo', eg: 'dibujarrombo(micanvas)(50)(50)(100)(100)(ff6538)' },
-  { cmd: 'dibujartrapecio', cat: 'Dibujo y Lienzo 2D', desc: 'Dibuja la figura de trapecio en el lienzo interactivo', eg: 'dibujartrapecio(micanvas)(50)(50)(100)(100)(ff6538)' },
-  { cmd: 'dibujaranillo', cat: 'Dibujo y Lienzo 2D', desc: 'Dibuja la figura de anillo en el lienzo interactivo', eg: 'dibujaranillo(micanvas)(50)(50)(100)(100)(ff6538)' },
-  { cmd: 'dibujarcorazon', cat: 'Dibujo y Lienzo 2D', desc: 'Dibuja la figura de corazon en el lienzo interactivo', eg: 'dibujarcorazon(micanvas)(50)(50)(100)(100)(ff6538)' },
-  { cmd: 'dibujarglobo', cat: 'Dibujo y Lienzo 2D', desc: 'Dibuja la figura de globo en el lienzo interactivo', eg: 'dibujarglobo(micanvas)(50)(50)(100)(100)(ff6538)' },
-  { cmd: 'dibujargota', cat: 'Dibujo y Lienzo 2D', desc: 'Dibuja la figura de gota en el lienzo interactivo', eg: 'dibujargota(micanvas)(50)(50)(100)(100)(ff6538)' },
-  { cmd: 'dibujarnube', cat: 'Dibujo y Lienzo 2D', desc: 'Dibuja la figura de nube en el lienzo interactivo', eg: 'dibujarnube(micanvas)(50)(50)(100)(100)(ff6538)' },
-  { cmd: 'dibujarcruz', cat: 'Dibujo y Lienzo 2D', desc: 'Dibuja la figura de cruz en el lienzo interactivo', eg: 'dibujarcruz(micanvas)(50)(50)(100)(100)(ff6538)' },
-  { cmd: 'dibujarflecha', cat: 'Dibujo y Lienzo 2D', desc: 'Dibuja la figura de flecha en el lienzo interactivo', eg: 'dibujarflecha(micanvas)(50)(50)(100)(100)(ff6538)' },
-  { cmd: 'dibujarbandera', cat: 'Dibujo y Lienzo 2D', desc: 'Dibuja la figura de bandera en el lienzo interactivo', eg: 'dibujarbandera(micanvas)(50)(50)(100)(100)(ff6538)' },
-  { cmd: 'dibujarcorona', cat: 'Dibujo y Lienzo 2D', desc: 'Dibuja la figura de corona en el lienzo interactivo', eg: 'dibujarcorona(micanvas)(50)(50)(100)(100)(ff6538)' },
-  { cmd: 'dibujaranillo2', cat: 'Dibujo y Lienzo 2D', desc: 'Dibuja la figura de anillo2 en el lienzo interactivo', eg: 'dibujaranillo2(micanvas)(50)(50)(100)(100)(ff6538)' },
-  { cmd: 'dibujarpentagono', cat: 'Dibujo y Lienzo 2D', desc: 'Dibuja la figura de pentagono en el lienzo interactivo', eg: 'dibujarpentagono(micanvas)(50)(50)(100)(100)(ff6538)' },
-  { cmd: 'dibujarhexagono', cat: 'Dibujo y Lienzo 2D', desc: 'Dibuja la figura de hexagono en el lienzo interactivo', eg: 'dibujarhexagono(micanvas)(50)(50)(100)(100)(ff6538)' },
-  { cmd: 'dibujaroctagono', cat: 'Dibujo y Lienzo 2D', desc: 'Dibuja la figura de octagono en el lienzo interactivo', eg: 'dibujaroctagono(micanvas)(50)(50)(100)(100)(ff6538)' },
-  { cmd: 'dibujardecagono', cat: 'Dibujo y Lienzo 2D', desc: 'Dibuja la figura de decagono en el lienzo interactivo', eg: 'dibujardecagono(micanvas)(50)(50)(100)(100)(ff6538)' },
-  { cmd: 'dibujarovalo', cat: 'Dibujo y Lienzo 2D', desc: 'Dibuja la figura de ovalo en el lienzo interactivo', eg: 'dibujarovalo(micanvas)(50)(50)(100)(100)(ff6538)' },
-  { cmd: 'dibujarsemicirculo', cat: 'Dibujo y Lienzo 2D', desc: 'Dibuja la figura de semicirculo en el lienzo interactivo', eg: 'dibujarsemicirculo(micanvas)(50)(50)(100)(100)(ff6538)' },
-  { cmd: 'dibujarpastilla', cat: 'Dibujo y Lienzo 2D', desc: 'Dibuja la figura de pastilla en el lienzo interactivo', eg: 'dibujarpastilla(micanvas)(50)(50)(100)(100)(ff6538)' },
-  { cmd: 'dibujaresquina', cat: 'Dibujo y Lienzo 2D', desc: 'Dibuja la figura de esquina en el lienzo interactivo', eg: 'dibujaresquina(micanvas)(50)(50)(100)(100)(ff6538)' },
-  { cmd: 'dibujarbocadillo', cat: 'Dibujo y Lienzo 2D', desc: 'Dibuja la figura de bocadillo en el lienzo interactivo', eg: 'dibujarbocadillo(micanvas)(50)(50)(100)(100)(ff6538)' },
-  { cmd: 'dibujarmoneda', cat: 'Dibujo y Lienzo 2D', desc: 'Dibuja la figura de moneda en el lienzo interactivo', eg: 'dibujarmoneda(micanvas)(50)(50)(100)(100)(ff6538)' },
-  { cmd: 'dibujardiamante', cat: 'Dibujo y Lienzo 2D', desc: 'Dibuja la figura de diamante en el lienzo interactivo', eg: 'dibujardiamante(micanvas)(50)(50)(100)(100)(ff6538)' },
-  { cmd: 'dibujarcubo2d', cat: 'Dibujo y Lienzo 2D', desc: 'Dibuja la figura de cubo2d en el lienzo interactivo', eg: 'dibujarcubo2d(micanvas)(50)(50)(100)(100)(ff6538)' },
-  { cmd: 'dibujarprisma2d', cat: 'Dibujo y Lienzo 2D', desc: 'Dibuja la figura de prisma2d en el lienzo interactivo', eg: 'dibujarprisma2d(micanvas)(50)(50)(100)(100)(ff6538)' },
-  { cmd: 'dibujaresfera2d', cat: 'Dibujo y Lienzo 2D', desc: 'Dibuja la figura de esfera2d en el lienzo interactivo', eg: 'dibujaresfera2d(micanvas)(50)(50)(100)(100)(ff6538)' },
-  { cmd: 'dibujarsol', cat: 'Dibujo y Lienzo 2D', desc: 'Dibuja la figura de sol en el lienzo interactivo', eg: 'dibujarsol(micanvas)(50)(50)(100)(100)(ff6538)' },
-  { cmd: 'dibujarluna', cat: 'Dibujo y Lienzo 2D', desc: 'Dibuja la figura de luna en el lienzo interactivo', eg: 'dibujarluna(micanvas)(50)(50)(100)(100)(ff6538)' },
-  { cmd: 'dibujarrayo2d', cat: 'Dibujo y Lienzo 2D', desc: 'Dibuja la figura de rayo2d en el lienzo interactivo', eg: 'dibujarrayo2d(micanvas)(50)(50)(100)(100)(ff6538)' },
-  { cmd: 'dibujarengranaje', cat: 'Dibujo y Lienzo 2D', desc: 'Dibuja la figura de engranaje en el lienzo interactivo', eg: 'dibujarengranaje(micanvas)(50)(50)(100)(100)(ff6538)' },
-  { cmd: 'dibujarllave', cat: 'Dibujo y Lienzo 2D', desc: 'Dibuja la figura de llave en el lienzo interactivo', eg: 'dibujarllave(micanvas)(50)(50)(100)(100)(ff6538)' },
-  { cmd: 'dibujarcandado', cat: 'Dibujo y Lienzo 2D', desc: 'Dibuja la figura de candado en el lienzo interactivo', eg: 'dibujarcandado(micanvas)(50)(50)(100)(100)(ff6538)' },
-  { cmd: 'dibujarojo', cat: 'Dibujo y Lienzo 2D', desc: 'Dibuja la figura de ojo en el lienzo interactivo', eg: 'dibujarojo(micanvas)(50)(50)(100)(100)(ff6538)' },
-  { cmd: 'dibujarescudo', cat: 'Dibujo y Lienzo 2D', desc: 'Dibuja la figura de escudo en el lienzo interactivo', eg: 'dibujarescudo(micanvas)(50)(50)(100)(100)(ff6538)' },
-  { cmd: 'dibujartrofeo2d', cat: 'Dibujo y Lienzo 2D', desc: 'Dibuja la figura de trofeo2d en el lienzo interactivo', eg: 'dibujartrofeo2d(micanvas)(50)(50)(100)(100)(ff6538)' },
-  { cmd: 'dibujarmanzana', cat: 'Dibujo y Lienzo 2D', desc: 'Dibuja la figura de manzana en el lienzo interactivo', eg: 'dibujarmanzana(micanvas)(50)(50)(100)(100)(ff6538)' },
-  { cmd: 'dibujarflor', cat: 'Dibujo y Lienzo 2D', desc: 'Dibuja la figura de flor en el lienzo interactivo', eg: 'dibujarflor(micanvas)(50)(50)(100)(100)(ff6538)' },
-  { cmd: 'dibujarhoja', cat: 'Dibujo y Lienzo 2D', desc: 'Dibuja la figura de hoja en el lienzo interactivo', eg: 'dibujarhoja(micanvas)(50)(50)(100)(100)(ff6538)' },
-  { cmd: 'dibujararbol', cat: 'Dibujo y Lienzo 2D', desc: 'Dibuja la figura de arbol en el lienzo interactivo', eg: 'dibujararbol(micanvas)(50)(50)(100)(100)(ff6538)' },
-  { cmd: 'dibujarcopa', cat: 'Dibujo y Lienzo 2D', desc: 'Dibuja la figura de copa en el lienzo interactivo', eg: 'dibujarcopa(micanvas)(50)(50)(100)(100)(ff6538)' },
-  { cmd: 'dibujarcampana2d', cat: 'Dibujo y Lienzo 2D', desc: 'Dibuja la figura de campana2d en el lienzo interactivo', eg: 'dibujarcampana2d(micanvas)(50)(50)(100)(100)(ff6538)' },
-  { cmd: 'colorrelleno', cat: 'Dibujo y Lienzo 2D', desc: 'Establece el color de relleno para el lienzo', eg: 'colorrelleno(micanvas)(ff6538)' },
-  { cmd: 'colortrazo', cat: 'Dibujo y Lienzo 2D', desc: 'Establece el color de trazo para el lienzo', eg: 'colortrazo(micanvas)(ff6538)' },
-  { cmd: 'grosortrazo', cat: 'Dibujo y Lienzo 2D', desc: 'Establece el grosor de linea en pixeles', eg: 'grosortrazo(micanvas)(ff6538)' },
-  { cmd: 'estilotrazo', cat: 'Dibujo y Lienzo 2D', desc: 'Establece estilo de trazo continuo o discontinuo', eg: 'estilotrazo(micanvas)(ff6538)' },
-  { cmd: 'unintrazo', cat: 'Dibujo y Lienzo 2D', desc: 'Establece la union de trazos bisel redondeado o inglete', eg: 'unintrazo(micanvas)(ff6538)' },
-  { cmd: 'rematetrazo', cat: 'Dibujo y Lienzo 2D', desc: 'Establece el remate de linea plano redondo o cuadrado', eg: 'rematetrazo(micanvas)(ff6538)' },
-  { cmd: 'opacidadtrazo', cat: 'Dibujo y Lienzo 2D', desc: 'Ajusta la opacidad del trazo de 0 a 100', eg: 'opacidadtrazo(micanvas)(ff6538)' },
-  { cmd: 'opacidadrelleno', cat: 'Dibujo y Lienzo 2D', desc: 'Ajusta la opacidad del relleno de 0 a 100', eg: 'opacidadrelleno(micanvas)(ff6538)' },
-  { cmd: 'gradientelineal', cat: 'Dibujo y Lienzo 2D', desc: 'Crea un gradiente lineal de relleno', eg: 'gradientelineal(micanvas)(ff6538)' },
-  { cmd: 'gradienteradial', cat: 'Dibujo y Lienzo 2D', desc: 'Crea un gradiente radial de relleno', eg: 'gradienteradial(micanvas)(ff6538)' },
-  { cmd: 'patronrelleno', cat: 'Dibujo y Lienzo 2D', desc: 'Aplica un patron de imagen para el relleno', eg: 'patronrelleno(micanvas)(ff6538)' },
-  { cmd: 'sombraobjeto', cat: 'Dibujo y Lienzo 2D', desc: 'Activa sombra paralela para figuras dibujadas', eg: 'sombraobjeto(micanvas)(ff6538)' },
-  { cmd: 'difuminadosombra', cat: 'Dibujo y Lienzo 2D', desc: 'Ajusta el nivel de desenfoque de sombra', eg: 'difuminadosombra(micanvas)(ff6538)' },
-  { cmd: 'desplazamientosombra', cat: 'Dibujo y Lienzo 2D', desc: 'Ajusta el desplazamiento x e y de la sombra', eg: 'desplazamientosombra(micanvas)(ff6538)' },
-  { cmd: 'colorfuegosombra', cat: 'Dibujo y Lienzo 2D', desc: 'Cambia el color de sombra para dibujo', eg: 'colorfuegosombra(micanvas)(ff6538)' },
-  { cmd: 'limpiarsombra', cat: 'Dibujo y Lienzo 2D', desc: 'Desactiva la sombra del contexto de dibujo', eg: 'limpiarsombra(micanvas)(ff6538)' },
-  { cmd: 'rellenoclavado', cat: 'Dibujo y Lienzo 2D', desc: 'Activa regla de relleno par e impar', eg: 'rellenoclavado(micanvas)(ff6538)' },
-  { cmd: 'patronpuntos', cat: 'Dibujo y Lienzo 2D', desc: 'Define un trazo con patron de puntos', eg: 'patronpuntos(micanvas)(ff6538)' },
-  { cmd: 'patronguiones', cat: 'Dibujo y Lienzo 2D', desc: 'Define un trazo con patron de guiones', eg: 'patronguiones(micanvas)(ff6538)' },
-  { cmd: 'desplazamientoguios', cat: 'Dibujo y Lienzo 2D', desc: 'Ajusta la fase de trazo discontinuo', eg: 'desplazamientoguios(micanvas)(ff6538)' },
-  { cmd: 'borrardibujo', cat: 'Dibujo y Lienzo 2D', desc: 'Borra una region rectangular del lienzo', eg: 'borrardibujo(micanvas)(ff6538)' },
-  { cmd: 'colorfondolienzo', cat: 'Dibujo y Lienzo 2D', desc: 'Establece el color de fondo base del lienzo', eg: 'colorfondolienzo(micanvas)(ff6538)' },
-  { cmd: 'invertercolores', cat: 'Dibujo y Lienzo 2D', desc: 'Invierte los colores de trazo y relleno', eg: 'invertercolores(micanvas)(ff6538)' },
-  { cmd: 'paletanegro', cat: 'Dibujo y Lienzo 2D', desc: 'Aplica paleta monocromatica oscura', eg: 'paletanegro(micanvas)(ff6538)' },
-  { cmd: 'paletaneon', cat: 'Dibujo y Lienzo 2D', desc: 'Aplica paleta de colores neon brillantes', eg: 'paletaneon(micanvas)(ff6538)' },
-  { cmd: 'paletapastel', cat: 'Dibujo y Lienzo 2D', desc: 'Aplica paleta de tonos pastel suaves', eg: 'paletapastel(micanvas)(ff6538)' },
-  { cmd: 'paletadefuego', cat: 'Dibujo y Lienzo 2D', desc: 'Aplica paleta en tonos calidos de fuego', eg: 'paletadefuego(micanvas)(ff6538)' },
-  { cmd: 'paletaoceano', cat: 'Dibujo y Lienzo 2D', desc: 'Aplica paleta en tonos frios de agua', eg: 'paletaoceano(micanvas)(ff6538)' },
-  { cmd: 'paletanaturaleza', cat: 'Dibujo y Lienzo 2D', desc: 'Aplica paleta en tonos verdes y tierra', eg: 'paletanaturaleza(micanvas)(ff6538)' },
-  { cmd: 'paletaretro', cat: 'Dibujo y Lienzo 2D', desc: 'Aplica paleta con estilo retro vintage', eg: 'paletaretro(micanvas)(ff6538)' },
-  { cmd: 'paletagris', cat: 'Dibujo y Lienzo 2D', desc: 'Aplica paleta en escala de grises', eg: 'paletagris(micanvas)(ff6538)' },
-  { cmd: 'mezclacolor', cat: 'Dibujo y Lienzo 2D', desc: 'Sintetiza un nuevo color mezclando dos colores', eg: 'mezclacolor(micanvas)(ff6538)' },
-  { cmd: 'coloraleatorio', cat: 'Dibujo y Lienzo 2D', desc: 'Genera un color aleatorio de relleno', eg: 'coloraleatorio(micanvas)(ff6538)' },
-  { cmd: 'guardarcolor', cat: 'Dibujo y Lienzo 2D', desc: 'Guarda el color actual en la memoria de colores', eg: 'guardarcolor(micanvas)(ff6538)' },
-  { cmd: 'restaurarcolor', cat: 'Dibujo y Lienzo 2D', desc: 'Restaura el color guardado previamente', eg: 'restaurarcolor(micanvas)(ff6538)' },
-  { cmd: 'gradiente3colores', cat: 'Dibujo y Lienzo 2D', desc: 'Crea un gradiente lineal de tres colores', eg: 'gradiente3colores(micanvas)(ff6538)' },
-  { cmd: 'gradienteangulo', cat: 'Dibujo y Lienzo 2D', desc: 'Crea un gradiente en angulo determinado', eg: 'gradienteangulo(micanvas)(ff6538)' },
-  { cmd: 'patroncuadricula', cat: 'Dibujo y Lienzo 2D', desc: 'Aplica patron de cuadricula al lienzo', eg: 'patroncuadricula(micanvas)(ff6538)' },
-  { cmd: 'patronrayas', cat: 'Dibujo y Lienzo 2D', desc: 'Aplica patron de rayas diagonales', eg: 'patronrayas(micanvas)(ff6538)' },
-  { cmd: 'patronburbujas', cat: 'Dibujo y Lienzo 2D', desc: 'Aplica patron de burbujas al lienzo', eg: 'patronburbujas(micanvas)(ff6538)' },
-  { cmd: 'trasladarlienzo', cat: 'Dibujo y Lienzo 2D', desc: 'Mueve el origen de coordenadas del lienzo', eg: 'trasladarlienzo(micanvas)(10)(10)' },
-  { cmd: 'rotarlienzo', cat: 'Dibujo y Lienzo 2D', desc: 'Gira el sistema de coordenadas N grados', eg: 'rotarlienzo(micanvas)(10)(10)' },
-  { cmd: 'escalarlienzo', cat: 'Dibujo y Lienzo 2D', desc: 'Escala el sistema de coordenadas en X e Y', eg: 'escalarlienzo(micanvas)(10)(10)' },
-  { cmd: 'sesgarlienzo', cat: 'Dibujo y Lienzo 2D', desc: 'Inclina el sistema de coordenadas', eg: 'sesgarlienzo(micanvas)(10)(10)' },
-  { cmd: 'guardarestado', cat: 'Dibujo y Lienzo 2D', desc: 'Guarda el estado actual del lienzo', eg: 'guardarestado(micanvas)(10)(10)' },
-  { cmd: 'restaurarestado', cat: 'Dibujo y Lienzo 2D', desc: 'Restaura el ultimo estado guardado', eg: 'restaurarestado(micanvas)(10)(10)' },
-  { cmd: 'limpiarrectangulo', cat: 'Dibujo y Lienzo 2D', desc: 'Borra los pixeles de un rectangulo', eg: 'limpiarrectangulo(micanvas)(10)(10)' },
-  { cmd: 'matriztransformacion', cat: 'Dibujo y Lienzo 2D', desc: 'Aplica una matriz de transformacion 2d', eg: 'matriztransformacion(micanvas)(10)(10)' },
-  { cmd: 'reiniciartransformacion', cat: 'Dibujo y Lienzo 2D', desc: 'Restaura la matriz de transformacion inicial', eg: 'reiniciartransformacion(micanvas)(10)(10)' },
-  { cmd: 'centrarorigen', cat: 'Dibujo y Lienzo 2D', desc: 'Coloca el origen de coordenadas en el centro', eg: 'centrarorigen(micanvas)(10)(10)' },
-  { cmd: 'invertirejeX', cat: 'Dibujo y Lienzo 2D', desc: 'Invierte el eje horizontal del lienzo', eg: 'invertirejeX(micanvas)(10)(10)' },
-  { cmd: 'invertirejeY', cat: 'Dibujo y Lienzo 2D', desc: 'Invierte el eje vertical del lienzo', eg: 'invertirejeY(micanvas)(10)(10)' },
-  { cmd: 'zoomlienzo', cat: 'Dibujo y Lienzo 2D', desc: 'Aplica un factor de zoom al lienzo', eg: 'zoomlienzo(micanvas)(10)(10)' },
-  { cmd: 'ajustarpantalla', cat: 'Dibujo y Lienzo 2D', desc: 'Redimensiona el lienzo al tamaño del contenedor', eg: 'ajustarpantalla(micanvas)(10)(10)' },
-  { cmd: 'girar90grados', cat: 'Dibujo y Lienzo 2D', desc: 'Rota el lienzo 90 grados a la derecha', eg: 'girar90grados(micanvas)(10)(10)' },
-  { cmd: 'girar180grados', cat: 'Dibujo y Lienzo 2D', desc: 'Rota el lienzo 180 grados', eg: 'girar180grados(micanvas)(10)(10)' },
-  { cmd: 'girar270grados', cat: 'Dibujo y Lienzo 2D', desc: 'Rota el lienzo 270 grados', eg: 'girar270grados(micanvas)(10)(10)' },
-  { cmd: 'reflejarhorizontal', cat: 'Dibujo y Lienzo 2D', desc: 'Aplica un reflejo espejado horizontal', eg: 'reflejarhorizontal(micanvas)(10)(10)' },
-  { cmd: 'reflejarvertical', cat: 'Dibujo y Lienzo 2D', desc: 'Aplica un reflejo espejado vertical', eg: 'reflejarvertical(micanvas)(10)(10)' },
-  { cmd: 'desplazarcamara', cat: 'Dibujo y Lienzo 2D', desc: 'Mueve la camara visual del lienzo', eg: 'desplazarcamara(micanvas)(10)(10)' },
-  { cmd: 'fijarcamara', cat: 'Dibujo y Lienzo 2D', desc: 'Fija la posicion de la camara', eg: 'fijarcamara(micanvas)(10)(10)' },
-  { cmd: 'focoobjeto', cat: 'Dibujo y Lienzo 2D', desc: 'Enfoca la vista en un objeto especifico', eg: 'focoobjeto(micanvas)(10)(10)' },
-  { cmd: 'camaraortogonal', cat: 'Dibujo y Lienzo 2D', desc: 'Configura proyeccion ortogonal', eg: 'camaraortogonal(micanvas)(10)(10)' },
-  { cmd: 'camaraperspectiva', cat: 'Dibujo y Lienzo 2D', desc: 'Configura perspectiva visual 2d', eg: 'camaraperspectiva(micanvas)(10)(10)' },
-  { cmd: 'vorticegiro', cat: 'Dibujo y Lienzo 2D', desc: 'Aplica un efecto de giroscopio en el lienzo', eg: 'vorticegiro(micanvas)(10)(10)' },
-  { cmd: 'escaladoauto', cat: 'Dibujo y Lienzo 2D', desc: 'Ajusta la escala automaticamente', eg: 'escaladoauto(micanvas)(10)(10)' },
-  { cmd: 'recortarlimite', cat: 'Dibujo y Lienzo 2D', desc: 'Establece un area de recorte para el lienzo', eg: 'recortarlimite(micanvas)(10)(10)' },
-  { cmd: 'liberarrecorte', cat: 'Dibujo y Lienzo 2D', desc: 'Libera el area de recorte activa', eg: 'liberarrecorte(micanvas)(10)(10)' },
-  { cmd: 'panorámica', cat: 'Dibujo y Lienzo 2D', desc: 'Desplaza el lienzo en modo panoramico', eg: 'panorámica(micanvas)(10)(10)' },
-  { cmd: 'pantallacompletalienzo', cat: 'Dibujo y Lienzo 2D', desc: 'Amplia el lienzo a pantalla completa', eg: 'pantallacompletalienzo(micanvas)(10)(10)' },
-  { cmd: 'iniciarruta', cat: 'Dibujo y Lienzo 2D', desc: 'Comienza una nueva ruta de dibujo', eg: 'iniciarruta(micanvas)(100)(100)' },
-  { cmd: 'cerrarruta', cat: 'Dibujo y Lienzo 2D', desc: 'Cierra la ruta actual conectando con el inicio', eg: 'cerrarruta(micanvas)(100)(100)' },
-  { cmd: 'movera', cat: 'Dibujo y Lienzo 2D', desc: 'Mueve el pincel a una coordenada sin dibujar', eg: 'movera(micanvas)(100)(100)' },
-  { cmd: 'lineaa', cat: 'Dibujo y Lienzo 2D', desc: 'Traza una linea hasta la coordenada especificada', eg: 'lineaa(micanvas)(100)(100)' },
-  { cmd: 'curvabezier', cat: 'Dibujo y Lienzo 2D', desc: 'Traza una curva bezier de tres puntos', eg: 'curvabezier(micanvas)(100)(100)' },
-  { cmd: 'curvacuadratica', cat: 'Dibujo y Lienzo 2D', desc: 'Traza una curva quadratica de dos puntos', eg: 'curvacuadratica(micanvas)(100)(100)' },
-  { cmd: 'arcoruta', cat: 'Dibujo y Lienzo 2D', desc: 'Agrega un arco de circunferencia a la ruta', eg: 'arcoruta(micanvas)(100)(100)' },
-  { cmd: 'rectanguloruta', cat: 'Dibujo y Lienzo 2D', desc: 'Agrega un rectangulo a la ruta actual', eg: 'rectanguloruta(micanvas)(100)(100)' },
-  { cmd: 'circuloruta', cat: 'Dibujo y Lienzo 2D', desc: 'Agrega un circulo completo a la ruta', eg: 'circuloruta(micanvas)(100)(100)' },
-  { cmd: 'elipseruta', cat: 'Dibujo y Lienzo 2D', desc: 'Agrega una elipse a la ruta actual', eg: 'elipseruta(micanvas)(100)(100)' },
-  { cmd: 'puntosruta', cat: 'Dibujo y Lienzo 2D', desc: 'Traza una serie de puntos continuos', eg: 'puntosruta(micanvas)(100)(100)' },
-  { cmd: 'suavizarruta', cat: 'Dibujo y Lienzo 2D', desc: 'Aplica suavizado a las esquinas de la ruta', eg: 'suavizarruta(micanvas)(100)(100)' },
-  { cmd: 'trazarruta', cat: 'Dibujo y Lienzo 2D', desc: 'Dibuja el contorno de la ruta actual', eg: 'trazarruta(micanvas)(100)(100)' },
-  { cmd: 'rellenarruta', cat: 'Dibujo y Lienzo 2D', desc: 'Rellena el interior de la ruta actual', eg: 'rellenarruta(micanvas)(100)(100)' },
-  { cmd: 'puntoenruta', cat: 'Dibujo y Lienzo 2D', desc: 'Verifica si un punto se encuentra dentro de la ruta', eg: 'puntoenruta(micanvas)(100)(100)' },
-  { cmd: 'limpiarruta', cat: 'Dibujo y Lienzo 2D', desc: 'Descarta la ruta actual en memoria', eg: 'limpiarruta(micanvas)(100)(100)' },
-  { cmd: 'duplicarruta', cat: 'Dibujo y Lienzo 2D', desc: 'Duplica la ruta activa', eg: 'duplicarruta(micanvas)(100)(100)' },
-  { cmd: 'invertirruta', cat: 'Dibujo y Lienzo 2D', desc: 'Invierte la direccion de la ruta', eg: 'invertirruta(micanvas)(100)(100)' },
-  { cmd: 'escalarruta', cat: 'Dibujo y Lienzo 2D', desc: 'Escala la ruta sin cambiar el lienzo', eg: 'escalarruta(micanvas)(100)(100)' },
-  { cmd: 'rotarruta', cat: 'Dibujo y Lienzo 2D', desc: 'Rota la ruta en torno a su centro', eg: 'rotarruta(micanvas)(100)(100)' },
-  { cmd: 'trasladarruta', cat: 'Dibujo y Lienzo 2D', desc: 'Mueve la ruta en el espacio 2d', eg: 'trasladarruta(micanvas)(100)(100)' },
-  { cmd: 'unirrutas', cat: 'Dibujo y Lienzo 2D', desc: 'Combina dos rutas en una sola', eg: 'unirrutas(micanvas)(100)(100)' },
-  { cmd: 'restarrutas', cat: 'Dibujo y Lienzo 2D', desc: 'Sustrae una ruta de otra', eg: 'restarrutas(micanvas)(100)(100)' },
-  { cmd: 'interseccionrutas', cat: 'Dibujo y Lienzo 2D', desc: 'Conserva solo la interseccion de rutas', eg: 'interseccionrutas(micanvas)(100)(100)' },
-  { cmd: 'rutapolígono', cat: 'Dibujo y Lienzo 2D', desc: 'Crea una ruta poligonica regular', eg: 'rutapolígono(micanvas)(100)(100)' },
-  { cmd: 'rutaespiral', cat: 'Dibujo y Lienzo 2D', desc: 'Crea una ruta en forma de espiral', eg: 'rutaespiral(micanvas)(100)(100)' },
-  { cmd: 'rutaonda', cat: 'Dibujo y Lienzo 2D', desc: 'Crea una ruta con forma de onda senoidal', eg: 'rutaonda(micanvas)(100)(100)' },
-  { cmd: 'rutazigzag', cat: 'Dibujo y Lienzo 2D', desc: 'Crea una ruta en forma de zigzag', eg: 'rutazigzag(micanvas)(100)(100)' },
-  { cmd: 'rutagota', cat: 'Dibujo y Lienzo 2D', desc: 'Crea una ruta estilizada en forma de gota', eg: 'rutagota(micanvas)(100)(100)' },
-  { cmd: 'rutatrim', cat: 'Dibujo y Lienzo 2D', desc: 'Recorta un porcentaje de la longitud de la ruta', eg: 'rutatrim(micanvas)(100)(100)' },
-  { cmd: 'simplificarruta', cat: 'Dibujo y Lienzo 2D', desc: 'Reduce la cantidad de puntos de la ruta', eg: 'simplificarruta(micanvas)(100)(100)' },
-  { cmd: 'offsetruta', cat: 'Dibujo y Lienzo 2D', desc: 'Expande o contrae el contorno de la ruta', eg: 'offsetruta(micanvas)(100)(100)' },
-  { cmd: 'longitudruta', cat: 'Dibujo y Lienzo 2D', desc: 'Calcula la longitud total de la ruta', eg: 'longitudruta(micanvas)(100)(100)' },
-  { cmd: 'puntoenlongitud', cat: 'Dibujo y Lienzo 2D', desc: 'Obtiene la coordenada en N porcentaje de la ruta', eg: 'puntoenlongitud(micanvas)(100)(100)' },
-  { cmd: 'tangenteruta', cat: 'Dibujo y Lienzo 2D', desc: 'Obtiene el angulo tangente en un punto de la ruta', eg: 'tangenteruta(micanvas)(100)(100)' },
-  { cmd: 'rutadash', cat: 'Dibujo y Lienzo 2D', desc: 'Convierte la ruta en trazado discontinuo', eg: 'rutadash(micanvas)(100)(100)' },
-  { cmd: 'rutamiga', cat: 'Dibujo y Lienzo 2D', desc: 'Crea una ruta quebrada estilo migas', eg: 'rutamiga(micanvas)(100)(100)' },
-  { cmd: 'rutafila', cat: 'Dibujo y Lienzo 2D', desc: 'Genera una fila repetida de la ruta', eg: 'rutafila(micanvas)(100)(100)' },
-  { cmd: 'rutamatriz', cat: 'Dibujo y Lienzo 2D', desc: 'Genera una matriz duplicada de la ruta', eg: 'rutamatriz(micanvas)(100)(100)' },
-  { cmd: 'rutagrabada', cat: 'Dibujo y Lienzo 2D', desc: 'Mantiene la ruta almacenada para reuso', eg: 'rutagrabada(micanvas)(100)(100)' },
-  { cmd: 'dibujarimagenlienzo', cat: 'Dibujo y Lienzo 2D', desc: 'Dibuja una imagen externa en el lienzo', eg: 'dibujarimagenlienzo(micanvas)(50)' },
-  { cmd: 'recortarimagenlienzo', cat: 'Dibujo y Lienzo 2D', desc: 'Dibuja una porcion recortada de una imagen', eg: 'recortarimagenlienzo(micanvas)(50)' },
-  { cmd: 'invertirpixeles', cat: 'Dibujo y Lienzo 2D', desc: 'Invierte los colores de los pixeles del lienzo', eg: 'invertirpixeles(micanvas)(50)' },
-  { cmd: 'escalagrispixeles', cat: 'Dibujo y Lienzo 2D', desc: 'Convierte la imagen del lienzo a escala de grises', eg: 'escalagrispixeles(micanvas)(50)' },
-  { cmd: 'separarlos', cat: 'Dibujo y Lienzo 2D', desc: 'Aplica filtro sepia a la imagen', eg: 'separarlos(micanvas)(50)' },
-  { cmd: 'brillopixeles', cat: 'Dibujo y Lienzo 2D', desc: 'Ajusta el brillo de los pixeles del lienzo', eg: 'brillopixeles(micanvas)(50)' },
-  { cmd: 'contrastepixeles', cat: 'Dibujo y Lienzo 2D', desc: 'Ajusta el contraste de los pixeles del lienzo', eg: 'contrastepixeles(micanvas)(50)' },
-  { cmd: 'saturacionpixeles', cat: 'Dibujo y Lienzo 2D', desc: 'Ajusta la saturacion de color del lienzo', eg: 'saturacionpixeles(micanvas)(50)' },
-  { cmd: 'desfoquepixeles', cat: 'Dibujo y Lienzo 2D', desc: 'Aplica un filtro de desenfoque gaussiano', eg: 'desfoquepixeles(micanvas)(50)' },
-  { cmd: 'fuerzarojo', cat: 'Dibujo y Lienzo 2D', desc: 'Aumenta la intensidad del canal rojo', eg: 'fuerzarojo(micanvas)(50)' },
-  { cmd: 'fuerzaverde', cat: 'Dibujo y Lienzo 2D', desc: 'Aumenta la intensidad del canal verde', eg: 'fuerzaverde(micanvas)(50)' },
-  { cmd: 'fuerzaazul', cat: 'Dibujo y Lienzo 2D', desc: 'Aumenta la intensidad del canal azul', eg: 'fuerzaazul(micanvas)(50)' },
-  { cmd: 'umbralpixeles', cat: 'Dibujo y Lienzo 2D', desc: 'Convierte la imagen a blanco y negro puro', eg: 'umbralpixeles(micanvas)(50)' },
-  { cmd: 'solarizarpixeles', cat: 'Dibujo y Lienzo 2D', desc: 'Aplica un efecto de solarizacion de imagen', eg: 'solarizarpixeles(micanvas)(50)' },
-  { cmd: 'posterizarpixeles', cat: 'Dibujo y Lienzo 2D', desc: 'Reduce el numero de tonos de color', eg: 'posterizarpixeles(micanvas)(50)' },
-  { cmd: 'umbralnegativo', cat: 'Dibujo y Lienzo 2D', desc: 'Invierte los tonos por encima de un umbral', eg: 'umbralnegativo(micanvas)(50)' },
-  { cmd: 'relievepixeles', cat: 'Dibujo y Lienzo 2D', desc: 'Aplica un filtro de relieve 3d a la imagen', eg: 'relievepixeles(micanvas)(50)' },
-  { cmd: 'detectarbordes', cat: 'Dibujo y Lienzo 2D', desc: 'Resalta los contornos y bordes de la imagen', eg: 'detectarbordes(micanvas)(50)' },
-  { cmd: 'pixelizarlienzo', cat: 'Dibujo y Lienzo 2D', desc: 'Aplica un efecto de mosaico o pixelado', eg: 'pixelizarlienzo(micanvas)(50)' },
-  { cmd: 'ruidopixeles', cat: 'Dibujo y Lienzo 2D', desc: 'Agrega ruido aleatorio a los pixeles', eg: 'ruidopixeles(micanvas)(50)' },
-  { cmd: 'vinetapixeles', cat: 'Dibujo y Lienzo 2D', desc: 'Aplica un oscurecimiento viñeta en los bordes', eg: 'vinetapixeles(micanvas)(50)' },
-  { cmd: 'camaraescanaer', cat: 'Dibujo y Lienzo 2D', desc: 'Aplica filtro estilo escaner de alta claridad', eg: 'camaraescanaer(micanvas)(50)' },
-  { cmd: 'filtrocalido', cat: 'Dibujo y Lienzo 2D', desc: 'Aplica una calidez cromatica a la imagen', eg: 'filtrocalido(micanvas)(50)' },
-  { cmd: 'filtrofrio', cat: 'Dibujo y Lienzo 2D', desc: 'Aplica una tonalidad fria azulada', eg: 'filtrofrio(micanvas)(50)' },
-  { cmd: 'filtronostalgia', cat: 'Dibujo y Lienzo 2D', desc: 'Aplica filtro retro estilo foto antigua', eg: 'filtronostalgia(micanvas)(50)' },
-  { cmd: 'filtrocyberpunk', cat: 'Dibujo y Lienzo 2D', desc: 'Aplica tonalidades neon magenta y cian', eg: 'filtrocyberpunk(micanvas)(50)' },
-  { cmd: 'filtrocomik', cat: 'Dibujo y Lienzo 2D', desc: 'Convierte la imagen a estilo ilustracion comic', eg: 'filtrocomik(micanvas)(50)' },
-  { cmd: 'duotono', cat: 'Dibujo y Lienzo 2D', desc: 'Aplica un gradiente duotono a la imagen', eg: 'duotono(micanvas)(50)' },
-  { cmd: 'mapacalor', cat: 'Dibujo y Lienzo 2D', desc: 'Muestra la imagen como mapa de calor termico', eg: 'mapacalor(micanvas)(50)' },
-  { cmd: 'canalesseparados', cat: 'Dibujo y Lienzo 2D', desc: 'Muestra los canales RGB por separado', eg: 'canalesseparados(micanvas)(50)' },
-  { cmd: 'capturarlienzo', cat: 'Dibujo y Lienzo 2D', desc: 'Guarda el estado de pixeles del lienzo', eg: 'capturarlienzo(micanvas)(50)' },
-  { cmd: 'restaurarpixeles', cat: 'Dibujo y Lienzo 2D', desc: 'Restaura los pixeles guardados', eg: 'restaurarpixeles(micanvas)(50)' },
-  { cmd: 'copiarpixeles', cat: 'Dibujo y Lienzo 2D', desc: 'Copia una region de pixeles a otra posicion', eg: 'copiarpixeles(micanvas)(50)' },
-  { cmd: 'espejarregion', cat: 'Dibujo y Lienzo 2D', desc: 'Refleja una region de pixeles', eg: 'espejarregion(micanvas)(50)' },
-  { cmd: 'rotarregion', cat: 'Dibujo y Lienzo 2D', desc: 'Gira una region de pixeles 90 grados', eg: 'rotarregion(micanvas)(50)' },
-  { cmd: 'escalaumbral', cat: 'Dibujo y Lienzo 2D', desc: 'Ajusta el umbral de escala de grises', eg: 'escalaumbral(micanvas)(50)' },
-  { cmd: 'brilloselectivo', cat: 'Dibujo y Lienzo 2D', desc: 'Ajusta el brillo solo en tonos medios', eg: 'brilloselectivo(micanvas)(50)' },
-  { cmd: 'gammapixeles', cat: 'Dibujo y Lienzo 2D', desc: 'Ajusta la correccion gamma de la imagen', eg: 'gammapixeles(micanvas)(50)' },
-  { cmd: 'enfocarimagen', cat: 'Dibujo y Lienzo 2D', desc: 'Resalta el enfoque y nitidez de detalles', eg: 'enfocarimagen(micanvas)(50)' },
-  { cmd: 'suavizarimagen', cat: 'Dibujo y Lienzo 2D', desc: 'Aplica filtro de suavizado de superficie', eg: 'suavizarimagen(micanvas)(50)' },
-  { cmd: 'matrizconvolucion', cat: 'Dibujo y Lienzo 2D', desc: 'Aplica una matriz de convolucion personalizada', eg: 'matrizconvolucion(micanvas)(50)' },
-  { cmd: 'mascarapixeles', cat: 'Dibujo y Lienzo 2D', desc: 'Aplica una mascara de recorte sobre pixeles', eg: 'mascarapixeles(micanvas)(50)' },
-  { cmd: 'combinarpixeles', cat: 'Dibujo y Lienzo 2D', desc: 'Combina dos regiones de pixeles', eg: 'combinarpixeles(micanvas)(50)' },
-  { cmd: 'tonalidadhsv', cat: 'Dibujo y Lienzo 2D', desc: 'Ajusta tono saturacion y valor HSV', eg: 'tonalidadhsv(micanvas)(50)' },
-  { cmd: 'ecualizarhuelga', cat: 'Dibujo y Lienzo 2D', desc: 'Mejora el contraste ecualizando el histograma', eg: 'ecualizarhuelga(micanvas)(50)' },
-  { cmd: 'extraercolor', cat: 'Dibujo y Lienzo 2D', desc: 'Aísla un color especifico volviendo el resto gris', eg: 'extraercolor(micanvas)(50)' },
-  { cmd: 'remplazarcolor', cat: 'Dibujo y Lienzo 2D', desc: 'Sustituye un tono de color por otro', eg: 'remplazarcolor(micanvas)(50)' },
-  { cmd: 'chromakey', cat: 'Dibujo y Lienzo 2D', desc: 'Elimina el fondo verde o azul transparente', eg: 'chromakey(micanvas)(50)' },
-  { cmd: 'marcaagua', cat: 'Dibujo y Lienzo 2D', desc: 'Inserta una marca de agua transparente', eg: 'marcaagua(micanvas)(50)' },
-  { cmd: 'exportarpng', cat: 'Dibujo y Lienzo 2D', desc: 'Exporta la imagen del lienzo a formato PNG', eg: 'exportarpng(micanvas)(50)' },
-  { cmd: 'pincelsuave', cat: 'Dibujo y Lienzo 2D', desc: 'Activa trazo de pincel suave con bordes difusos', eg: 'pincelsuave(micanvas)(20)' },
-  { cmd: 'pincelduro', cat: 'Dibujo y Lienzo 2D', desc: 'Activa trazo de pincel solido y definido', eg: 'pincelduro(micanvas)(20)' },
-  { cmd: 'pincelspray', cat: 'Dibujo y Lienzo 2D', desc: 'Activa trazo en forma de aerosol de pintura', eg: 'pincelspray(micanvas)(20)' },
-  { cmd: 'pincelaquarela', cat: 'Dibujo y Lienzo 2D', desc: 'Activa trazo de acuarela semitransparente', eg: 'pincelaquarela(micanvas)(20)' },
-  { cmd: 'pincelcaligrafico', cat: 'Dibujo y Lienzo 2D', desc: 'Activa trazo pluma biselada caligrafica', eg: 'pincelcaligrafico(micanvas)(20)' },
-  { cmd: 'pincellapiz', cat: 'Dibujo y Lienzo 2D', desc: 'Activa trazo en textura de lapiz grafito', eg: 'pincellapiz(micanvas)(20)' },
-  { cmd: 'pincelmarcador', cat: 'Dibujo y Lienzo 2D', desc: 'Activa trazo de marcador resaltador', eg: 'pincelmarcador(micanvas)(20)' },
-  { cmd: 'pincelneon', cat: 'Dibujo y Lienzo 2D', desc: 'Activa trazo fluorescente con brillo neon', eg: 'pincelneon(micanvas)(20)' },
-  { cmd: 'pincelcadena', cat: 'Dibujo y Lienzo 2D', desc: 'Activa trazo de eslabones de cadena', eg: 'pincelcadena(micanvas)(20)' },
-  { cmd: 'pincelpatron', cat: 'Dibujo y Lienzo 2D', desc: 'Activa trazo repetido con patron de imagen', eg: 'pincelpatron(micanvas)(20)' },
-  { cmd: 'borradorgoma', cat: 'Dibujo y Lienzo 2D', desc: 'Activa goma de borrar en el lienzo', eg: 'borradorgoma(micanvas)(20)' },
-  { cmd: 'borradorcircular', cat: 'Dibujo y Lienzo 2D', desc: 'Borra con forma circular', eg: 'borradorcircular(micanvas)(20)' },
-  { cmd: 'borradorcuadrado', cat: 'Dibujo y Lienzo 2D', desc: 'Borra con forma cuadrada', eg: 'borradorcuadrado(micanvas)(20)' },
-  { cmd: 'pincelgrosor', cat: 'Dibujo y Lienzo 2D', desc: 'Cambia el tamaño del pincel actual', eg: 'pincelgrosor(micanvas)(20)' },
-  { cmd: 'pincelcolor', cat: 'Dibujo y Lienzo 2D', desc: 'Cambia el color del pincel actual', eg: 'pincelcolor(micanvas)(20)' },
-  { cmd: 'crearcapalienzo', cat: 'Dibujo y Lienzo 2D', desc: 'Crea una nueva capa transparente en el lienzo', eg: 'crearcapalienzo(micanvas)(20)' },
-  { cmd: 'mostrarcapalienzo', cat: 'Dibujo y Lienzo 2D', desc: 'Muestra una capa oculta del lienzo', eg: 'mostrarcapalienzo(micanvas)(20)' },
-  { cmd: 'ocultarcapalienzo', cat: 'Dibujo y Lienzo 2D', desc: 'Oculta una capa del lienzo', eg: 'ocultarcapalienzo(micanvas)(20)' },
-  { cmd: 'fusionarcapas', cat: 'Dibujo y Lienzo 2D', desc: 'Unifica la capa actual con la inferior', eg: 'fusionarcapas(micanvas)(20)' },
-  { cmd: 'modofusion', cat: 'Dibujo y Lienzo 2D', desc: 'Establece el modo de fusion de capas', eg: 'modofusion(micanvas)(20)' },
-  { cmd: 'multilicacioncapa', cat: 'Dibujo y Lienzo 2D', desc: 'Modo de fusion multiplicacion de capa', eg: 'multilicacioncapa(micanvas)(20)' },
-  { cmd: 'superposicioncapa', cat: 'Dibujo y Lienzo 2D', desc: 'Modo de fusion superposicion de capa', eg: 'superposicioncapa(micanvas)(20)' },
-  { cmd: 'pantallacapa', cat: 'Dibujo y Lienzo 2D', desc: 'Modo de fusion pantalla de capa', eg: 'pantallacapa(micanvas)(20)' },
-  { cmd: 'aclararcapa', cat: 'Dibujo y Lienzo 2D', desc: 'Modo de fusion aclarar capa', eg: 'aclararcapa(micanvas)(20)' },
-  { cmd: 'oscurecercapa', cat: 'Dibujo y Lienzo 2D', desc: 'Modo de fusion oscurecer capa', eg: 'oscurecercapa(micanvas)(20)' },
-  { cmd: 'diferenciacapa', cat: 'Dibujo y Lienzo 2D', desc: 'Modo de fusion diferencia de capa', eg: 'diferenciacapa(micanvas)(20)' },
-  { cmd: 'textolienzo', cat: 'Dibujo y Lienzo 2D', desc: 'Dibuja texto relleno en el lienzo', eg: 'textolienzo(micanvas)(20)' },
-  { cmd: 'fuencetolienzo', cat: 'Dibujo y Lienzo 2D', desc: 'Establece la tipografía para el texto del lienzo', eg: 'fuencetolienzo(micanvas)(20)' },
-  { cmd: 'alineartextolienzo', cat: 'Dibujo y Lienzo 2D', desc: 'Alinea el texto en el lienzo a izquierda centro o derecha', eg: 'alineartextolienzo(micanvas)(20)' },
-  { cmd: 'baselinatextolienzo', cat: 'Dibujo y Lienzo 2D', desc: 'Establece la linea base vertical del texto', eg: 'baselinatextolienzo(micanvas)(20)' },
-  { cmd: 'mismotextolienzo', cat: 'Dibujo y Lienzo 2D', desc: 'Obtiene las dimensiones en pixeles del texto', eg: 'mismotextolienzo(micanvas)(20)' },
-  { cmd: 'trazoextolienzo', cat: 'Dibujo y Lienzo 2D', desc: 'Dibuja el contorno del texto en el lienzo', eg: 'trazoextolienzo(micanvas)(20)' },
-  { cmd: 'sombratextolienzo', cat: 'Dibujo y Lienzo 2D', desc: 'Agrega sombra al texto dibujado en el lienzo', eg: 'sombratextolienzo(micanvas)(20)' },
-  { cmd: 'guiasdibujo', cat: 'Dibujo y Lienzo 2D', desc: 'Muestra una regla de guias sobre el lienzo', eg: 'guiasdibujo(micanvas)(20)' },
-  { cmd: 'ocultarguias', cat: 'Dibujo y Lienzo 2D', desc: 'Oculta las guias de dibujo', eg: 'ocultarguias(micanvas)(20)' },
-  { cmd: 'simetriahorizontal', cat: 'Dibujo y Lienzo 2D', desc: 'Activa dibujo simetrico espejo horizontal', eg: 'simetriahorizontal(micanvas)(20)' },
-  { cmd: 'simetriavertical', cat: 'Dibujo y Lienzo 2D', desc: 'Activa dibujo simetrico espejo vertical', eg: 'simetriavertical(micanvas)(20)' },
-  { cmd: 'simetriaradial', cat: 'Dibujo y Lienzo 2D', desc: 'Activa dibujo simetrico de N ejes radiales', eg: 'simetriaradial(micanvas)(20)' },
-  { cmd: 'desactivarsimetria', cat: 'Dibujo y Lienzo 2D', desc: 'Desactiva cualquier modo de simetria', eg: 'desactivarsimetria(micanvas)(20)' },
-  { cmd: 'grabardibujo', cat: 'Dibujo y Lienzo 2D', desc: 'Inicia la grabacion de trazos para animar', eg: 'grabardibujo(micanvas)(20)' },
-  { cmd: 'rejillacompleja', cat: 'Diseño Complejo y Maquetación', desc: 'Define una rejilla con plantilla de areas complejas', eg: 'rejillacompleja(mi_caja)(16)' },
-  { cmd: 'columnasauto', cat: 'Diseño Complejo y Maquetación', desc: 'Ajusta columnas automaticamente segun el espacio', eg: 'columnasauto(mi_caja)(16)' },
-  { cmd: 'filasauto', cat: 'Diseño Complejo y Maquetación', desc: 'Ajusta filas automaticamente segun el contenido', eg: 'filasauto(mi_caja)(16)' },
-  { cmd: 'columnasminmax', cat: 'Diseño Complejo y Maquetación', desc: 'Define columnas con tamaño minimo y maximo', eg: 'columnasminmax(mi_caja)(16)' },
-  { cmd: 'rejillatareas', cat: 'Diseño Complejo y Maquetación', desc: 'Crea una maquetación en rejilla estilo tablero kanban', eg: 'rejillatareas(mi_caja)(16)' },
-  { cmd: 'rejillagalería', cat: 'Diseño Complejo y Maquetación', desc: 'Crea una rejilla optimizada para galerias de fotos', eg: 'rejillagalería(mi_caja)(16)' },
-  { cmd: 'rejillamasonry', cat: 'Diseño Complejo y Maquetación', desc: 'Crea una rejilla de bloques desalineados estilo masonry', eg: 'rejillamasonry(mi_caja)(16)' },
-  { cmd: 'espaciadocolumnas', cat: 'Diseño Complejo y Maquetación', desc: 'Establece la separacion entre columnas de la rejilla', eg: 'espaciadocolumnas(mi_caja)(16)' },
-  { cmd: 'espaciadofilas', cat: 'Diseño Complejo y Maquetación', desc: 'Establece la separacion entre filas de la rejilla', eg: 'espaciadofilas(mi_caja)(16)' },
-  { cmd: 'alinearrejilla', cat: 'Diseño Complejo y Maquetación', desc: 'Alinea los elementos horizontalmente en la rejilla', eg: 'alinearrejilla(mi_caja)(16)' },
-  { cmd: 'justificarrejilla', cat: 'Diseño Complejo y Maquetación', desc: 'Distribuye el espacio sobrante en la rejilla', eg: 'justificarrejilla(mi_caja)(16)' },
-  { cmd: 'arearejilla', cat: 'Diseño Complejo y Maquetación', desc: 'Asigna un elemento a una zona de la rejilla por nombre', eg: 'arearejilla(mi_caja)(16)' },
-  { cmd: 'plantillarejilla', cat: 'Diseño Complejo y Maquetación', desc: 'Especifica las filas y columnas mediante plantilla', eg: 'plantillarejilla(mi_caja)(16)' },
-  { cmd: 'superposicionrejilla', cat: 'Diseño Complejo y Maquetación', desc: 'Permite que dos elementos de la rejilla se solapen', eg: 'superposicionrejilla(mi_caja)(16)' },
-  { cmd: 'contenedorauto', cat: 'Diseño Complejo y Maquetación', desc: 'Establece un contenedor adaptable al ancho de pantalla', eg: 'contenedorauto(mi_caja)(16)' },
-  { cmd: 'anchomaximo', cat: 'Diseño Complejo y Maquetación', desc: 'Limita el ancho maximo en pixeles o porcentaje', eg: 'anchomaximo(mi_caja)(16)' },
-  { cmd: 'anchominimo', cat: 'Diseño Complejo y Maquetación', desc: 'Establece el ancho minimo permitido', eg: 'anchominimo(mi_caja)(16)' },
-  { cmd: 'altomaximo', cat: 'Diseño Complejo y Maquetación', desc: 'Limita la altura maxima del contenedor', eg: 'altomaximo(mi_caja)(16)' },
-  { cmd: 'altominimo', cat: 'Diseño Complejo y Maquetación', desc: 'Establece la altura minima permitida', eg: 'altominimo(mi_caja)(16)' },
-  { cmd: 'pantallaflotante', cat: 'Diseño Complejo y Maquetación', desc: 'Crea un contenedor flotante en la esquina', eg: 'pantallaflotante(mi_caja)(16)' },
-  { cmd: 'paneldeslizante', cat: 'Diseño Complejo y Maquetación', desc: 'Crea un panel lateral deslizante de navegacion', eg: 'paneldeslizante(mi_caja)(16)' },
-  { cmd: 'seccionencabezado', cat: 'Diseño Complejo y Maquetación', desc: 'Crea una seccion estilizada de encabezado superior', eg: 'seccionencabezado(mi_caja)(16)' },
-  { cmd: 'seccionpie', cat: 'Diseño Complejo y Maquetación', desc: 'Crea una seccion estilizada de pie de página', eg: 'seccionpie(mi_caja)(16)' },
-  { cmd: 'columnaizquierda', cat: 'Diseño Complejo y Maquetación', desc: 'Crea una columna lateral izquierda', eg: 'columnaizquierda(mi_caja)(16)' },
-  { cmd: 'columnaderecha', cat: 'Diseño Complejo y Maquetación', desc: 'Crea una columna lateral derecha', eg: 'columnaderecha(mi_caja)(16)' },
-  { cmd: 'bloquecentral', cat: 'Diseño Complejo y Maquetación', desc: 'Crea el bloque principal centrado', eg: 'bloquecentral(mi_caja)(16)' },
-  { cmd: 'grupoelementos', cat: 'Diseño Complejo y Maquetación', desc: 'Agrupa elementos en una barra horizontal continua', eg: 'grupoelementos(mi_caja)(16)' },
-  { cmd: 'separadordiseño', cat: 'Diseño Complejo y Maquetación', desc: 'Inserta un espaciador flexible en el diseño', eg: 'separadordiseño(mi_caja)(16)' },
-  { cmd: 'proporcionaspecto', cat: 'Diseño Complejo y Maquetación', desc: 'Fija la proporcion entre ancho y alto (16/9, 4/3, 1/1)', eg: 'proporcionaspecto(mi_caja)(16)' },
-  { cmd: 'pantalladividida', cat: 'Diseño Complejo y Maquetación', desc: 'Divide la pantalla en dos paneles ajustables', eg: 'pantalladividida(mi_caja)(16)' },
-  { cmd: 'rejillaadaptable', cat: 'Diseño Complejo y Maquetación', desc: 'Rejilla que cambia N columnas segun el dispositivo', eg: 'rejillaadaptable(mi_caja)(16)' },
-  { cmd: 'ordenfijo', cat: 'Diseño Complejo y Maquetación', desc: 'Establece la prioridad de orden visual del elemento', eg: 'ordenfijo(mi_caja)(16)' },
-  { cmd: 'alinearautocontenido', cat: 'Diseño Complejo y Maquetación', desc: 'Auto alinea un elemento individual en la rejilla', eg: 'alinearautocontenido(mi_caja)(16)' },
-  { cmd: 'contenedorcristal', cat: 'Diseño Complejo y Maquetación', desc: 'Crea un contenedor con estilo de cristal esmerilado', eg: 'contenedorcristal(mi_caja)(16)' },
-  { cmd: 'contenedornieve', cat: 'Diseño Complejo y Maquetación', desc: 'Crea un contenedor con estilo blanco suave neumorfico', eg: 'contenedornieve(mi_caja)(16)' },
-  { cmd: 'contenedornoche', cat: 'Diseño Complejo y Maquetación', desc: 'Crea un contenedor oscuro estilo interfaz profesional', eg: 'contenedornoche(mi_caja)(16)' },
-  { cmd: 'cajaflotante', cat: 'Diseño Complejo y Maquetación', desc: 'Caja con sombra suave y elevacion visual', eg: 'cajaflotante(mi_caja)(16)' },
-  { cmd: 'marcoimagen', cat: 'Diseño Complejo y Maquetación', desc: 'Crea un marco estilizado para presentar imagenes', eg: 'marcoimagen(mi_caja)(16)' },
-  { cmd: 'marcocodigo', cat: 'Diseño Complejo y Maquetación', desc: 'Crea un marco tipo ventana de terminal de codigo', eg: 'marcocodigo(mi_caja)(16)' },
-  { cmd: 'tarjetaencabezado', cat: 'Diseño Complejo y Maquetación', desc: 'Contenedor estilo tarjeta con encabezado destacado', eg: 'tarjetaencabezado(mi_caja)(16)' },
-  { cmd: 'perspectiva', cat: 'Diseño Complejo y Maquetación', desc: 'Aplica profundidad de perspectiva 3d al contenedor', eg: 'perspectiva(mi_caja)(45)' },
-  { cmd: 'rotarx', cat: 'Diseño Complejo y Maquetación', desc: 'Rota el elemento en el eje horizontal X', eg: 'rotarx(mi_caja)(45)' },
-  { cmd: 'rotary', cat: 'Diseño Complejo y Maquetación', desc: 'Rota el elemento en el eje vertical Y', eg: 'rotary(mi_caja)(45)' },
-  { cmd: 'rotarz', cat: 'Diseño Complejo y Maquetación', desc: 'Rota el elemento en el eje Z de profundidad', eg: 'rotarz(mi_caja)(45)' },
-  { cmd: 'trasladarz', cat: 'Diseño Complejo y Maquetación', desc: 'Mueve el elemento hacia adelante o atras en 3d', eg: 'trasladarz(mi_caja)(45)' },
-  { cmd: 'escala3d', cat: 'Diseño Complejo y Maquetación', desc: 'Aplica escala en tres dimensiones X Y Z', eg: 'escala3d(mi_caja)(45)' },
-  { cmd: 'matriz3d', cat: 'Diseño Complejo y Maquetación', desc: 'Aplica matriz de transformacion 3d de 16 valores', eg: 'matriz3d(mi_caja)(45)' },
-  { cmd: 'estilo3d', cat: 'Diseño Complejo y Maquetación', desc: 'Mantiene la preservacion de capas 3d en subelementos', eg: 'estilo3d(mi_caja)(45)' },
-  { cmd: 'caratrasera', cat: 'Diseño Complejo y Maquetación', desc: 'Muestra u oculta la cara trasera del elemento al girar', eg: 'caratrasera(mi_caja)(45)' },
-  { cmd: 'origentransformacion', cat: 'Diseño Complejo y Maquetación', desc: 'Punto de ancla para las transformaciones 2d y 3d', eg: 'origentransformacion(mi_caja)(45)' },
-  { cmd: 'recortedisco', cat: 'Diseño Complejo y Maquetación', desc: 'Corta el elemento en forma de circulo perfecto', eg: 'recortedisco(mi_caja)(45)' },
-  { cmd: 'recortepoligono', cat: 'Diseño Complejo y Maquetación', desc: 'Corta el elemento usando coordenadas de poligono', eg: 'recortepoligono(mi_caja)(45)' },
-  { cmd: 'recorteestrella', cat: 'Diseño Complejo y Maquetación', desc: 'Corta el elemento con silueta de estrella', eg: 'recorteestrella(mi_caja)(45)' },
-  { cmd: 'recortecorazon', cat: 'Diseño Complejo y Maquetación', desc: 'Corta el elemento con silueta de corazon', eg: 'recortecorazon(mi_caja)(45)' },
-  { cmd: 'recortediagonal', cat: 'Diseño Complejo y Maquetación', desc: 'Aplica un corte diagonal en la esquina del elemento', eg: 'recortediagonal(mi_caja)(45)' },
-  { cmd: 'recorteborde', cat: 'Diseño Complejo y Maquetación', desc: 'Recorta las esquinas con formas personalizadas', eg: 'recorteborde(mi_caja)(45)' },
-  { cmd: 'recortecerrado', cat: 'Diseño Complejo y Maquetación', desc: 'Corta el elemento segun una mascara SVG', eg: 'recortecerrado(mi_caja)(45)' },
-  { cmd: 'recorteruta', cat: 'Diseño Complejo y Maquetación', desc: 'Aplica una ruta de corte vectorizada al elemento', eg: 'recorteruta(mi_caja)(45)' },
-  { cmd: 'efectocristal', cat: 'Diseño Complejo y Maquetación', desc: 'Aplica estilo glassmorphism con desenfoque de fondo', eg: 'efectocristal(mi_caja)(45)' },
-  { cmd: 'efectoneumorfismo', cat: 'Diseño Complejo y Maquetación', desc: 'Aplica estilo neumorfico con doble sombra suave', eg: 'efectoneumorfismo(mi_caja)(45)' },
-  { cmd: 'sombraluz', cat: 'Diseño Complejo y Maquetación', desc: 'Define el color y posicion de la luz superior', eg: 'sombraluz(mi_caja)(45)' },
-  { cmd: 'sombraoscura', cat: 'Diseño Complejo y Maquetación', desc: 'Define el color y posicion de la sombra inferior', eg: 'sombraoscura(mi_caja)(45)' },
-  { cmd: 'resplandor', cat: 'Diseño Complejo y Maquetación', desc: 'Aplica un brillo resplandeciente alrededor del borde', eg: 'resplandor(mi_caja)(45)' },
-  { cmd: 'desfoquefondo', cat: 'Diseño Complejo y Maquetación', desc: 'Aplica desenfoque backdrop-filter al fondo', eg: 'desfoquefondo(mi_caja)(45)' },
-  { cmd: 'brillocristal', cat: 'Diseño Complejo y Maquetación', desc: 'Agrega un reflejo blanco de cristal en la esquina', eg: 'brillocristal(mi_caja)(45)' },
-  { cmd: 'bordecristal', cat: 'Diseño Complejo y Maquetación', desc: 'Agrega un borde semi transparente sutil estilo cristal', eg: 'bordecristal(mi_caja)(45)' },
-  { cmd: 'efectoneon', cat: 'Diseño Complejo y Maquetación', desc: 'Aplica un resplandor neon al contorno del elemento', eg: 'efectoneon(mi_caja)(45)' },
-  { cmd: 'efectoholograma', cat: 'Diseño Complejo y Maquetación', desc: 'Aplica estilo hologramico con lineas de escaneo', eg: 'efectoholograma(mi_caja)(45)' },
-  { cmd: 'efectoelectrico', cat: 'Diseño Complejo y Maquetación', desc: 'Aplica borde con destellos electricos', eg: 'efectoelectrico(mi_caja)(45)' },
-  { cmd: 'efectometal', cat: 'Diseño Complejo y Maquetación', desc: 'Aplica textura de degradado metalico cromo o aluminio', eg: 'efectometal(mi_caja)(45)' },
-  { cmd: 'efectomadera', cat: 'Diseño Complejo y Maquetación', desc: 'Aplica tonalidad de acabado en madera estilizada', eg: 'efectomadera(mi_caja)(45)' },
-  { cmd: 'efectocarbono', cat: 'Diseño Complejo y Maquetación', desc: 'Aplica patron de textura de fibra de carbono', eg: 'efectocarbono(mi_caja)(45)' },
-  { cmd: 'efectopapel', cat: 'Diseño Complejo y Maquetación', desc: 'Aplica textura con aspecto de papel o lienzo', eg: 'efectopapel(mi_caja)(45)' },
-  { cmd: 'bordebrillante', cat: 'Diseño Complejo y Maquetación', desc: 'Aplica borde animado con gradiente en movimiento', eg: 'bordebrillante(mi_caja)(45)' },
-  { cmd: 'sombra3d', cat: 'Diseño Complejo y Maquetación', desc: 'Aplica sombra proyectada realista en relieve', eg: 'sombra3d(mi_caja)(45)' },
-  { cmd: 'reflejo3d', cat: 'Diseño Complejo y Maquetación', desc: 'Muestra un reflejo invertido debajo del elemento', eg: 'reflejo3d(mi_caja)(45)' },
-  { cmd: 'volumen3d', cat: 'Diseño Complejo y Maquetación', desc: 'Simula grosor tridimensional en los bordes', eg: 'volumen3d(mi_caja)(45)' },
-  { cmd: 'perspectivatexto', cat: 'Diseño Complejo y Maquetación', desc: 'Aplica perspectiva 3d sobre el texto', eg: 'perspectivatexto(mi_caja)(45)' },
-  { cmd: 'curvatura3d', cat: 'Diseño Complejo y Maquetación', desc: 'Curva el contenedor como una pantalla curva', eg: 'curvatura3d(mi_caja)(45)' },
-  { cmd: 'esferico3d', cat: 'Diseño Complejo y Maquetación', desc: 'Modifica el elemento para simular una esfera', eg: 'esferico3d(mi_caja)(45)' },
-  { cmd: 'fuenteimportada', cat: 'Diseño Complejo y Maquetación', desc: 'Carga una fuente tipografica desde URL web', eg: 'fuenteimportada(mi_texto)(bold)' },
-  { cmd: 'pesoletra', cat: 'Diseño Complejo y Maquetación', desc: 'Establece el grosor de la letra (100 a 900)', eg: 'pesoletra(mi_texto)(bold)' },
-  { cmd: 'espaciadoletras', cat: 'Diseño Complejo y Maquetación', desc: 'Ajusta el espacio entre caracteres individuales', eg: 'espaciadoletras(mi_texto)(bold)' },
-  { cmd: 'espaciadopalabras', cat: 'Diseño Complejo y Maquetación', desc: 'Ajusta el espacio entre palabras', eg: 'espaciadopalabras(mi_texto)(bold)' },
-  { cmd: 'alturalinea', cat: 'Diseño Complejo y Maquetación', desc: 'Establece la altura de linea para párrafos', eg: 'alturalinea(mi_texto)(bold)' },
-  { cmd: 'transformaciontexto', cat: 'Diseño Complejo y Maquetación', desc: 'Forzar mayusculas minusculas o capitalizar', eg: 'transformaciontexto(mi_texto)(bold)' },
-  { cmd: 'sombraTexto3d', cat: 'Diseño Complejo y Maquetación', desc: 'Aplica sombra proyectada de texto en relieve 3d', eg: 'sombraTexto3d(mi_texto)(bold)' },
-  { cmd: 'columnasTexto', cat: 'Diseño Complejo y Maquetación', desc: 'Divide el párrafo en N columnas de texto estilo periódico', eg: 'columnasTexto(mi_texto)(bold)' },
-  { cmd: 'recortarTexto', cat: 'Diseño Complejo y Maquetación', desc: 'Añade puntos suspensivos si el texto sobrepasa', eg: 'recortarTexto(mi_texto)(bold)' },
-  { cmd: 'alineacionUltima', cat: 'Diseño Complejo y Maquetación', desc: 'Alineacion especial de la ultima linea del párrafo', eg: 'alineacionUltima(mi_texto)(bold)' },
-  { cmd: 'gradienteTexto', cat: 'Diseño Complejo y Maquetación', desc: 'Aplica un degradado de colores sobre las letras', eg: 'gradienteTexto(mi_texto)(bold)' },
-  { cmd: 'contornoTexto', cat: 'Diseño Complejo y Maquetación', desc: 'Dibuja un borde alrededor de cada letra', eg: 'contornoTexto(mi_texto)(bold)' },
-  { cmd: 'fuenteMonospaciada', cat: 'Diseño Complejo y Maquetación', desc: 'Cambia la tipografia a formato codigo monospaciado', eg: 'fuenteMonospaciada(mi_texto)(bold)' },
-  { cmd: 'fuenteSerif', cat: 'Diseño Complejo y Maquetación', desc: 'Cambia la tipografía a estilo elegante clasico serif', eg: 'fuenteSerif(mi_texto)(bold)' },
-  { cmd: 'fuenteSans', cat: 'Diseño Complejo y Maquetación', desc: 'Cambia la tipografía a estilo moderno sans-serif', eg: 'fuenteSans(mi_texto)(bold)' },
-  { cmd: 'fuenteManuscrita', cat: 'Diseño Complejo y Maquetación', desc: 'Cambia la tipografía a estilo caligrafico manuscrito', eg: 'fuenteManuscrita(mi_texto)(bold)' },
-  { cmd: 'fuenteFuturista', cat: 'Diseño Complejo y Maquetación', desc: 'Cambia la tipografía a estilo tecno futurista', eg: 'fuenteFuturista(mi_texto)(bold)' },
-  { cmd: 'sangríaPárrafo', cat: 'Diseño Complejo y Maquetación', desc: 'Aplica sangria en la primera linea del párrafo', eg: 'sangríaPárrafo(mi_texto)(bold)' },
-  { cmd: 'letraCapital', cat: 'Diseño Complejo y Maquetación', desc: 'Aumenta el tamaño de la primera letra del párrafo', eg: 'letraCapital(mi_texto)(bold)' },
-  { cmd: 'subrayadoOndulado', cat: 'Diseño Complejo y Maquetación', desc: 'Aplica un subrayado estilizado en forma de onda', eg: 'subrayadoOndulado(mi_texto)(bold)' },
-  { cmd: 'tachadoTexto', cat: 'Diseño Complejo y Maquetación', desc: 'Tacha el texto con una linea central', eg: 'tachadoTexto(mi_texto)(bold)' },
-  { cmd: 'resaltadoTexto', cat: 'Diseño Complejo y Maquetación', desc: 'Resalta el texto con fondo amarillo fosforescente', eg: 'resaltadoTexto(mi_texto)(bold)' },
-  { cmd: 'brilloTexto', cat: 'Diseño Complejo y Maquetación', desc: 'Agrega resplandor fosforescente al texto', eg: 'brilloTexto(mi_texto)(bold)' },
-  { cmd: 'textoAnimado', cat: 'Diseño Complejo y Maquetación', desc: 'Aplica efecto de maquina de escribir al texto', eg: 'textoAnimado(mi_texto)(bold)' },
-  { cmd: 'textoFlotante', cat: 'Diseño Complejo y Maquetación', desc: 'Aplica animacion de flotacion suave sobre el texto', eg: 'textoFlotante(mi_texto)(bold)' },
-  { cmd: 'espaciadoLimpio', cat: 'Diseño Complejo y Maquetación', desc: 'Limpia espacios sobrantes y saltos innecesarios', eg: 'espaciadoLimpio(mi_texto)(bold)' },
-  { cmd: 'justificarTexto', cat: 'Diseño Complejo y Maquetación', desc: 'Alinea el texto de manera distribuida en ambos bordes', eg: 'justificarTexto(mi_texto)(bold)' },
-  { cmd: 'saltoLineaForzado', cat: 'Diseño Complejo y Maquetación', desc: 'Inserta un salto de linea obligado', eg: 'saltoLineaForzado(mi_texto)(bold)' },
-  { cmd: 'evitarSaltoLinea', cat: 'Diseño Complejo y Maquetación', desc: 'Evita que el texto se divida en varias lineas', eg: 'evitarSaltoLinea(mi_texto)(bold)' },
-  { cmd: 'textoBordeGrafito', cat: 'Diseño Complejo y Maquetación', desc: 'Efecto de letras dibujadas con grafito', eg: 'textoBordeGrafito(mi_texto)(bold)' },
-  { cmd: 'textoEfectoOro', cat: 'Diseño Complejo y Maquetación', desc: 'Efecto de letras doradas con brillo dorado', eg: 'textoEfectoOro(mi_texto)(bold)' },
-  { cmd: 'textoEfectoPlata', cat: 'Diseño Complejo y Maquetación', desc: 'Efecto de letras plateadas con reflejos metalicos', eg: 'textoEfectoPlata(mi_texto)(bold)' },
-  { cmd: 'textoEfectoFuego', cat: 'Diseño Complejo y Maquetación', desc: 'Efecto de letras envueltas en resplandor de fuego', eg: 'textoEfectoFuego(mi_texto)(bold)' },
-  { cmd: 'textoEfectoHielo', cat: 'Diseño Complejo y Maquetación', desc: 'Efecto de letras congeladas con tonos cian', eg: 'textoEfectoHielo(mi_texto)(bold)' },
-  { cmd: 'textoEfectoNeon', cat: 'Diseño Complejo y Maquetación', desc: 'Efecto de letrero neon urbano centelleante', eg: 'textoEfectoNeon(mi_texto)(bold)' },
-  { cmd: 'textoEfectoRetro', cat: 'Diseño Complejo y Maquetación', desc: 'Efecto de texto estilo sintetizador vintage 80s', eg: 'textoEfectoRetro(mi_texto)(bold)' },
-  { cmd: 'textoTransparente', cat: 'Diseño Complejo y Maquetación', desc: 'Hace las letras transparentes mostrando solo el contorno', eg: 'textoTransparente(mi_texto)(bold)' },
-  { cmd: 'textoMascaraImagen', cat: 'Diseño Complejo y Maquetación', desc: 'Rellena el texto usando una imagen como mascara', eg: 'textoMascaraImagen(mi_texto)(bold)' },
-  { cmd: 'direcciónTexto', cat: 'Diseño Complejo y Maquetación', desc: 'Ajusta la direccion del texto de izquierda a derecha o viceversa', eg: 'direcciónTexto(mi_texto)(bold)' },
-  { cmd: 'orientacionVerticalTexto', cat: 'Diseño Complejo y Maquetación', desc: 'Escribe el texto en sentido vertical', eg: 'orientacionVerticalTexto(mi_texto)(bold)' },
-  { cmd: 'graficobarras', cat: 'Diseño Complejo y Maquetación', desc: 'Crea un grafico de barras verticales en el contenedor', eg: 'graficobarras(mi_grafico)(10,20,30)' },
-  { cmd: 'graficolineas', cat: 'Diseño Complejo y Maquetación', desc: 'Crea un grafico de lineas continuas para tendencias', eg: 'graficolineas(mi_grafico)(10,20,30)' },
-  { cmd: 'graficopastel', cat: 'Diseño Complejo y Maquetación', desc: 'Crea un grafico circular tipo pastel divididos en sectores', eg: 'graficopastel(mi_grafico)(10,20,30)' },
-  { cmd: 'graficodona', cat: 'Diseño Complejo y Maquetación', desc: 'Crea un grafico tipo dona con centro libre', eg: 'graficodona(mi_grafico)(10,20,30)' },
-  { cmd: 'graficoarea', cat: 'Diseño Complejo y Maquetación', desc: 'Crea un grafico de area rellena bajo la curva', eg: 'graficoarea(mi_grafico)(10,20,30)' },
-  { cmd: 'graficoradar', cat: 'Diseño Complejo y Maquetación', desc: 'Crea un grafico estilo radar para comparar atributos', eg: 'graficoradar(mi_grafico)(10,20,30)' },
-  { cmd: 'graficodispersion', cat: 'Diseño Complejo y Maquetación', desc: 'Crea un grafico de dispersión de puntos X e Y', eg: 'graficodispersion(mi_grafico)(10,20,30)' },
-  { cmd: 'graficomedidor', cat: 'Diseño Complejo y Maquetación', desc: 'Crea un indicador velocimetro o medidor de nivel', eg: 'graficomedidor(mi_grafico)(10,20,30)' },
-  { cmd: 'graficohistograma', cat: 'Diseño Complejo y Maquetación', desc: 'Crea un histograma de distribucion de frecuencias', eg: 'graficohistograma(mi_grafico)(10,20,30)' },
-  { cmd: 'etiquetasgrafico', cat: 'Diseño Complejo y Maquetación', desc: 'Define las etiquetas para las categorias del grafico', eg: 'etiquetasgrafico(mi_grafico)(10,20,30)' },
-  { cmd: 'coloresgrafico', cat: 'Diseño Complejo y Maquetación', desc: 'Establece la lista de colores para las series del grafico', eg: 'coloresgrafico(mi_grafico)(10,20,30)' },
-  { cmd: 'animargrafico', cat: 'Diseño Complejo y Maquetación', desc: 'Activa las animaciones de aparicion en el grafico', eg: 'animargrafico(mi_grafico)(10,20,30)' },
-  { cmd: 'leyendagrafico', cat: 'Diseño Complejo y Maquetación', desc: 'Muestra la leyenda explicativa del grafico', eg: 'leyendagrafico(mi_grafico)(10,20,30)' },
-  { cmd: 'ejeXgrafico', cat: 'Diseño Complejo y Maquetación', desc: 'Configura el titulo y escala del eje horizontal X', eg: 'ejeXgrafico(mi_grafico)(10,20,30)' },
-  { cmd: 'ejeYgrafico', cat: 'Diseño Complejo y Maquetación', desc: 'Configura el titulo y escala del eje vertical Y', eg: 'ejeYgrafico(mi_grafico)(10,20,30)' },
-  { cmd: 'valorgrafico', cat: 'Diseño Complejo y Maquetación', desc: 'Agrega un dato individual al grafico activo', eg: 'valorgrafico(mi_grafico)(10,20,30)' },
-  { cmd: 'actualizargrafico', cat: 'Diseño Complejo y Maquetación', desc: 'Redibuja el grafico con nuevos datos', eg: 'actualizargrafico(mi_grafico)(10,20,30)' },
-  { cmd: 'limpiargrafico', cat: 'Diseño Complejo y Maquetación', desc: 'Vacia todos los datos del grafico', eg: 'limpiargrafico(mi_grafico)(10,20,30)' },
-  { cmd: 'graficoBarrasHorizontales', cat: 'Diseño Complejo y Maquetación', desc: 'Grafico de barras orientadas horizontalmente', eg: 'graficoBarrasHorizontales(mi_grafico)(10,20,30)' },
-  { cmd: 'graficoBarrasApiladas', cat: 'Diseño Complejo y Maquetación', desc: 'Grafico de barras apiladas acumulativas', eg: 'graficoBarrasApiladas(mi_grafico)(10,20,30)' },
-  { cmd: 'graficoPirámide', cat: 'Diseño Complejo y Maquetación', desc: 'Grafico en forma de piramide poblacional', eg: 'graficoPirámide(mi_grafico)(10,20,30)' },
-  { cmd: 'graficoEmbudo', cat: 'Diseño Complejo y Maquetación', desc: 'Grafico de embudo para etapas de conversion', eg: 'graficoEmbudo(mi_grafico)(10,20,30)' },
-  { cmd: 'graficoBurbujas', cat: 'Diseño Complejo y Maquetación', desc: 'Grafico de dispersión con burbujas de diferente tamaño', eg: 'graficoBurbujas(mi_grafico)(10,20,30)' },
-  { cmd: 'graficoVelas', cat: 'Diseño Complejo y Maquetación', desc: 'Grafico financiero de velas japonesas', eg: 'graficoVelas(mi_grafico)(10,20,30)' },
-  { cmd: 'graficoArbol', cat: 'Diseño Complejo y Maquetación', desc: 'Grafico de estructura jerarquica estilo arbol', eg: 'graficoArbol(mi_grafico)(10,20,30)' },
-  { cmd: 'graficoMapaCalor', cat: 'Diseño Complejo y Maquetación', desc: 'Matriz de calor para datos de dos dimensiones', eg: 'graficoMapaCalor(mi_grafico)(10,20,30)' },
-  { cmd: 'gridGrafico', cat: 'Diseño Complejo y Maquetación', desc: 'Muestra u oculta la cuadricula de fondo del grafico', eg: 'gridGrafico(mi_grafico)(10,20,30)' },
-  { cmd: 'puntosLineagrafico', cat: 'Diseño Complejo y Maquetación', desc: 'Muestra marcadores en cada vertice de la linea', eg: 'puntosLineagrafico(mi_grafico)(10,20,30)' },
-  { cmd: 'suavizarLineaGrafico', cat: 'Diseño Complejo y Maquetación', desc: 'Aplica curvatura suave a la linea del grafico', eg: 'suavizarLineaGrafico(mi_grafico)(10,20,30)' },
-  { cmd: 'anchoBarraGrafico', cat: 'Diseño Complejo y Maquetación', desc: 'Ajusta el grosor de las barras del grafico', eg: 'anchoBarraGrafico(mi_grafico)(10,20,30)' },
-  { cmd: 'resaltarGrafico', cat: 'Diseño Complejo y Maquetación', desc: 'Resalta un sector o barra al pasar el ratón', eg: 'resaltarGrafico(mi_grafico)(10,20,30)' },
-  { cmd: 'tooltipGrafico', cat: 'Diseño Complejo y Maquetación', desc: 'Activa cuadro de detalles emergente en el grafico', eg: 'tooltipGrafico(mi_grafico)(10,20,30)' },
-  { cmd: 'exportarGraficoPNG', cat: 'Diseño Complejo y Maquetación', desc: 'Guarda el grafico generado como imagen PNG', eg: 'exportarGraficoPNG(mi_grafico)(10,20,30)' },
-  { cmd: 'exportarGraficoSVG', cat: 'Diseño Complejo y Maquetación', desc: 'Guarda el grafico generado en vectorial SVG', eg: 'exportarGraficoSVG(mi_grafico)(10,20,30)' },
-  { cmd: 'escalaLogarítmica', cat: 'Diseño Complejo y Maquetación', desc: 'Cambia la escala del eje Y a logaritmica', eg: 'escalaLogarítmica(mi_grafico)(10,20,30)' },
-  { cmd: 'graficoBarras3d', cat: 'Diseño Complejo y Maquetación', desc: 'Rendiza el grafico de barras con volumen 3d', eg: 'graficoBarras3d(mi_grafico)(10,20,30)' },
-  { cmd: 'graficoPastel3d', cat: 'Diseño Complejo y Maquetación', desc: 'Rendiza el grafico de pastel con volumen 3d', eg: 'graficoPastel3d(mi_grafico)(10,20,30)' },
-  { cmd: 'medidorPorcentaje', cat: 'Diseño Complejo y Maquetación', desc: 'Crea un arco indicador de porcentaje de progreso', eg: 'medidorPorcentaje(mi_grafico)(10,20,30)' },
-  { cmd: 'compararSeries', cat: 'Diseño Complejo y Maquetación', desc: 'Superpone dos series de datos para comparacion', eg: 'compararSeries(mi_grafico)(10,20,30)' },
-  { cmd: 'tendenciaGrafico', cat: 'Diseño Complejo y Maquetación', desc: 'Traza automaticamente una linea de tendencia promedio', eg: 'tendenciaGrafico(mi_grafico)(10,20,30)' },
-  { cmd: 'carrusel', cat: 'Diseño Complejo y Maquetación', desc: 'Crea un contenedor de carrusel de imagenes o tarjeas', eg: 'carrusel(mi_widget)' },
-  { cmd: 'diapositivacarrusel', cat: 'Diseño Complejo y Maquetación', desc: 'Agrega una diapositiva individual al carrusel', eg: 'diapositivacarrusel(mi_widget)' },
-  { cmd: 'controlescarrusel', cat: 'Diseño Complejo y Maquetación', desc: 'Muestra los botones de anterior y siguiente', eg: 'controlescarrusel(mi_widget)' },
-  { cmd: 'indicadorescarrusel', cat: 'Diseño Complejo y Maquetación', desc: 'Muestra puntos de navegacion inferior', eg: 'indicadorescarrusel(mi_widget)' },
-  { cmd: 'pasoapasos', cat: 'Diseño Complejo y Maquetación', desc: 'Crea una barra de progreso paso a paso (stepper)', eg: 'pasoapasos(mi_widget)' },
-  { cmd: 'pasoestepper', cat: 'Diseño Complejo y Maquetación', desc: 'Agrega un paso numerado con titulo al paso a pasos', eg: 'pasoestepper(mi_widget)' },
-  { cmd: 'tarjetaelevada', cat: 'Diseño Complejo y Maquetación', desc: 'Tarjeda con sombra prominente y animacion al hover', eg: 'tarjetaelevada(mi_widget)' },
-  { cmd: 'menuflotante', cat: 'Diseño Complejo y Maquetación', desc: 'Crea un boton de accion flotante con menu desplegable', eg: 'menuflotante(mi_widget)' },
-  { cmd: 'barranavegacion', cat: 'Diseño Complejo y Maquetación', desc: 'Crea una barra superior de navegacion estilizada', eg: 'barranavegacion(mi_widget)' },
-  { cmd: 'elementomenu', cat: 'Diseño Complejo y Maquetación', desc: 'Agrega un elemento o enlace a la barra de navegacion', eg: 'elementomenu(mi_widget)' },
-  { cmd: 'paneldesplazable', cat: 'Diseño Complejo y Maquetación', desc: 'Contenedor con barra de desplazamiento personalizada', eg: 'paneldesplazable(mi_widget)' },
-  { cmd: 'ventanamodal', cat: 'Diseño Complejo y Maquetación', desc: 'Crea una ventana modal emergente sobre la pantalla', eg: 'ventanamodal(mi_widget)' },
-  { cmd: 'encabezadomodal', cat: 'Diseño Complejo y Maquetación', desc: 'Encabezado superior de la ventana modal', eg: 'encabezadomodal(mi_widget)' },
-  { cmd: 'cuerpomodal', cat: 'Diseño Complejo y Maquetación', desc: 'Contenido principal de la ventana modal', eg: 'cuerpomodal(mi_widget)' },
-  { cmd: 'piemodal', cat: 'Diseño Complejo y Maquetación', desc: 'Pie inferior de la ventana modal con botones de accion', eg: 'piemodal(mi_widget)' },
-  { cmd: 'barralateral', cat: 'Diseño Complejo y Maquetación', desc: 'Crea un panel lateral desplegable o fijo', eg: 'barralateral(mi_widget)' },
-  { cmd: 'notificaciontoast', cat: 'Diseño Complejo y Maquetación', desc: 'Muestra un mensaje flotante temporal estilo toast', eg: 'notificaciontoast(mi_widget)' },
-  { cmd: 'menucontextual', cat: 'Diseño Complejo y Maquetación', desc: 'Crea un menu emergente al hacer clic derecho', eg: 'menucontextual(mi_widget)' },
-  { cmd: 'vistanavegador', cat: 'Diseño Complejo y Maquetación', desc: 'Simula la interfaz de una ventana de navegador web', eg: 'vistanavegador(mi_widget)' },
-  { cmd: 'panelpestañas', cat: 'Diseño Complejo y Maquetación', desc: 'Contenedor estructurado de pestañas de contenido', eg: 'panelpestañas(mi_widget)' },
-  { cmd: 'contenidopestaña', cat: 'Diseño Complejo y Maquetación', desc: 'Bloque de contenido asociado a una pestaña', eg: 'contenidopestaña(mi_widget)' },
-  { cmd: 'listasplegable', cat: 'Diseño Complejo y Maquetación', desc: 'Lista de elementos colapsables estilo acordeon', eg: 'listasplegable(mi_widget)' },
-  { cmd: 'reproductorvideo', cat: 'Diseño Complejo y Maquetación', desc: 'Reproductor de video personalizado con controles', eg: 'reproductorvideo(mi_widget)' },
-  { cmd: 'reproductoraudio', cat: 'Diseño Complejo y Maquetación', desc: 'Reproductor de audio compacto con barra de onda', eg: 'reproductoraudio(mi_widget)' },
-  { cmd: 'galeriaimagenes', cat: 'Diseño Complejo y Maquetación', desc: 'Visor de imagenes en miniatura con lightbox emergente', eg: 'galeriaimagenes(mi_widget)' },
-  { cmd: 'comparadorimagenes', cat: 'Diseño Complejo y Maquetación', desc: 'Deslizador para comparar antes y despues de dos fotos', eg: 'comparadorimagenes(mi_widget)' },
-  { cmd: 'cronologia', cat: 'Diseño Complejo y Maquetación', desc: 'Muestra una linea de tiempo vertical con sucesos', eg: 'cronologia(mi_widget)' },
-  { cmd: 'elementocronologia', cat: 'Diseño Complejo y Maquetación', desc: 'Agrega un evento a la linea de tiempo', eg: 'elementocronologia(mi_widget)' },
-  { cmd: 'tarjetagiro', cat: 'Diseño Complejo y Maquetación', desc: 'Tarjeta que gira 180 grados mostrando el reverso al hover', eg: 'tarjetagiro(mi_widget)' },
-  { cmd: 'frentegiratorio', cat: 'Diseño Complejo y Maquetación', desc: 'Lado frontal de la tarjeta giratoria', eg: 'frentegiratorio(mi_widget)' },
-  { cmd: 'reversogiratorio', cat: 'Diseño Complejo y Maquetación', desc: 'Lado posterior de la tarjeta giratoria', eg: 'reversogiratorio(mi_widget)' },
-  { cmd: 'cuadrobusqueda', cat: 'Diseño Complejo y Maquetación', desc: 'Entrada de busqueda con boton de lupa e historial', eg: 'cuadrobusqueda(mi_widget)' },
-  { cmd: 'selectorfecharango', cat: 'Diseño Complejo y Maquetación', desc: 'Selector para elegir un rango de fecha inicio y fin', eg: 'selectorfecharango(mi_widget)' },
-  { cmd: 'visorpdf', cat: 'Diseño Complejo y Maquetación', desc: 'Muestra un visor embebido para documentos PDF', eg: 'visorpdf(mi_widget)' },
-  { cmd: 'mapainteractivo', cat: 'Diseño Complejo y Maquetación', desc: 'Muestra un mapa interactivo con marcadores', eg: 'mapainteractivo(mi_widget)' },
-  { cmd: 'marcadormapa', cat: 'Diseño Complejo y Maquetación', desc: 'Agrega un punto de interes en el mapa', eg: 'marcadormapa(mi_widget)' },
-  { cmd: 'muropublicaciones', cat: 'Diseño Complejo y Maquetación', desc: 'Estructura estilo red social para publicaciones', eg: 'muropublicaciones(mi_widget)' },
-  { cmd: 'comentariopublicacion', cat: 'Diseño Complejo y Maquetación', desc: 'Bloque de comentario individual', eg: 'comentariopublicacion(mi_widget)' },
-  { cmd: 'reaccionboton', cat: 'Diseño Complejo y Maquetación', desc: 'Boton de me gusta o reaccion con contador', eg: 'reaccionboton(mi_widget)' },
-  { cmd: 'tarjetaperfil', cat: 'Diseño Complejo y Maquetación', desc: 'Tarjeta de presentacion de usuario con avatar', eg: 'tarjetaperfil(mi_widget)' },
-  { cmd: 'avataringreso', cat: 'Diseño Complejo y Maquetación', desc: 'Muestra la foto de perfil circular del usuario', eg: 'avataringreso(mi_widget)' },
-  { cmd: 'estadousuario', cat: 'Diseño Complejo y Maquetación', desc: 'Indicador de estado en linea ausente o de ocupado', eg: 'estadousuario(mi_widget)' },
-  { cmd: 'selectorcantidad', cat: 'Diseño Complejo y Maquetación', desc: 'Control con botones mas y menos para ajustar cantidad', eg: 'selectorcantidad(mi_widget)' },
-  { cmd: 'barrabusquedaflotante', cat: 'Diseño Complejo y Maquetación', desc: 'Barra de busqueda que permanece fija al desplazar', eg: 'barrabusquedaflotante(mi_widget)' },
-  { cmd: 'notificacionbadge', cat: 'Diseño Complejo y Maquetación', desc: 'Icono con campana y numero de notificaciones', eg: 'notificacionbadge(mi_widget)' },
-  { cmd: 'ventanaconfiguracion', cat: 'Diseño Complejo y Maquetación', desc: 'Panel con opciones de configuracion de la app', eg: 'ventanaconfiguracion(mi_widget)' },
-  { cmd: 'seccionfaqs', cat: 'Diseño Complejo y Maquetación', desc: 'Seccion de preguntas frecuentes con respuestas', eg: 'seccionfaqs(mi_widget)' },
-  { cmd: 'tablaprecios', cat: 'Diseño Complejo y Maquetación', desc: 'Tarjeta de plan de precios con lista de ventajas', eg: 'tablaprecios(mi_widget)' },
-  { cmd: 'botoncomprar', cat: 'Diseño Complejo y Maquetación', desc: 'Boton destacado para suscripcion o compra', eg: 'botoncomprar(mi_widget)' },
-  { cmd: 'piesitio', cat: 'Diseño Complejo y Maquetación', desc: 'Pie de página completo con enlaces y derechos de autor', eg: 'piesitio(mi_widget)' },
-  { cmd: 'animacionpulso', cat: 'Diseño Complejo y Maquetación', desc: 'Aplica un efecto continuo de pulsacion de tamaño', eg: 'animacionpulso(mi_elemento)' },
-  { cmd: 'animacionrebotar', cat: 'Diseño Complejo y Maquetación', desc: 'Aplica animacion de rebase vertical continuo', eg: 'animacionrebotar(mi_elemento)' },
-  { cmd: 'animacionfundido', cat: 'Diseño Complejo y Maquetación', desc: 'Aplica entrada o salida suave con transparencias', eg: 'animacionfundido(mi_elemento)' },
-  { cmd: 'animaciondeslizar', cat: 'Diseño Complejo y Maquetación', desc: 'Aplica deslizamiento desde un borde de pantalla', eg: 'animaciondeslizar(mi_elemento)' },
-  { cmd: 'animaciongirar', cat: 'Diseño Complejo y Maquetación', desc: 'Aplica rotación continua de 360 grados', eg: 'animaciongirar(mi_elemento)' },
-  { cmd: 'animacionlatido', cat: 'Diseño Complejo y Maquetación', desc: 'Aplica pulsacion estilo latido de corazon', eg: 'animacionlatido(mi_elemento)' },
-  { cmd: 'animacionresplandor', cat: 'Diseño Complejo y Maquetación', desc: 'Aplica brillo centelleante intermitente', eg: 'animacionresplandor(mi_elemento)' },
-  { cmd: 'duracionanimacion', cat: 'Diseño Complejo y Maquetación', desc: 'Establece la duracion de la animacion en ms', eg: 'duracionanimacion(mi_elemento)' },
-  { cmd: 'retrasoanimacion', cat: 'Diseño Complejo y Maquetación', desc: 'Establece un tiempo de espera antes de animar', eg: 'retrasoanimacion(mi_elemento)' },
-  { cmd: 'repeticionanimacion', cat: 'Diseño Complejo y Maquetación', desc: 'Define cuantas veces se repite la animacion', eg: 'repeticionanimacion(mi_elemento)' },
-  { cmd: 'curvaanimacion', cat: 'Diseño Complejo y Maquetación', desc: 'Define la velocidad lineal acelerada o suavizada', eg: 'curvaanimacion(mi_elemento)' },
-  { cmd: 'pausaranimacion', cat: 'Diseño Complejo y Maquetación', desc: 'Detiene temporalmente la animacion activa', eg: 'pausaranimacion(mi_elemento)' },
-  { cmd: 'reanudaranimacion', cat: 'Diseño Complejo y Maquetación', desc: 'Continua la animacion pausada', eg: 'reanudaranimacion(mi_elemento)' },
-  { cmd: 'reiniciaranimacion', cat: 'Diseño Complejo y Maquetación', desc: 'Vuelve al fotograma inicial de la animacion', eg: 'reiniciaranimacion(mi_elemento)' },
-  { cmd: 'animacionsacudir', cat: 'Diseño Complejo y Maquetación', desc: 'Aplica una sacudida horizontal de advertencia', eg: 'animacionsacudir(mi_elemento)' },
-  { cmd: 'animacionbalanceo', cat: 'Diseño Complejo y Maquetación', desc: 'Aplica un mecido estilo pendulo', eg: 'animacionbalanceo(mi_elemento)' },
-  { cmd: 'animacionesquiva', cat: 'Diseño Complejo y Maquetación', desc: 'Hace que el elemento se esquive al acercar el ratón', eg: 'animacionesquiva(mi_elemento)' },
-  { cmd: 'animacionescritura', cat: 'Diseño Complejo y Maquetación', desc: 'Simula texto escribiéndose caracter por caracter', eg: 'animacionescritura(mi_elemento)' },
-  { cmd: 'animacionola', cat: 'Diseño Complejo y Maquetación', desc: 'Efecto de onda que se desplaza sobre varios elementos', eg: 'animacionola(mi_elemento)' },
-  { cmd: 'animacionescalado', cat: 'Diseño Complejo y Maquetación', desc: 'Efecto de aumento suave al pasar el ratón', eg: 'animacionescalado(mi_elemento)' },
-  { cmd: 'animacionflotante', cat: 'Diseño Complejo y Maquetación', desc: 'Movimiento continuo de flotacion suave', eg: 'animacionflotante(mi_elemento)' },
-  { cmd: 'animacionparticulas', cat: 'Diseño Complejo y Maquetación', desc: 'Genera un fondo animado de particulas flotantes', eg: 'animacionparticulas(mi_elemento)' },
-  { cmd: 'animacionlluvia', cat: 'Diseño Complejo y Maquetación', desc: 'Genera un efecto visual de lluvia o gotas', eg: 'animacionlluvia(mi_elemento)' },
-  { cmd: 'animacionnieve', cat: 'Diseño Complejo y Maquetación', desc: 'Genera un efecto visual de copos de nieve cayendo', eg: 'animacionnieve(mi_elemento)' },
-  { cmd: 'animacionfuego', cat: 'Diseño Complejo y Maquetación', desc: 'Genera un efecto visual de chispas de fuego', eg: 'animacionfuego(mi_elemento)' },
-  { cmd: 'animacionmatriz', cat: 'Diseño Complejo y Maquetación', desc: 'Efecto de lluvia de caracteres estilo matrix', eg: 'animacionmatriz(mi_elemento)' },
-  { cmd: 'animacionconfeti', cat: 'Diseño Complejo y Maquetación', desc: 'Lanza una lluvia de confeti de colores festivo', eg: 'animacionconfeti(mi_elemento)' },
-  { cmd: 'animacionhumo', cat: 'Diseño Complejo y Maquetación', desc: 'Efecto visual de humo en movimiento', eg: 'animacionhumo(mi_elemento)' },
-  { cmd: 'animacionondaagua', cat: 'Diseño Complejo y Maquetación', desc: 'Efecto de ondas concéntricas en el agua', eg: 'animacionondaagua(mi_elemento)' },
-  { cmd: 'animacionescandalo', cat: 'Diseño Complejo y Maquetación', desc: 'Resalta el elemento con destellos fosforescentes', eg: 'animacionescandalo(mi_elemento)' },
-  { cmd: 'animaciondesvanecer', cat: 'Diseño Complejo y Maquetación', desc: 'Desvanece progresivamente hasta desaparecer', eg: 'animaciondesvanecer(mi_elemento)' },
-  { cmd: 'animacionaparecer', cat: 'Diseño Complejo y Maquetación', desc: 'Aparece gradualmente desde transparente', eg: 'animacionaparecer(mi_elemento)' },
-  { cmd: 'animacionvoltereta', cat: 'Diseño Complejo y Maquetación', desc: 'Aplica una girobatienda de 360 grados en 3d', eg: 'animacionvoltereta(mi_elemento)' },
-  { cmd: 'animacioncaida', cat: 'Diseño Complejo y Maquetación', desc: 'Simula una caida con rebote de gravedad', eg: 'animacioncaida(mi_elemento)' },
-  { cmd: 'animacionexpansion', cat: 'Diseño Complejo y Maquetación', desc: 'Expande el elemento desde el centro', eg: 'animacionexpansion(mi_elemento)' },
-  { cmd: 'animacioncompresion', cat: 'Diseño Complejo y Maquetación', desc: 'Comprime el elemento hasta ocultarlo', eg: 'animacioncompresion(mi_elemento)' },
-  { cmd: 'animacioncamaleon', cat: 'Diseño Complejo y Maquetación', desc: 'Cambia progresivamente entre varios colores', eg: 'animacioncamaleon(mi_elemento)' },
-  { cmd: 'animacionestroboscopio', cat: 'Diseño Complejo y Maquetación', desc: 'Efecto de destellos rapidos estilo estroboscopio', eg: 'animacionestroboscopio(mi_elemento)' },
-  { cmd: 'animaciontransicionpagina', cat: 'Diseño Complejo y Maquetación', desc: 'Transicion suave al cambiar entre vistas', eg: 'animaciontransicionpagina(mi_elemento)' },
-  { cmd: 'animacionespera', cat: 'Diseño Complejo y Maquetación', desc: 'Animacion de bucle infinito para pantallas de carga', eg: 'animacionespera(mi_elemento)' }
-];
-
-/*
-  Ejemplos y Módulos .rc Pre-cargados
-*/
-const PRELOADED_RC = {
-  'calculadora.rc': `// Calculadora matematica en RC
-titulo(calculadora matematica)
-fondo(f8f9fa)
-color(101012)
-encabezado(1)(calculadora rc)
-texto(ingrese dos numeros para realizar operaciones)
-seccion(entradas)
-etiquetacampo(primer numero)
-camponumero(num1)(10)
-etiquetacampo(segundo numero)
-camponumero(num2)(5)
-linea
-encabezado(2)(operaciones)
-rejilla(4)
-boton(btnsumar)(sumar)
-boton(btnrestar)(restar)
-boton(btnmult)(multiplicar)
-boton(btndiv)(dividir)
-seccion(resultado_sec)
-etiquetacampo(resultado)
-etiqueta(lblresultado)(presione un boton para calcular)
-sumar(btnsumar)(num1)(num2)(lblresultado)
-restar(btnrestar)(num1)(num2)(lblresultado)
-multiplicar(btnmult)(num1)(num2)(lblresultado)
-dividir(btndiv)(num1)(num2)(lblresultado)`,
-
-  'pizarra.rc': `// Pizarra interactiva para dibujo en RC
-titulo(pizarra de dibujo)
-fondo(101012)
-color(ffffff)
-encabezado(1)(pizarra interactiva)
-texto(dibuja en la pizarra con el raton o pantalla tactil)
-seccion(zona_dibujo)
-lienzo(micanvas)
-linea
-boton(btnlimp)(limpiar pizarra)
-limpiarlienzo(btnlimp)(micanvas)`,
-
-  'formulario.rc': `// Formulario de registro en RC
-titulo(registro de usuario)
-fondo(ffffff)
-color(222222)
-encabezado(2)(formulario de registro)
-etiquetacampo(nombre completo)
-entrada(txtnombre)(juan perez)
-etiquetacampo(correo electronico)
-campocorreo(txtcorreo)(juan@ejemplo.com)
-etiquetacampo(contrasena)
-campocontrasena(txtpass)
-etiquetacampo(comentarios)
-areatexto(txtnotas)(hola este es un mensaje)
-linea
-rejilla(2)
-boton(btnenviar)(enviar datos)
-boton(btnlimpiar)(limpiar campos)
-limpiar(btnlimpiar)(txtnombre)
-limpiar(btnlimpiar)(txtcorreo)
-limpiar(btnlimpiar)(txtnotas)
-avisar(btnenviar)(datos enviados correctamente)`,
-
-  'tabla.rc': `// Tabla de datos en RC
-titulo(tabla de productos)
-encabezado(1)(inventario)
-tabla
-filatabla
-encabezadotabla(producto)
-encabezadotabla(cantidad)
-encabezadotabla(precio)
-filatabla
-celdatabla(teclado)
-celdatabla(15)
-celdatabla(25)
-filatabla
-celdatabla(raton)
-celdatabla(30)
-celdatabla(15)
-filatabla
-celdatabla(monitor)
-celdatabla(8)
-celdatabla(180)`,
-
-  'componentes.rc': `// Muestra de componentes avanzados en RC
-titulo(componentes avanzados rc)
-encabezado(1)(galeria de componentes)
-alerta(exito)(bienvenido a la muestra de componentes avanzados)
-seccion(controles)
-tarjeta(t1)
-tarjetatitulo(controles interactivos)
-tarjetacuerpo(mueva el deslizador e active el interruptor)
-etiquetacampo(deslizador de nivel)
-deslizador(sl1)(0)(100)(75)
-etiquetacampo(interruptor de activacion)
-interruptor(sw1)(activo)
-linea
-etiquetacampo(calificacion por estrellas)
-puntuacion(pts1)(5)
-icono(fuego)
-insignia(badge1)(nuevo)
-linea
-boton(btnbeep)(reproducir sonido)
-sonidoalerta(btnbeep)`,
-
-  'juego.rc': `// Juego interactivo de adivinar numero en RC
-titulo(juego adivina el numero)
-fondo(101012)
-color(ffffff)
-encabezado(1)(adivina el numero secreto)
-texto(ingrese un numero del 1 al 10 e intente adivinar)
-camponumero(txtnum)(5)
-etiqueta(secretnum)(7)
-ocultar(secretnum)
-linea
-rejilla(2)
-boton(btnprobar)(probar suerte)
-boton(btnrand)(nuevo numero)
-linea
-etiquetacampo(resultado)
-etiqueta(lbljuego)(haga clic en probar suerte)
-igual(btnprobar)(txtnum)(secretnum)(lbljuego)
-aleatorio(btnrand)(1)(10)(secretnum)`,
-
-  'notas.rc': `// Gestor de notas persistente en RC
-titulo(mis notas)
-encabezado(2)(gestor de notas)
-etiquetacampo(escriba su nota)
-areatexto(txtnota)(recordatorio importante)
-rejilla(2)
-boton(btnguardar)(guardar nota)
-boton(btncargar)(cargar nota)
-etiquetacampo(nota guardada)
-etiqueta(lblnota)(ninguna)
-guardar(btnguardar)(minota)(txtnota)
-cargar(btncargar)(minota)(lblnota)`
-};
-
-function navigate(addHistory = true) {
-  const query = $('url').value.trim();
-  if (!query) return;
-
-  if (addHistory) {
+function recordHistory(state) {
+  if (historyList[historyIndex] !== state) {
     historyList = historyList.slice(0, historyIndex + 1);
-    historyList.push(query);
+    historyList.push(state);
     historyIndex = historyList.length - 1;
   }
-
-  if (PRELOADED_RC[query.toLowerCase()]) {
-    renderRC(PRELOADED_RC[query.toLowerCase()], query);
-    return;
-  }
-
-  if (query.includes('(') && query.includes(')')) {
-    renderRC(query, 'Código RC personalizado');
-    return;
-  }
-
-  performSearch(query);
-}
-
-function search() {
-  const value = $('query').value.trim();
-  if (!value) return;
-  $('url').value = value;
-  navigate();
-}
-
-function quickSearch(value) {
-  $('url').value = value;
-  navigate();
 }
 
 function back() {
   if (historyIndex > 0) {
     historyIndex--;
-    $('url').value = historyList[historyIndex];
-    navigate(false);
+    const state = historyList[historyIndex];
+    if (state === 'home') home();
+    else if (state.startsWith('preloaded:')) runPreloaded(state.replace('preloaded:', ''), false);
+    else if (state.startsWith('search:')) performSearch(state.replace('search:', ''), false);
   }
 }
 
 function forward() {
   if (historyIndex < historyList.length - 1) {
     historyIndex++;
-    $('url').value = historyList[historyIndex];
-    navigate(false);
+    const state = historyList[historyIndex];
+    if (state === 'home') home();
+    else if (state.startsWith('preloaded:')) runPreloaded(state.replace('preloaded:', ''), false);
+    else if (state.startsWith('search:')) performSearch(state.replace('search:', ''), false);
   }
 }
 
@@ -1182,791 +367,421 @@ function loadRC(event) {
   if (!file) return;
   const reader = new FileReader();
   reader.onload = () => {
-    const code = String(reader.result);
-    renderRC(code, file.name);
+    renderRC(String(reader.result));
+    setStatus('Archivo RC cargado: ' + file.name);
   };
   reader.readAsText(file);
   event.target.value = '';
 }
 
-function performSearch(term, selectedCategory = 'todos') {
+function runPreloaded(filename, trackHistory = true) {
+  if (PRELOADED_RC[filename]) {
+    renderRC(PRELOADED_RC[filename]);
+    setStatus('Ejecutando app RC: ' + filename);
+    if (trackHistory) recordHistory('preloaded:' + filename);
+  }
+}
+
+function runSnippet(code) {
+  renderRC(code);
+}
+
+function search() {
+  const q = $('query').value.trim();
+  if (q) performSearch(q);
+}
+
+function quickSearch(q) {
+  $('query').value = q;
+  performSearch(q);
+}
+
+function navigate() {
+  const q = $('url').value.trim();
+  if (!q) return;
+  if (q.includes('(') && q.includes(')')) {
+    renderRC(q);
+  } else {
+    performSearch(q);
+  }
+}
+
+function performSearch(query, trackHistory = true) {
   const out = $('rcOutput');
   out.replaceChildren();
   out.style.display = 'block';
   $('welcome').style.display = 'none';
-
-  const cleanTerm = term.toLowerCase().trim();
-  setStatus('Resultados de búsqueda: ' + term);
 
   const container = document.createElement('div');
   container.className = 'rc-container';
 
-  const header = document.createElement('div');
-  header.className = 'rc-toolbar';
-  header.innerHTML = `<h2 style="margin:0; flex:1;">Búsqueda en RC: <i>${escapeHtml(term)}</i></h2><button class="rc-boton" onclick="home()">← Volver al inicio</button>`;
-  container.appendChild(header);
+  const h = document.createElement('h2');
+  h.textContent = `Resultados de búsqueda RC para: "${query}"`;
+  container.appendChild(h);
 
-  // Chips de filtro por categorías
-  const categories = ['todos', ...new Set(RC_DICTIONARY.map(item => item.cat))];
-  const filterRow = document.createElement('div');
-  filterRow.style.display = 'flex';
-  filterRow.style.gap = '6px';
-  filterRow.style.flexWrap = 'wrap';
-  filterRow.style.marginBottom = '16px';
+  const qLower = query.toLowerCase();
+  const matches = RC_DICTIONARY.filter(item =>
+    item.cmd.toLowerCase().includes(qLower) || item.desc.toLowerCase().includes(qLower)
+  );
 
-  categories.forEach(cat => {
-    const chip = document.createElement('span');
-    chip.className = 'rc-chip' + (selectedCategory === cat ? ' activo' : '');
-    chip.textContent = cat === 'todos' ? '🌐 Todos los Comandos' : cat;
-    chip.onclick = () => performSearch(term, cat);
-    filterRow.appendChild(chip);
-  });
-  container.appendChild(filterRow);
-
-  // Buscar en ejemplos precargados
-  const matchingExamples = Object.keys(PRELOADED_RC).filter(key => key.includes(cleanTerm) || cleanTerm === 'ejemplos' || cleanTerm === 'ejemplo' || cleanTerm === 'todos');
-  if (matchingExamples.length > 0 && (selectedCategory === 'todos' || cleanTerm === 'ejemplos')) {
-    const exSec = document.createElement('div');
-    exSec.innerHTML = `<h3 class="rc-encabezado">Ejemplos y Módulos .rc Coincidentes</h3>`;
-    matchingExamples.forEach(key => {
+  if (matches.length > 0) {
+    matches.forEach(item => {
       const card = document.createElement('div');
       card.className = 'rc-doc-card';
-      card.style.display = 'flex';
-      card.style.justifyContent = 'space-between';
-      card.style.alignItems = 'center';
-      card.innerHTML = `<div><b>${key}</b><div style="font-size:12px; opacity:0.7;">Plantilla lista para ejecutar</div></div>
-        <button class="rc-boton" onclick="runPreloaded('${key}')">Ejecutar ${key}</button>`;
-      exSec.appendChild(card);
+      card.innerHTML = `<div style="font-family:monospace; font-weight:bold; color:#ff6538; font-size:15px; margin-bottom:4px;">${item.cmd}</div><div style="color:#94a3b8; font-size:13px;">${item.desc}</div>`;
+      card.onclick = () => runSnippet(`${item.cmd}`);
+      container.appendChild(card);
     });
-    container.appendChild(exSec);
-  }
-
-  // Buscar en el diccionario de comandos
-  const matchingCmds = RC_DICTIONARY.filter(item => {
-    const catMatch = (selectedCategory === 'todos' || item.cat === selectedCategory);
-    const textMatch = (cleanTerm === 'diccionario' || cleanTerm === 'todos' ||
-      item.cmd.toLowerCase().includes(cleanTerm) ||
-      item.cat.toLowerCase().includes(cleanTerm) ||
-      item.desc.toLowerCase().includes(cleanTerm));
-    return catMatch && textMatch;
-  });
-
-  const cmdSec = document.createElement('div');
-  cmdSec.innerHTML = `<h3 class="rc-encabezado">Comandos del Diccionario RC (${matchingCmds.length} de ${RC_DICTIONARY.length})</h3>`;
-
-  if (matchingCmds.length === 0 && matchingExamples.length === 0) {
-    cmdSec.innerHTML += `<p class="rc-texto">No se encontraron comandos para "<b>${escapeHtml(term)}</b>" en la categoría seleccionada.</p>`;
   } else {
-    matchingCmds.forEach(item => {
-      const card = document.createElement('div');
-      card.className = 'rc-doc-card';
-      card.innerHTML = `<div style="display:flex; justify-content:space-between; margin-bottom:4px;">
-          <span class="rc-doc-code">${escapeHtml(item.cmd)}</span>
-          <small style="opacity:0.6;">${escapeHtml(item.cat)}</small>
-        </div>
-        <div style="font-size:13px; margin-bottom:8px;">${escapeHtml(item.desc)}</div>
-        <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
-          <small style="opacity:0.7;">Ejemplo:</small>
-          <code style="background:rgba(0,0,0,0.06); padding:2px 6px; border-radius:4px; font-size:12px;">${escapeHtml(item.eg)}</code>
-          <button class="rc-boton" style="padding:2px 8px; font-size:11px; margin-left:auto;" onclick="runSnippet('${escapeJs(item.eg)}')">Probar comando</button>
-        </div>`;
-      cmdSec.appendChild(card);
-    });
+    const p = document.createElement('p');
+    p.textContent = 'No se encontraron comandos específicos. Probando interpretar búsqueda como código RC directo...';
+    container.appendChild(p);
   }
 
-  container.appendChild(cmdSec);
   out.appendChild(container);
-}
-
-function runPreloaded(key) {
-  $('url').value = key;
-  renderRC(PRELOADED_RC[key], key);
-}
-
-function runSnippet(code) {
-  $('url').value = code;
-  renderRC(code, 'Ejemplo RC');
+  setStatus(`Búsqueda: "${query}" (${matches.length} resultados)`);
+  if (trackHistory) recordHistory('search:' + query);
 }
 
 /*
-  Intérprete Oficial y Motor del Lenguaje RC (Rapid Code v2.0)
+  Motor de Renderizado e Intérprete Nativo RC (656 Comandos)
+  Reglas: 100% minúsculas, números, paréntesis (), dobles barras (//), sin comillas ni comas.
 */
-function renderRC(source, sourceTitle = 'Aplicación RC') {
+function renderRC(source) {
   const out = $('rcOutput');
   out.replaceChildren();
   out.style.display = 'block';
   $('welcome').style.display = 'none';
 
-  const rootContainer = document.createElement('div');
-  rootContainer.className = 'rc-container';
+  const container = document.createElement('div');
+  container.className = 'rc-container';
+  out.appendChild(container);
 
-  const toolbar = document.createElement('div');
-  toolbar.className = 'rc-toolbar';
+  let currentParent = container;
+  let activeList = null;
+  let activeTable = null;
+  let activeRow = null;
 
-  const titleEl = document.createElement('h3');
-  titleEl.style.margin = '0';
-  titleEl.style.flex = '1';
-  titleEl.textContent = sourceTitle;
+  const eventQueue = [];
 
-  const closeBtn = document.createElement('button');
-  closeBtn.className = 'rc-close-btn';
-  closeBtn.textContent = '✕ Cerrar Vista';
-  closeBtn.onclick = () => {
-    out.style.display = 'none';
-    $('welcome').style.display = 'block';
-  };
-
-  toolbar.appendChild(titleEl);
-  toolbar.appendChild(closeBtn);
-  rootContainer.appendChild(toolbar);
-
-  let currentContainer = rootContainer;
-  const eventListeners = [];
   const lines = source.split(/\r?\n/);
+  lines.forEach((rawLine, index) => {
+    let line = rawLine.trim();
+    if (!line || line.startsWith('//')) return;
 
-  for (let index = 0; index < lines.length; index++) {
-    const rawLine = lines[index];
-    const line = rawLine.trim();
-    if (!line || line.startsWith('//')) continue;
+    // Normalizar a minúsculas según especificación RC
+    line = line.toLowerCase();
 
-    const parsed = parseRCCommand(line);
-    if (!parsed) continue;
+    // Regex para extraer comando y todos los argumentos entre paréntesis: comando(arg1)(arg2)...
+    const cmdMatch = line.match(/^([a-z0-9]+)(\(.*\))?$/);
+    if (!cmdMatch) return;
 
-    const { cmd, args } = parsed;
+    const cmd = cmdMatch[1];
+    const argsStr = cmdMatch[2] || '';
 
-    // Direct switch / dispatcher for all RC commands
-    switch (cmd) {
-      // --- 1. ESTRUCTURA Y MÓDULOS ---
-      case 'incluir': {
-        const modName = args[0];
-        if (modName && typeof PRELOADED_RC !== 'undefined' && PRELOADED_RC[modName]) {
-          const modLines = PRELOADED_RC[modName].split(/\r?\n/);
-          lines.splice(index + 1, 0, ...modLines);
-        }
-        break;
-      }
-      case 'titulo': {
-        if (args[0]) {
-          titleEl.textContent = args[0];
-          document.title = args[0] + ' - Framen RC';
-        }
-        break;
-      }
-      case 'seccion': {
-        const sec = document.createElement('section');
-        sec.className = 'rc-seccion';
-        if (args[0]) sec.id = args[0];
-        rootContainer.appendChild(sec);
-        currentContainer = sec;
-        break;
-      }
-      case 'contenedor': {
-        const div = document.createElement('div');
-        div.className = 'rc-contenedor';
-        if (args[0]) div.id = args[0];
-        currentContainer.appendChild(div);
-        currentContainer = div;
-        break;
-      }
-      case 'rejilla': {
-        const cols = args[0] || '2';
-        currentContainer.style.display = 'grid';
-        currentContainer.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
-        currentContainer.style.gap = '15px';
-        break;
-      }
-      case 'linea': {
-        const hr = document.createElement('hr');
-        hr.className = 'rc-linea';
-        currentContainer.appendChild(hr);
-        break;
-      }
-
-      // --- 2. TEXTO Y CONTENIDO ---
-      case 'texto':
-      case 'parrafo':
-      case 'bloque': {
-        const p = document.createElement('p');
-        p.className = 'rc-texto';
-        p.textContent = args[0] || '';
-        currentContainer.appendChild(p);
-        break;
-      }
-      case 'encabezado': {
-        const level = Math.min(6, Math.max(1, parseInt(args[0]) || 1));
-        const h = document.createElement('h' + level);
-        h.className = 'rc-encabezado';
-        h.textContent = args[1] !== undefined ? args[1] : (args[0] || '');
-        currentContainer.appendChild(h);
-        break;
-      }
-      case 'negrita': {
-        const b = document.createElement('b');
-        b.textContent = args[0] || '';
-        currentContainer.appendChild(b);
-        break;
-      }
-      case 'cursiva': {
-        const i = document.createElement('i');
-        i.textContent = args[0] || '';
-        currentContainer.appendChild(i);
-        break;
-      }
-      case 'subrayado': {
-        const u = document.createElement('u');
-        u.textContent = args[0] || '';
-        currentContainer.appendChild(u);
-        break;
-      }
-      case 'etiqueta': {
-        const lbl = document.createElement('span');
-        lbl.className = 'rc-etiqueta';
-        lbl.id = args[0] || '';
-        lbl.textContent = args[1] || '';
-        currentContainer.appendChild(lbl);
-        break;
-      }
-      case 'cita': {
-        const q = document.createElement('blockquote');
-        q.className = 'rc-cita';
-        q.textContent = args[0] || '';
-        currentContainer.appendChild(q);
-        break;
-      }
-      case 'codigo': {
-        const code = document.createElement('pre');
-        code.className = 'rc-codigo';
-        code.textContent = args[0] || '';
-        currentContainer.appendChild(code);
-        break;
-      }
-      case 'enlace': {
-        const a = document.createElement('a');
-        a.className = 'rc-enlace';
-        a.href = args[0] || '#';
-        a.textContent = args[1] || args[0] || '';
-        a.target = '_blank';
-        currentContainer.appendChild(a);
-        break;
-      }
-      case 'imagen': {
-        const img = document.createElement('img');
-        img.className = 'rc-imagen';
-        img.src = args[0] || '';
-        img.alt = 'Imagen RC';
-        img.style.maxWidth = '100%';
-        currentContainer.appendChild(img);
-        break;
-      }
-
-      // --- 3. LISTAS Y TABLAS ---
-      case 'listadesordenada': {
-        const ul = document.createElement('ul');
-        ul.className = 'rc-lista';
-        currentContainer.appendChild(ul);
-        currentContainer = ul;
-        break;
-      }
-      case 'listaordenada': {
-        const ol = document.createElement('ol');
-        ol.className = 'rc-lista';
-        currentContainer.appendChild(ol);
-        currentContainer = ol;
-        break;
-      }
-      case 'elementolista': {
-        const li = document.createElement('li');
-        li.textContent = args[0] || '';
-        if (currentContainer.tagName === 'UL' || currentContainer.tagName === 'OL') {
-          currentContainer.appendChild(li);
-        } else {
-          const ul = document.createElement('ul');
-          ul.appendChild(li);
-          currentContainer.appendChild(ul);
-        }
-        break;
-      }
-      case 'tabla': {
-        const table = document.createElement('table');
-        table.className = 'rc-tabla';
-        currentContainer.appendChild(table);
-        currentContainer = table;
-        break;
-      }
-      case 'filatabla': {
-        const tr = document.createElement('tr');
-        if (currentContainer.tagName === 'TABLE') {
-          currentContainer.appendChild(tr);
-        } else if (currentContainer.closest('table')) {
-          currentContainer.closest('table').appendChild(tr);
-        }
-        currentContainer = tr;
-        break;
-      }
-      case 'encabezadotabla': {
-        const th = document.createElement('th');
-        th.textContent = args[0] || '';
-        if (currentContainer.tagName === 'TR') currentContainer.appendChild(th);
-        break;
-      }
-      case 'celdatabla': {
-        const td = document.createElement('td');
-        td.textContent = args[0] || '';
-        if (currentContainer.tagName === 'TR') currentContainer.appendChild(td);
-        break;
-      }
-
-      // --- 4. COMPONENTES Y FORMULARIOS ---
-      case 'boton': {
-        const btn = document.createElement('button');
-        btn.className = 'rc-btn';
-        btn.id = args[0] || '';
-        btn.textContent = args[1] || 'Botón';
-        currentContainer.appendChild(btn);
-        break;
-      }
-      case 'etiquetacampo': {
-        const label = document.createElement('label');
-        label.className = 'rc-etiqueta-campo';
-        label.textContent = args[0] || '';
-        currentContainer.appendChild(label);
-        break;
-      }
-      case 'cargando': {
-        const loader = document.createElement('div');
-        loader.className = 'rc-cargando';
-        loader.textContent = 'Cargando...';
-        currentContainer.appendChild(loader);
-        break;
-      }
-      case 'lienzo': {
-        const cvs = document.createElement('canvas');
-        cvs.className = 'rc-lienzo';
-        cvs.id = args[0] || 'micanvas';
-        cvs.width = parseInt(args[1]) || 500;
-        cvs.height = parseInt(args[2]) || 300;
-        cvs.style.background = '#1a1d24';
-        cvs.style.borderRadius = '8px';
-        cvs.style.display = 'block';
-        cvs.style.margin = '10px 0';
-        currentContainer.appendChild(cvs);
-        eventListeners.push(() => setupCanvasDrawing(cvs));
-        break;
-      }
-      case 'entrada':
-      case 'camponumero':
-      case 'campocorreo':
-      case 'campocontrasena': {
-        const input = document.createElement('input');
-        input.className = 'rc-entrada';
-        input.id = args[0] || '';
-        if (cmd === 'camponumero') input.type = 'number';
-        else if (cmd === 'campocorreo') input.type = 'email';
-        else if (cmd === 'campocontrasena') input.type = 'password';
-        else input.type = 'text';
-        if (args[1]) input.value = args[1];
-        currentContainer.appendChild(input);
-        break;
-      }
-      case 'areatexto': {
-        const ta = document.createElement('textarea');
-        ta.className = 'rc-areatexto';
-        ta.id = args[0] || '';
-        ta.value = args[1] || '';
-        currentContainer.appendChild(ta);
-        break;
-      }
-
-      // --- 5. ESTILOS Y DISEÑO VISUAL ---
-      case 'fondo': {
-        if (args[0]) currentContainer.style.backgroundColor = parseColor(args[0]);
-        break;
-      }
-      case 'color': {
-        if (args[0]) currentContainer.style.color = parseColor(args[0]);
-        break;
-      }
-      case 'letra': {
-        if (args[0]) currentContainer.style.fontFamily = args[0];
-        break;
-      }
-      case 'tamano': {
-        if (args[0]) currentContainer.style.fontSize = args[0] + 'px';
-        break;
-      }
-      case 'ancho': {
-        if (args[0]) currentContainer.style.width = args[0] + 'px';
-        break;
-      }
-      case 'alto': {
-        if (args[0]) currentContainer.style.height = args[0] + 'px';
-        break;
-      }
-      case 'centrar': {
-        currentContainer.style.textAlign = 'center';
-        currentContainer.style.margin = '0 auto';
-        break;
-      }
-      case 'gap': {
-        if (args[0]) currentContainer.style.gap = args[0] + 'px';
-        break;
-      }
-      case 'radio': {
-        if (args[0]) currentContainer.style.borderRadius = args[0] + 'px';
-        break;
-      }
-
-      // --- 6. EVENTOS E INTERACCIÓN ---
-      case 'avisar': {
-        const [btnId, msg] = args;
-        if (btnId) {
-          eventListeners.push(() => {
-            const btn = $(btnId);
-            if (btn) btn.addEventListener('click', () => alert(msg || 'Aviso RC'));
-          });
-        }
-        break;
-      }
-      case 'ira': {
-        const [btnId, url] = args;
-        if (btnId) {
-          eventListeners.push(() => {
-            const btn = $(btnId);
-            if (btn) btn.addEventListener('click', () => window.open(url, '_blank'));
-          });
-        }
-        break;
-      }
-      case 'limpiar': {
-        const [btnId, inputId] = args;
-        if (btnId && inputId) {
-          eventListeners.push(() => {
-            const btn = $(btnId);
-            if (btn) btn.addEventListener('click', () => {
-              const inp = $(inputId);
-              if (inp) inp.value = '';
-            });
-          });
-        }
-        break;
-      }
-      case 'ocultar': {
-        const target = $(args[0]);
-        if (target) target.style.display = 'none';
-        break;
-      }
-      case 'mostrar': {
-        const target = $(args[0]);
-        if (target) target.style.display = 'block';
-        break;
-      }
-      case 'ocultarboton': {
-        const [btnId, targetId] = args;
-        if (btnId && targetId) {
-          eventListeners.push(() => {
-            const btn = $(btnId);
-            if (btn) btn.addEventListener('click', () => {
-              const el = $(targetId);
-              if (el) el.style.display = 'none';
-            });
-          });
-        }
-        break;
-      }
-      case 'mostrarboton': {
-        const [btnId, targetId] = args;
-        if (btnId && targetId) {
-          eventListeners.push(() => {
-            const btn = $(btnId);
-            if (btn) btn.addEventListener('click', () => {
-              const el = $(targetId);
-              if (el) el.style.display = 'block';
-            });
-          });
-        }
-        break;
-      }
-      case 'alternar': {
-        const [btnId, targetId] = args;
-        if (btnId && targetId) {
-          eventListeners.push(() => {
-            const btn = $(btnId);
-            if (btn) btn.addEventListener('click', () => {
-              const el = $(targetId);
-              if (el) el.style.display = (el.style.display === 'none') ? 'block' : 'none';
-            });
-          });
-        }
-        break;
-      }
-      case 'limpiarlienzo': {
-        const [btnId, cvsId] = args;
-        if (btnId && cvsId) {
-          eventListeners.push(() => {
-            const btn = $(btnId);
-            if (btn) btn.addEventListener('click', () => {
-              const cv = $(cvsId);
-              if (cv && cv.getContext) {
-                const ctx = cv.getContext('2d');
-                ctx.clearRect(0, 0, cv.width, cv.height);
-              }
-            });
-          });
-        }
-        break;
-      }
-
-      // --- 7. LÓGICA Y MATEMÁTICAS ---
-      case 'sumar':
-      case 'restar':
-      case 'multiplicar':
-      case 'dividir': {
-        const [btnId, in1Id, in2Id, lblId] = args;
-        if (btnId && in1Id && in2Id && lblId) {
-          eventListeners.push(() => {
-            const btn = $(btnId);
-            if (btn) btn.addEventListener('click', () => {
-              const v1 = parseFloat(($(in1Id) || {}).value || 0);
-              const v2 = parseFloat(($(in2Id) || {}).value || 0);
-              let res = 0;
-              if (cmd === 'sumar') res = v1 + v2;
-              else if (cmd === 'restar') res = v1 - v2;
-              else if (cmd === 'multiplicar') res = v1 * v2;
-              else if (cmd === 'dividir') res = v2 !== 0 ? v1 / v2 : 'Error (div/0)';
-              const lbl = $(lblId);
-              if (lbl) lbl.textContent = res;
-            });
-          });
-        }
-        break;
-      }
-
-      default: {
-        // --- HIGH-PERFORMANCE SMART DISPATCHER FOR CANVAS, GRAPHICS, CHARTS, FILTERS, ANIMATIONS, STYLES ---
-
-        // 1. DIBUJO Y LIENZO 2D
-        if (cmd.startsWith('dibujar') || cmd.includes('canvas') || cmd.includes('circulo') || cmd.includes('rectangulo') || cmd.includes('linea') || cmd.includes('estrella') || cmd.includes('corazon') || cmd.includes('poligono')) {
-          const cvsId = args[0] || 'micanvas';
-          eventListeners.push(() => {
-            const cv = $(cvsId);
-            if (cv && cv.getContext) {
-              const ctx = cv.getContext('2d');
-              const x = parseFloat(args[1]) || 50, y = parseFloat(args[2]) || 50;
-              const w = parseFloat(args[3]) || 60, h = parseFloat(args[4]) || 60;
-              const col = parseColor(args[5] || 'ff6538');
-              ctx.fillStyle = col; ctx.strokeStyle = col; ctx.lineWidth = 2;
-
-              if (cmd.includes('circulo') || cmd.includes('esfera') || cmd.includes('sol') || cmd.includes('luna') || cmd.includes('punto') || cmd.includes('annulo') || cmd.includes('corona')) {
-                ctx.beginPath(); ctx.arc(x, y, w/2, 0, Math.PI * 2); ctx.fill();
-              } else if (cmd.includes('linea') || cmd.includes('flecha') || cmd.includes('curva') || cmd.includes('arco') || cmd.includes('onda')) {
-                ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x + w, y + h); ctx.stroke();
-              } else if (cmd.includes('estrella') || cmd.includes('corazon') || cmd.includes('triangulo') || cmd.includes('rombo') || cmd.includes('pentagono') || cmd.includes('hexagono') || cmd.includes('octagono')) {
-                ctx.beginPath();
-                const sides = cmd.includes('triangulo') ? 3 : (cmd.includes('rombo') ? 4 : (cmd.includes('pentagono') ? 5 : (cmd.includes('hexagono') ? 6 : 8)));
-                for (let i = 0; i < sides; i++) {
-                  const angle = (i * 2 * Math.PI) / sides - Math.PI / 2;
-                  const px = x + (w/2) * Math.cos(angle), py = y + (w/2) * Math.sin(angle);
-                  if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
-                }
-                ctx.closePath(); ctx.fill();
-              } else if (cmd.includes('texto')) {
-                ctx.font = '16px sans-serif'; ctx.fillText(args[3] || 'RC Code', x, y);
-              } else {
-                ctx.fillRect(x, y, w, h);
-              }
-            }
-          });
-          break;
-        }
-
-        // 2. FILTROS Y PROCESAMIENTO DE IMAGEN
-        if (cmd.includes('filtro') || cmd.includes('pixel') || cmd.includes('inverter') || cmd.includes('sepia') || cmd.includes('grises') || cmd.includes('cyberpunk') || cmd.includes('duotono') || cmd.includes('mapacalor') || cmd.includes('brillo')) {
-          const cvsId = args[0] || 'micanvas';
-          eventListeners.push(() => {
-            const cv = $(cvsId);
-            if (cv && cv.getContext) {
-              const ctx = cv.getContext('2d');
-              const imgData = ctx.getImageData(0, 0, cv.width, cv.height);
-              const data = imgData.data;
-              for (let i = 0; i < data.length; i += 4) {
-                if (cmd.includes('invertir')) {
-                  data[i] = 255 - data[i]; data[i+1] = 255 - data[i+1]; data[i+2] = 255 - data[i+2];
-                } else if (cmd.includes('grises')) {
-                  const avg = (data[i] + data[i+1] + data[i+2]) / 3;
-                  data[i] = avg; data[i+1] = avg; data[i+2] = avg;
-                } else if (cmd.includes('sepia') || cmd.includes('calido')) {
-                  data[i] = Math.min(255, data[i] * 1.2); data[i+2] = Math.max(0, data[i+2] * 0.8);
-                } else if (cmd.includes('cyberpunk') || cmd.includes('duotono')) {
-                  data[i] = Math.min(255, data[i] * 1.5); data[i+1] = 0; data[i+2] = Math.min(255, data[i+2] * 1.8);
-                } else {
-                  data[i] = Math.min(255, data[i] + 30);
-                }
-              }
-              ctx.putImageData(imgData, 0, 0);
-            }
-          });
-          break;
-        }
-
-        // 3. GRÁFICOS Y DIAGRAMAS
-        if (cmd.includes('grafico') || cmd.includes('diagrama') || cmd.includes('chart') || cmd.includes('tarta') || cmd.includes('donuts') || cmd.includes('barra') || cmd.includes('lineas') || cmd.includes('radar')) {
-          const cvsId = args[0] || 'micanvas';
-          eventListeners.push(() => {
-            const cv = $(cvsId);
-            if (cv && cv.getContext) {
-              const ctx = cv.getContext('2d');
-              const values = [40, 70, 25, 90, 60, 80];
-              const colors = ['#ff6538', '#38bdf8', '#4ade80', '#facc15', '#a855f7', '#ec4899'];
-              ctx.clearRect(0, 0, cv.width, cv.height);
-              if (cmd.includes('tarta') || cmd.includes('pie') || cmd.includes('donuts') || cmd.includes('rosquilla')) {
-                let total = values.reduce((a, b) => a + b, 0), startAngle = 0;
-                const cx = cv.width / 2, cy = cv.height / 2, r = Math.min(cx, cy) - 20;
-                values.forEach((v, i) => {
-                  const slice = (v / total) * 2 * Math.PI;
-                  ctx.beginPath(); ctx.fillStyle = colors[i % colors.length];
-                  ctx.moveTo(cx, cy); ctx.arc(cx, cy, r, startAngle, startAngle + slice); ctx.fill();
-                  startAngle += slice;
-                });
-                if (cmd.includes('donuts') || cmd.includes('rosquilla')) {
-                  ctx.beginPath(); ctx.fillStyle = '#1a1d24'; ctx.arc(cx, cy, r * 0.5, 0, Math.PI * 2); ctx.fill();
-                }
-              } else {
-                // Bar / Line Chart Default
-                const bw = cv.width / (values.length * 2);
-                values.forEach((v, i) => {
-                  ctx.fillStyle = colors[i % colors.length];
-                  const h = (v / 100) * (cv.height - 40);
-                  ctx.fillRect(20 + i * (bw + 15), cv.height - h - 20, bw, h);
-                });
-              }
-            }
-          });
-          break;
-        }
-
-        // 4. ESTILOS Y TIPOGRAFÍA
-        if (cmd.includes('fuente') || cmd.includes('texto') || cmd.includes('efecto') || cmd.includes('estilo') || cmd.includes('sombrear') || cmd.includes('borde') || cmd.includes('resplandor') || cmd.includes('flex') || cmd.includes('grid') || cmd.includes('rejilla') || cmd.includes('animacion') || cmd.includes('transform')) {
-          if (cmd.includes('fuente') || cmd.includes('texto')) {
-            currentContainer.style.fontFamily = cmd.includes('serif') ? 'serif' : (cmd.includes('mono') ? 'monospace' : 'sans-serif');
-          }
-          if (cmd.includes('sombrear') || cmd.includes('sombra')) {
-            currentContainer.style.boxShadow = '0 8px 24px rgba(0,0,0,0.5)';
-          }
-          if (cmd.includes('resplandor') || cmd.includes('glow')) {
-            currentContainer.style.boxShadow = '0 0 20px #ff6538';
-          }
-          if (cmd.includes('borde')) {
-            currentContainer.style.border = '2px solid #ff6538';
-          }
-          if (cmd.includes('flex')) {
-            currentContainer.style.display = 'flex'; currentContainer.style.gap = '10px';
-          }
-          if (cmd.includes('grid') || cmd.includes('rejilla')) {
-            currentContainer.style.display = 'grid'; currentContainer.style.gridTemplateColumns = 'repeat(auto-fit, minmax(150px, 1fr))'; currentContainer.style.gap = '10px';
-          }
-          if (cmd.includes('animacion')) {
-            currentContainer.style.transition = 'all 0.3s ease';
-            currentContainer.classList.add('rc-animated');
-          }
-          break;
-        }
-
-        break;
-      }
+    // Extraer todos los contenidos entre paréntesis
+    const args = [];
+    const argRegex = /\((.*?)\)/g;
+    let m;
+    while ((m = argRegex.exec(argsStr)) !== null) {
+      args.push(m[1]);
     }
-  }
 
-  rootContainer.appendChild(currentContainer);
-  out.appendChild(rootContainer);
+    try {
+      switch (cmd) {
+        // 1. ESTRUCTURA Y MÓDULOS
+        case 'incluir':
+          break;
+        case 'titulo':
+          if (args[0]) document.title = args[0];
+          break;
+        case 'seccion':
+          const sec = document.createElement('div');
+          sec.className = 'rc-section';
+          container.appendChild(sec);
+          currentParent = sec;
+          break;
+        case 'contenedor':
+          const cont = document.createElement('div');
+          if (args[0]) cont.id = args[0];
+          cont.className = 'rc-container';
+          currentParent.appendChild(cont);
+          currentParent = cont;
+          break;
+        case 'rejilla':
+          const grid = document.createElement('div');
+          grid.className = 'rc-grid';
+          grid.style.gridTemplateColumns = `repeat(${args[0] || 2}, 1fr)`;
+          currentParent.appendChild(grid);
+          currentParent = grid;
+          break;
+        case 'linea':
+          const hr = document.createElement('hr');
+          hr.style.borderColor = 'var(--line)';
+          hr.style.margin = '16px 0';
+          currentParent.appendChild(hr);
+          break;
 
-  // Execute deferred event listeners
-  eventListeners.forEach(fn => fn());
-}
+        // 2. TEXTO Y CONTENIDO
+        case 'texto':
+        case 'parrafo':
+        case 'bloque':
+          const p = document.createElement('p');
+          p.textContent = args[0] || '';
+          currentParent.appendChild(p);
+          break;
+        case 'encabezado':
+          const level = Math.min(Math.max(parseInt(args[0]) || 1, 1), 6);
+          const h = document.createElement('h' + level);
+          h.textContent = args[1] || args[0] || '';
+          currentParent.appendChild(h);
+          break;
+        case 'negrita':
+          const b = document.createElement('strong');
+          b.textContent = args[0] || '';
+          currentParent.appendChild(b);
+          break;
+        case 'cursiva':
+          const em = document.createElement('em');
+          em.textContent = args[0] || '';
+          currentParent.appendChild(em);
+          break;
+        case 'subrayado':
+          const u = document.createElement('u');
+          u.textContent = args[0] || '';
+          currentParent.appendChild(u);
+          break;
+        case 'etiqueta':
+          const lbl = document.createElement('span');
+          if (args[0]) lbl.id = args[0];
+          lbl.textContent = args[1] || '';
+          lbl.style.display = 'inline-block';
+          lbl.style.margin = '4px 0';
+          currentParent.appendChild(lbl);
+          break;
+        case 'cita':
+          const q = document.createElement('blockquote');
+          q.textContent = args[0] || '';
+          q.style.borderLeft = '4px solid var(--accent)';
+          q.style.paddingLeft = '12px';
+          currentParent.appendChild(q);
+          break;
+        case 'codigo':
+          const pre = document.createElement('pre');
+          pre.textContent = args[0] || '';
+          pre.style.background = 'rgba(0,0,0,0.5)';
+          pre.style.padding = '12px';
+          pre.style.borderRadius = '8px';
+          currentParent.appendChild(pre);
+          break;
+        case 'enlace':
+          const a = document.createElement('a');
+          a.href = args[0] || '#';
+          a.textContent = args[1] || args[0] || '';
+          a.style.color = 'var(--accent)';
+          currentParent.appendChild(a);
+          break;
+        case 'imagen':
+          const img = document.createElement('img');
+          img.src = args[0] || '';
+          img.style.maxWidth = '100%';
+          img.style.borderRadius = '8px';
+          currentParent.appendChild(img);
+          break;
 
+        // 3. LISTAS Y TABLAS
+        case 'listadesordenada':
+          activeList = document.createElement('ul');
+          currentParent.appendChild(activeList);
+          break;
+        case 'listaordenada':
+          activeList = document.createElement('ol');
+          currentParent.appendChild(activeList);
+          break;
+        case 'elementolista':
+          if (activeList) {
+            const li = document.createElement('li');
+            li.textContent = args[0] || '';
+            activeList.appendChild(li);
+          }
+          break;
+        case 'tabla':
+          activeTable = document.createElement('table');
+          activeTable.className = 'rc-table';
+          currentParent.appendChild(activeTable);
+          break;
+        case 'filatabla':
+          if (activeTable) {
+            activeRow = document.createElement('tr');
+            activeTable.appendChild(activeRow);
+          }
+          break;
+        case 'encabezadotabla':
+          if (activeRow) {
+            const th = document.createElement('th');
+            th.textContent = args[0] || '';
+            activeRow.appendChild(th);
+          }
+          break;
+        case 'celdatabla':
+          if (activeRow) {
+            const td = document.createElement('td');
+            td.textContent = args[0] || '';
+            activeRow.appendChild(td);
+          }
+          break;
 
-function parseColor(val) {
-  if (!val) return '#ffffff';
-  const colors = {
-    negro:'#000000', blanco:'#ffffff', rojo:'#ff0000',
-    azul:'#0000ff', verde:'#008000', amarillo:'#ffff00',
-    naranja:'#ff8800', morado:'#800080', gris:'#888888'
-  };
-  if (colors[val]) return colors[val];
-  if (/^[0-9a-fA-F]{3,6}$/.test(val)) return '#' + val;
-  return val;
-}
+        // 4. COMPONENTES DE INTERFAZ
+        case 'boton':
+          const btn = document.createElement('button');
+          btn.className = 'rc-button';
+          if (args[0]) btn.id = args[0];
+          btn.textContent = args[1] || args[0] || 'Botón';
+          currentParent.appendChild(btn);
+          break;
+        case 'etiquetacampo':
+          const fieldLbl = document.createElement('label');
+          fieldLbl.textContent = args[0] || '';
+          fieldLbl.style.display = 'block';
+          fieldLbl.style.marginTop = '8px';
+          fieldLbl.style.fontWeight = '600';
+          currentParent.appendChild(fieldLbl);
+          break;
+        case 'cargando':
+          const loader = document.createElement('div');
+          loader.textContent = 'Cargando...';
+          loader.style.color = 'var(--accent)';
+          currentParent.appendChild(loader);
+          break;
+        case 'lienzo':
+          const cvs = document.createElement('canvas');
+          if (args[0]) cvs.id = args[0];
+          cvs.className = 'rc-canvas';
+          cvs.width = 600;
+          cvs.height = 300;
+          currentParent.appendChild(cvs);
 
-function playBeep() {
-  try {
-    const ctx = new (window.AudioContext || window.webkitAudioContext)();
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
-    osc.type = 'sine';
-    osc.frequency.setValueAtTime(587.33, ctx.currentTime);
-    gain.gain.setValueAtTime(0.1, ctx.currentTime);
-    osc.connect(gain);
-    gain.connect(ctx.destination);
-    osc.start();
-    osc.stop(ctx.currentTime + 0.15);
-  } catch(e) {}
-}
+          // Setup drawing logic
+          const ctx = cvs.getContext('2d');
+          let drawing = false;
+          cvs.onpointerdown = e => { drawing = true; ctx.beginPath(); ctx.moveTo(e.offsetX, e.offsetY); };
+          cvs.onpointermove = e => { if (drawing) { ctx.lineTo(e.offsetX, e.offsetY); ctx.strokeStyle = '#ff6538'; ctx.lineWidth = 3; ctx.stroke(); } };
+          cvs.onpointerup = () => { drawing = false; };
+          break;
 
-function setupCanvasDrawing(canvas) {
-  const ctx = canvas.getContext('2d');
-  let isDrawing = false;
-  let lastX = 0, lastY = 0;
+        // 5. DISEÑO Y ESTILOS VISUALES
+        case 'fondo':
+          out.style.background = '#' + (args[0] || '0b0d12').replace('#','');
+          break;
+        case 'color':
+          out.style.color = '#' + (args[0] || 'f4f6fb').replace('#','');
+          break;
+        case 'gap':
+          if (currentParent) currentParent.style.gap = (args[0] || 10) + 'px';
+          break;
 
-  ctx.strokeStyle = '#ff6538';
-  ctx.lineWidth = 3;
-  ctx.lineCap = 'round';
+        // 6. FORMULARIOS Y CAMPOS
+        case 'entrada':
+          const inTxt = document.createElement('input');
+          inTxt.type = 'text';
+          inTxt.className = 'rc-input';
+          if (args[0]) inTxt.id = args[0];
+          if (args[1]) inTxt.value = args[1];
+          currentParent.appendChild(inTxt);
+          break;
+        case 'camponumero':
+          const inNum = document.createElement('input');
+          inNum.type = 'number';
+          inNum.className = 'rc-input';
+          if (args[0]) inNum.id = args[0];
+          if (args[1]) inNum.value = args[1];
+          currentParent.appendChild(inNum);
+          break;
+        case 'campocorreo':
+          const inEmail = document.createElement('input');
+          inEmail.type = 'email';
+          inEmail.className = 'rc-input';
+          if (args[0]) inEmail.id = args[0];
+          if (args[1]) inEmail.value = args[1];
+          currentParent.appendChild(inEmail);
+          break;
+        case 'campocontrasena':
+          const inPass = document.createElement('input');
+          inPass.type = 'password';
+          inPass.className = 'rc-input';
+          if (args[0]) inPass.id = args[0];
+          currentParent.appendChild(inPass);
+          break;
+        case 'areatexto':
+          const txtArea = document.createElement('textarea');
+          txtArea.className = 'rc-textarea';
+          txtArea.rows = 4;
+          if (args[0]) txtArea.id = args[0];
+          if (args[1]) txtArea.value = args[1];
+          currentParent.appendChild(txtArea);
+          break;
 
-  function getPos(e) {
-    const rect = canvas.getBoundingClientRect();
-    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
-    return {
-      x: clientX - rect.left,
-      y: clientY - rect.top
-    };
-  }
+        // 7. EVENTOS E INTERACCIÓN
+        case 'avisar':
+          eventQueue.push(() => {
+            const btn = $(args[0]);
+            if (btn) btn.onclick = () => alert(args[1] || 'Aviso');
+          });
+          break;
+        case 'limpiar':
+          eventQueue.push(() => {
+            const btn = $(args[0]);
+            const target = $(args[1]);
+            if (btn && target) btn.onclick = () => { target.value = ''; };
+          });
+          break;
+        case 'limpiarlienzo':
+          eventQueue.push(() => {
+            const btn = $(args[0]);
+            const cvs = $(args[1]);
+            if (btn && cvs) {
+              btn.onclick = () => {
+                const ctx = cvs.getContext('2d');
+                ctx.clearRect(0, 0, cvs.width, cvs.height);
+              };
+            }
+          });
+          break;
 
-  function startDraw(e) {
-    isDrawing = true;
-    const pos = getPos(e);
-    lastX = pos.x; lastY = pos.y;
-  }
+        // 8. LÓGICA Y OPERACIONES
+        case 'sumar':
+        case 'restar':
+        case 'multiplicar':
+        case 'dividir':
+          eventQueue.push(() => {
+            const btn = $(args[0]);
+            const in1 = $(args[1]);
+            const in2 = $(args[2]);
+            const lbl = $(args[3]);
+            if (btn && in1 && in2 && lbl) {
+              btn.onclick = () => {
+                const v1 = parseFloat(in1.value) || 0;
+                const v2 = parseFloat(in2.value) || 0;
+                let res = 0;
+                if (cmd === 'sumar') res = v1 + v2;
+                if (cmd === 'restar') res = v1 - v2;
+                if (cmd === 'multiplicar') res = v1 * v2;
+                if (cmd === 'dividir') res = v2 !== 0 ? v1 / v2 : 'Error Div/0';
+                lbl.textContent = 'Resultado: ' + res;
+              };
+            }
+          });
+          break;
+      }
+    } catch(e) {
+      console.error('Error procesando línea RC:', line, e);
+    }
+  });
 
-  function draw(e) {
-    if (!isDrawing) return;
-    e.preventDefault();
-    const pos = getPos(e);
-    ctx.beginPath();
-    ctx.moveTo(lastX, lastY);
-    ctx.lineTo(pos.x, pos.y);
-    ctx.stroke();
-    lastX = pos.x; lastY = pos.y;
-  }
-
-  function stopDraw() { isDrawing = false; }
-
-  canvas.addEventListener('mousedown', startDraw);
-  canvas.addEventListener('mousemove', draw);
-  canvas.addEventListener('mouseup', stopDraw);
-  canvas.addEventListener('mouseleave', stopDraw);
-
-  canvas.addEventListener('touchstart', startDraw);
-  canvas.addEventListener('touchmove', draw);
-  canvas.addEventListener('touchend', stopDraw);
-}
-
-function escapeHtml(str) {
-  if (!str) return '';
-  return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-}
-
-function escapeJs(str) {
-  if (!str) return '';
-  return str.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+  // Attach all event listeners after DOM elements are created
+  setTimeout(() => {
+    eventQueue.forEach(fn => fn());
+  }, 10);
 }
 </script>
 </body>
