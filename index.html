@@ -11,8 +11,6 @@
   button,input{font:inherit}
   button{cursor:pointer;border:1px solid var(--line);background:var(--panel2);color:var(--text);border-radius:7px;padding:7px 10px}
   button:hover{background:#303542}
-  .btn-accent{background:#1f3a5f;color:var(--blue);border-color:#325c96}
-  .btn-accent:hover{background:#2a4e7e}
   .topbar{height:52px;display:flex;align-items:center;gap:8px;padding:0 12px;border-bottom:1px solid var(--line);background:#15161c}
   .topbar .spacer{flex:1}
   .topbar button{min-width:36px}
@@ -46,10 +44,6 @@
 <body>
 <header class="topbar">
   <button id="saveBtn" title="Descargar archivo abierto">Guardar archivo</button>
-  <button id="saveAllBtn" title="Descargar todos los archivos como JSON">Exportar proyecto</button>
-  <div class="spacer"></div>
-  <button id="translateRcBtn" class="btn-accent" title="Traducir código RC a HTML">Traducir RC ➔ HTML</button>
-  <button id="translateHtmlBtn" class="btn-accent" title="Traducir código HTML a RC">Traducir HTML ➔ RC</button>
   <div class="spacer"></div>
   <button id="toggleExplorer" aria-expanded="true" title="Mostrar u ocultar explorador">Explorador ▣</button>
 </header>
@@ -79,28 +73,6 @@
 
 <script>
 (() => {
-  const initialRc = `// archivo rc principal
-titulo(mi aplicacion)
-seccion(principal)
-encabezado(1)(bienvenido a mi aplicacion)
-parrafo(esta aplicacion utiliza el lenguaje rapid code)
-boton(btn1)(hacer clic)
-avisar(btn1)(hola desde el lenguaje rc)
-fondo(#111217)
-color(#e8eaf0)
-`;
-
-  const files = new Map([
-    ["main.rc", {type:"rc", content: initialRc}],
-    ["index.html", {type:"html", content: rcToHtml(initialRc)}]
-  ]);
-  const active = {rc:"main.rc", html:"index.html"};
-  const editors = {rc:document.getElementById("rcEditor"), html:document.getElementById("htmlEditor")};
-  const tabs = {rc:document.getElementById("rcTabs"), html:document.getElementById("htmlTabs")};
-  const list = document.getElementById("fileList");
-  const explorer = document.getElementById("explorer");
-  let toastTimer;
-
   function cleanParam(val) {
     if (!val) return '';
     return val.toLowerCase()
@@ -410,7 +382,7 @@ color(#e8eaf0)
 
     let scriptBlock = '';
     if (scriptLines.length > 0) {
-      scriptBlock = `\n  <script>\n    ${scriptLines.join('\n    ')}\n  </script>`;
+      scriptBlock = `\n  <script>\n    ${scriptLines.join('\n    ')}\n  <\/script>`;
     }
 
     return `<!DOCTYPE html>
@@ -735,6 +707,75 @@ ${bodyHtml.join('\n')}${scriptBlock}
     return rcLines.join('\n') + '\n';
   }
 
+  const initialRc = `// archivo rc principal
+titulo(mi aplicacion)
+seccion(principal)
+encabezado(1)(bienvenido a mi aplicacion)
+parrafo(esta aplicacion utiliza el lenguaje rapid code)
+boton(btn1)(hacer clic)
+avisar(btn1)(hola desde el lenguaje rc)
+fondo(#111217)
+color(#e8eaf0)
+`;
+
+  const files = new Map([
+    ["main.rc", {type:"rc", content: initialRc}],
+    ["index.html", {type:"html", content: rcToHtml(initialRc)}]
+  ]);
+  const active = {rc:"main.rc", html:"index.html"};
+  const editors = {rc:document.getElementById("rcEditor"), html:document.getElementById("htmlEditor")};
+  const tabs = {rc:document.getElementById("rcTabs"), html:document.getElementById("htmlTabs")};
+  const list = document.getElementById("fileList");
+  const explorer = document.getElementById("explorer");
+  let toastTimer;
+  let isTranslating = false;
+
+  function autoTranslate(sourceType) {
+    if (isTranslating) return;
+    isTranslating = true;
+    try {
+      if (sourceType === "rc") {
+        const rcName = active.rc;
+        if (rcName && files.has(rcName)) {
+          const rcVal = editors.rc.value;
+          files.get(rcName).content = rcVal;
+          const generatedHtml = rcToHtml(rcVal);
+          let htmlName = active.html;
+          if (!htmlName || !files.has(htmlName)) {
+            htmlName = "index.html";
+            files.set(htmlName, {type: "html", content: generatedHtml});
+            active.html = htmlName;
+            renderTabs("html");
+          } else {
+            files.get(htmlName).content = generatedHtml;
+          }
+          editors.html.value = generatedHtml;
+          document.getElementById("htmlStatusName").textContent = active.html;
+        }
+      } else if (sourceType === "html") {
+        const htmlName = active.html;
+        if (htmlName && files.has(htmlName)) {
+          const htmlVal = editors.html.value;
+          files.get(htmlName).content = htmlVal;
+          const generatedRc = htmlToRc(htmlVal);
+          let rcName = active.rc;
+          if (!rcName || !files.has(rcName)) {
+            rcName = "main.rc";
+            files.set(rcName, {type: "rc", content: generatedRc});
+            active.rc = rcName;
+            renderTabs("rc");
+          } else {
+            files.get(rcName).content = generatedRc;
+          }
+          editors.rc.value = generatedRc;
+          document.getElementById("rcStatusName").textContent = active.rc;
+        }
+      }
+    } finally {
+      isTranslating = false;
+    }
+  }
+
   function notify(message) {
     const el = document.getElementById("toast");
     el.textContent = message; el.style.display = "block";
@@ -849,7 +890,9 @@ ${bodyHtml.join('\n')}${scriptBlock}
   }
   for (const type of ["rc","html"]) {
     editors[type].addEventListener("input", () => {
-      saveCurrentContent(type); updateCursor(type);
+      saveCurrentContent(type);
+      updateCursor(type);
+      autoTranslate(type);
     });
     editors[type].addEventListener("click", () => updateCursor(type));
     editors[type].addEventListener("keyup", () => updateCursor(type));
@@ -858,55 +901,10 @@ ${bodyHtml.join('\n')}${scriptBlock}
         e.preventDefault();
         const start = editors[type].selectionStart, end = editors[type].selectionEnd;
         editors[type].setRangeText("  ", start, end, "end");
-        saveCurrentContent(type); updateCursor(type);
+        saveCurrentContent(type); updateCursor(type); autoTranslate(type);
       }
     });
   }
-
-  // Translation triggers
-  document.getElementById("translateRcBtn").onclick = () => {
-    saveCurrentContent("rc"); saveCurrentContent("html");
-    const rcName = active.rc;
-    if (!rcName || !files.has(rcName)) {
-      notify("Abre o crea un archivo .rc para traducir.");
-      return;
-    }
-    const rcContent = files.get(rcName).content;
-    const generatedHtml = rcToHtml(rcContent);
-
-    let htmlName = active.html;
-    if (!htmlName || !files.has(htmlName)) {
-      htmlName = "index.html";
-      files.set(htmlName, {type: "html", content: generatedHtml});
-      active.html = htmlName;
-    } else {
-      files.get(htmlName).content = generatedHtml;
-    }
-    renderAll();
-    notify("¡Código RC traducido a HTML correctamente!");
-  };
-
-  document.getElementById("translateHtmlBtn").onclick = () => {
-    saveCurrentContent("rc"); saveCurrentContent("html");
-    const htmlName = active.html;
-    if (!htmlName || !files.has(htmlName)) {
-      notify("Abre o crea un archivo HTML para traducir.");
-      return;
-    }
-    const htmlContent = files.get(htmlName).content;
-    const generatedRc = htmlToRc(htmlContent);
-
-    let rcName = active.rc;
-    if (!rcName || !files.has(rcName)) {
-      rcName = "main.rc";
-      files.set(rcName, {type: "rc", content: generatedRc});
-      active.rc = rcName;
-    } else {
-      files.get(rcName).content = generatedRc;
-    }
-    renderAll();
-    notify("¡Código HTML traducido a RC correctamente!");
-  };
 
   document.getElementById("newRc").onclick = () => createFile("rc");
   document.getElementById("newHtml").onclick = () => createFile("html");
@@ -929,14 +927,6 @@ ${bodyHtml.join('\n')}${scriptBlock}
     const url = URL.createObjectURL(blob), a = document.createElement("a");
     a.href = url; a.download = name; a.click(); URL.revokeObjectURL(url);
     notify("Descargando " + name);
-  };
-  document.getElementById("saveAllBtn").onclick = () => {
-    saveCurrentContent("rc"); saveCurrentContent("html");
-    const obj = Object.fromEntries([...files.entries()].map(([name,file]) => [name,{type:file.type,content:file.content}]));
-    const blob = new Blob([JSON.stringify(obj,null,2)], {type:"application/json;charset=utf-8"});
-    const url = URL.createObjectURL(blob), a = document.createElement("a");
-    a.href = url; a.download = "proyecto-editor.json"; a.click(); URL.revokeObjectURL(url);
-    notify("Proyecto exportado como JSON.");
   };
   renderAll();
 })();
