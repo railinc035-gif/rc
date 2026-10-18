@@ -11,6 +11,8 @@
   button,input{font:inherit}
   button{cursor:pointer;border:1px solid var(--line);background:var(--panel2);color:var(--text);border-radius:7px;padding:7px 10px}
   button:hover{background:#303542}
+  .btn-accent{background:#1f3a5f;color:var(--blue);border-color:#325c96}
+  .btn-accent:hover{background:#2a4e7e}
   .topbar{height:52px;display:flex;align-items:center;gap:8px;padding:0 12px;border-bottom:1px solid var(--line);background:#15161c}
   .topbar .spacer{flex:1}
   .topbar button{min-width:36px}
@@ -36,7 +38,7 @@
   .file-row .mini{padding:3px 6px;font-size:12px}
   .explorer-note{padding:10px;border-top:1px solid var(--line);font-size:12px;color:var(--muted)}
   .empty{padding:15px;color:var(--muted);text-align:center}
-  .toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:#292d38;border:1px solid #454b5a;padding:9px 14px;border-radius:8px;display:none}
+  .toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:#292d38;border:1px solid #454b5a;padding:9px 14px;border-radius:8px;display:none;z-index:99}
   @media(max-width:720px){.layout{padding:5px;gap:5px}.explorer{width:205px;flex-basis:205px}.editor textarea{padding:10px;font-size:12px}.tab{padding:8px}.topbar{padding:0 7px}}
   @media(max-width:560px){.layout{position:relative}.editor{min-width:0}.explorer{position:absolute;z-index:5;right:5px;top:5px;bottom:5px;box-shadow:0 10px 35px #0009}.explorer.hidden{display:none}}
 </style>
@@ -45,6 +47,9 @@
 <header class="topbar">
   <button id="saveBtn" title="Descargar archivo abierto">Guardar archivo</button>
   <button id="saveAllBtn" title="Descargar todos los archivos como JSON">Exportar proyecto</button>
+  <div class="spacer"></div>
+  <button id="translateRcBtn" class="btn-accent" title="Traducir código RC a HTML">Traducir RC ➔ HTML</button>
+  <button id="translateHtmlBtn" class="btn-accent" title="Traducir código HTML a RC">Traducir HTML ➔ RC</button>
   <div class="spacer"></div>
   <button id="toggleExplorer" aria-expanded="true" title="Mostrar u ocultar explorador">Explorador ▣</button>
 </header>
@@ -74,9 +79,20 @@
 
 <script>
 (() => {
+  const initialRc = `// archivo rc principal
+titulo(mi aplicacion)
+seccion(principal)
+encabezado(1)(bienvenido a mi aplicacion)
+parrafo(esta aplicacion utiliza el lenguaje rapid code)
+boton(btn1)(hacer clic)
+avisar(btn1)(hola desde el lenguaje rc)
+fondo(#111217)
+color(#e8eaf0)
+`;
+
   const files = new Map([
-    ["main.rc", {type:"rc", content:'// Archivo RC principal\\nventana {\\n  titulo: "Mi Aplicación"\\n  ancho: 900\\n  alto: 600\\n  color_fondo: "#111217"\\n}\\n'}],
-    ["index.html", {type:"html", content:'<!DOCTYPE html>\\n<html lang="es">\\n<head>\\n  <meta charset="UTF-8">\\n  <meta name="viewport" content="width=device-width, initial-scale=1.0">\\n  <title>Mi aplicación</title>\\n</head>\\n<body>\\n  <h1>Hola mundo</h1>\\n  <p>Este es mi archivo HTML.</p>\\n</body>\\n</html>\\n'}]
+    ["main.rc", {type:"rc", content: initialRc}],
+    ["index.html", {type:"html", content: rcToHtml(initialRc)}]
   ]);
   const active = {rc:"main.rc", html:"index.html"};
   const editors = {rc:document.getElementById("rcEditor"), html:document.getElementById("htmlEditor")};
@@ -85,13 +101,646 @@
   const explorer = document.getElementById("explorer");
   let toastTimer;
 
+  function cleanParam(val) {
+    if (!val) return '';
+    return val.toLowerCase()
+      .replace(/["';,#$%&*<>{}=]/g, '')
+      .replace(/\s+/g, ' ')
+      .trim();
+  }
+
+  function rcToHtml(rcCode) {
+    if (!rcCode) return '';
+    const lines = rcCode.split('\n');
+    let title = 'Aplicación RC';
+    const bodyHtml = [];
+    const scriptLines = [];
+    const bodyStyles = [];
+    const openStack = [];
+
+    function closeContainersUntil(tagList) {
+      while (openStack.length > 0) {
+        const top = openStack[openStack.length - 1];
+        if (tagList && tagList.includes(top)) break;
+        bodyHtml.push(' '.repeat(openStack.length * 2) + `</${openStack.pop()}>`);
+      }
+    }
+
+    lines.forEach(rawLine => {
+      const line = rawLine.trim();
+      if (!line) return;
+
+      if (line.startsWith('//')) {
+        const commentText = line.slice(2).trim();
+        bodyHtml.push(' '.repeat(openStack.length * 2 + 2) + `<!-- ${commentText} -->`);
+        return;
+      }
+
+      const match = line.match(/^([a-z0-9_]+)(?:\(([^)]*)\))?(?:\(([^)]*)\))?(?:\(([^)]*)\))?(?:\(([^)]*)\))?$/i);
+      if (!match) return;
+
+      const cmd = match[1].toLowerCase();
+      const a1 = match[2] !== undefined ? match[2].trim() : '';
+      const a2 = match[3] !== undefined ? match[3].trim() : '';
+      const a3 = match[4] !== undefined ? match[4].trim() : '';
+      const a4 = match[5] !== undefined ? match[5].trim() : '';
+
+      const indent = ' '.repeat(openStack.length * 2 + 2);
+
+      switch (cmd) {
+        case 'incluir':
+          bodyHtml.push(`${indent}<!-- incluir: ${a1} -->`);
+          break;
+        case 'titulo':
+          title = a1;
+          break;
+        case 'seccion':
+          closeContainersUntil(['body']);
+          bodyHtml.push(`${indent}<section id="${a1}">`);
+          openStack.push('section');
+          break;
+        case 'contenedor':
+          bodyHtml.push(`${indent}<div id="${a1}">`);
+          openStack.push('div');
+          break;
+        case 'rejilla':
+          const cols = parseInt(a1, 10) || 1;
+          bodyHtml.push(`${indent}<div class="rejilla" style="display: grid; grid-template-columns: repeat(${cols}, 1fr); gap: 10px;">`);
+          openStack.push('div');
+          break;
+        case 'linea':
+          bodyHtml.push(`${indent}<hr>`);
+          break;
+        case 'texto':
+        case 'parrafo':
+          bodyHtml.push(`${indent}<p>${a1}</p>`);
+          break;
+        case 'encabezado':
+          const level = Math.max(1, Math.min(6, parseInt(a1, 10) || 1));
+          bodyHtml.push(`${indent}<h${level}>${a2}</h${level}>`);
+          break;
+        case 'negrita':
+          bodyHtml.push(`${indent}<b>${a1}</b>`);
+          break;
+        case 'cursiva':
+          bodyHtml.push(`${indent}<i>${a1}</i>`);
+          break;
+        case 'subrayado':
+          bodyHtml.push(`${indent}<u>${a1}</u>`);
+          break;
+        case 'etiqueta':
+          bodyHtml.push(`${indent}<span id="${a1}">${a2}</span>`);
+          break;
+        case 'bloque':
+          bodyHtml.push(`${indent}<div>${a1}</div>`);
+          break;
+        case 'cita':
+          bodyHtml.push(`${indent}<blockquote>${a1}</blockquote>`);
+          break;
+        case 'codigo':
+          bodyHtml.push(`${indent}<code>${a1}</code>`);
+          break;
+        case 'enlace':
+          bodyHtml.push(`${indent}<a href="${a1}">${a2}</a>`);
+          break;
+        case 'imagen':
+          bodyHtml.push(`${indent}<img src="${a1}" alt="imagen">`);
+          break;
+        case 'listadesordenada':
+          bodyHtml.push(`${indent}<ul>`);
+          openStack.push('ul');
+          break;
+        case 'listaordenada':
+          bodyHtml.push(`${indent}<ol>`);
+          openStack.push('ol');
+          break;
+        case 'elementolista':
+          bodyHtml.push(`${indent}<li>${a1}</li>`);
+          break;
+        case 'tabla':
+          bodyHtml.push(`${indent}<table>`);
+          openStack.push('table');
+          break;
+        case 'filatabla':
+          bodyHtml.push(`${indent}<tr>`);
+          openStack.push('tr');
+          break;
+        case 'encabezadotabla':
+          bodyHtml.push(`${indent}<th>${a1}</th>`);
+          break;
+        case 'celdatabla':
+          bodyHtml.push(`${indent}<td>${a1}</td>`);
+          break;
+        case 'boton':
+          bodyHtml.push(`${indent}<button id="${a1}">${a2}</button>`);
+          break;
+        case 'etiquetacampo':
+          bodyHtml.push(`${indent}<label>${a1}</label>`);
+          break;
+        case 'cargando':
+          bodyHtml.push(`${indent}<div class="cargando">Cargando...</div>`);
+          break;
+        case 'lienzo':
+          bodyHtml.push(`${indent}<canvas id="${a1}"></canvas>`);
+          break;
+        case 'areatexto':
+          bodyHtml.push(`${indent}<textarea id="${a1}">${a2}</textarea>`);
+          break;
+        case 'fondo':
+          bodyStyles.push(`background-color: ${a1};`);
+          break;
+        case 'color':
+          bodyStyles.push(`color: ${a1};`);
+          break;
+        case 'letra':
+          bodyStyles.push(`font-family: ${a1}, sans-serif;`);
+          break;
+        case 'tamano':
+          bodyStyles.push(`font-size: ${a1.endsWith('px') ? a1 : a1 + 'px'};`);
+          break;
+        case 'ancho':
+          bodyStyles.push(`width: ${a1.endsWith('px') ? a1 : a1 + 'px'};`);
+          break;
+        case 'alto':
+          bodyStyles.push(`height: ${a1.endsWith('px') ? a1 : a1 + 'px'};`);
+          break;
+        case 'gap':
+          bodyStyles.push(`gap: ${a1.endsWith('px') ? a1 : a1 + 'px'};`);
+          break;
+        case 'margen':
+          bodyStyles.push(`margin: ${a1.endsWith('px') ? a1 : a1 + 'px'};`);
+          break;
+        case 'relleno':
+          bodyStyles.push(`padding: ${a1.endsWith('px') ? a1 : a1 + 'px'};`);
+          break;
+        case 'radio':
+          bodyStyles.push(`border-radius: ${a1.endsWith('px') ? a1 : a1 + 'px'};`);
+          break;
+        case 'centrar':
+          bodyStyles.push(`text-align: center; margin-left: auto; margin-right: auto;`);
+          break;
+        case 'alinearizquierda':
+          bodyStyles.push(`text-align: left;`);
+          break;
+        case 'alinearderecha':
+          bodyStyles.push(`text-align: right;`);
+          break;
+        case 'borde':
+          bodyStyles.push(`border: 1px solid ${a1};`);
+          break;
+        case 'sombra':
+          const shadowLvl = parseInt(a1, 10) || 1;
+          bodyStyles.push(`box-shadow: 0 ${shadowLvl * 2}px ${shadowLvl * 4}px rgba(0,0,0,0.2);`);
+          break;
+        case 'transparencia':
+          const op = (parseFloat(a1) || 10) / 10;
+          bodyStyles.push(`opacity: ${op};`);
+          break;
+        case 'ocultar':
+          scriptLines.push(`document.getElementById('${a1}')?.style.setProperty('display', 'none');`);
+          break;
+        case 'mostrar':
+          scriptLines.push(`document.getElementById('${a1}')?.style.setProperty('display', 'block');`);
+          break;
+        case 'flotante':
+          bodyStyles.push(`position: ${a1};`);
+          break;
+        case 'desplazamiento':
+          bodyStyles.push(`overflow: auto;`);
+          break;
+        case 'entrada':
+          bodyHtml.push(`${indent}<input type="text" id="${a1}" value="${a2}">`);
+          break;
+        case 'camponumero':
+          bodyHtml.push(`${indent}<input type="number" id="${a1}" value="${a2}">`);
+          break;
+        case 'campocorreo':
+          bodyHtml.push(`${indent}<input type="email" id="${a1}" value="${a2}">`);
+          break;
+        case 'campocontrasena':
+          bodyHtml.push(`${indent}<input type="password" id="${a1}">`);
+          break;
+        case 'campofecha':
+          bodyHtml.push(`${indent}<input type="date" id="${a1}">`);
+          break;
+        case 'campochequeo':
+          bodyHtml.push(`${indent}<label><input type="checkbox" id="${a1}"> ${a2}</label>`);
+          break;
+        case 'desplegable':
+          bodyHtml.push(`${indent}<select id="${a1}"></select>`);
+          break;
+        case 'avisar':
+          scriptLines.push(`document.getElementById('${a1}')?.addEventListener('click', () => alert('${a2}'));`);
+          break;
+        case 'ira':
+          scriptLines.push(`document.getElementById('${a1}')?.addEventListener('click', () => window.location.href = '${a2}');`);
+          break;
+        case 'ocultarboton':
+          scriptLines.push(`document.getElementById('${a1}')?.addEventListener('click', () => { const el = document.getElementById('${a2}'); if(el) el.style.display = 'none'; });`);
+          break;
+        case 'mostrarboton':
+          scriptLines.push(`document.getElementById('${a1}')?.addEventListener('click', () => { const el = document.getElementById('${a2}'); if(el) el.style.display = 'block'; });`);
+          break;
+        case 'alternar':
+          scriptLines.push(`document.getElementById('${a1}')?.addEventListener('click', () => { const el = document.getElementById('${a2}'); if(el) el.style.display = (el.style.display === 'none' ? 'block' : 'none'); });`);
+          break;
+        case 'limpiar':
+          scriptLines.push(`document.getElementById('${a1}')?.addEventListener('click', () => { const el = document.getElementById('${a2}'); if(el) el.value = ''; });`);
+          break;
+        case 'limpiarlienzo':
+          scriptLines.push(`document.getElementById('${a1}')?.addEventListener('click', () => { const c = document.getElementById('${a2}'); if(c) c.getContext('2d').clearRect(0, 0, c.width, c.height); });`);
+          break;
+        case 'deshabilitar':
+          scriptLines.push(`document.getElementById('${a1}')?.setAttribute('disabled', 'true');`);
+          break;
+        case 'habilitar':
+          scriptLines.push(`document.getElementById('${a1}')?.removeAttribute('disabled');`);
+          break;
+        case 'copiartexto':
+          scriptLines.push(`document.getElementById('${a1}')?.addEventListener('click', () => { const el = document.getElementById('${a2}'); if(el) navigator.clipboard.writeText(el.value || el.innerText); });`);
+          break;
+        case 'sumar':
+          scriptLines.push(`document.getElementById('${a1}')?.addEventListener('click', () => { const v1 = parseFloat(document.getElementById('${a2}')?.value)||0; const v2 = parseFloat(document.getElementById('${a3}')?.value)||0; const lbl = document.getElementById('${a4}'); if(lbl) lbl.innerText = (v1 + v2).toString(); });`);
+          break;
+        case 'restar':
+          scriptLines.push(`document.getElementById('${a1}')?.addEventListener('click', () => { const v1 = parseFloat(document.getElementById('${a2}')?.value)||0; const v2 = parseFloat(document.getElementById('${a3}')?.value)||0; const lbl = document.getElementById('${a4}'); if(lbl) lbl.innerText = (v1 - v2).toString(); });`);
+          break;
+        case 'multiplicar':
+          scriptLines.push(`document.getElementById('${a1}')?.addEventListener('click', () => { const v1 = parseFloat(document.getElementById('${a2}')?.value)||0; const v2 = parseFloat(document.getElementById('${a3}')?.value)||0; const lbl = document.getElementById('${a4}'); if(lbl) lbl.innerText = (v1 * v2).toString(); });`);
+          break;
+        case 'dividir':
+          scriptLines.push(`document.getElementById('${a1}')?.addEventListener('click', () => { const v1 = parseFloat(document.getElementById('${a2}')?.value)||0; const v2 = parseFloat(document.getElementById('${a3}')?.value)||0; const lbl = document.getElementById('${a4}'); if(lbl) lbl.innerText = v2 !== 0 ? (v1 / v2).toString() : 'Error'; });`);
+          break;
+        case 'incrementar':
+          const incStep = parseFloat(a3) || 1;
+          scriptLines.push(`document.getElementById('${a1}')?.addEventListener('click', () => { const el = document.getElementById('${a2}'); if(el) { if('value' in el && el.value !== '') el.value = (parseFloat(el.value)||0) + ${incStep}; else el.innerText = (parseFloat(el.innerText)||0) + ${incStep}; } });`);
+          break;
+        case 'decrementar':
+          const decStep = parseFloat(a3) || 1;
+          scriptLines.push(`document.getElementById('${a1}')?.addEventListener('click', () => { const el = document.getElementById('${a2}'); if(el) { if('value' in el && el.value !== '') el.value = (parseFloat(el.value)||0) - ${decStep}; else el.innerText = (parseFloat(el.innerText)||0) - ${decStep}; } });`);
+          break;
+        case 'guardarlocal':
+          scriptLines.push(`document.getElementById('${a1}')?.addEventListener('click', () => { const el = document.getElementById('${a3}'); if(el) localStorage.setItem('${a2}', el.value); });`);
+          break;
+        case 'cargarlocal':
+          scriptLines.push(`{ const val = localStorage.getItem('${a1}') || ''; const lbl = document.getElementById('${a2}'); if(lbl) lbl.innerText = val; }`);
+          break;
+        case 'fin':
+        case 'finseccion':
+        case 'fincontenedor':
+        case 'finrejilla':
+        case 'finlista':
+        case 'fintabla':
+        case 'finfilatabla':
+          if (openStack.length > 0) {
+            bodyHtml.push(' '.repeat(openStack.length * 2) + `</${openStack.pop()}>`);
+          }
+          break;
+      }
+    });
+
+    while (openStack.length > 0) {
+      bodyHtml.push(' '.repeat(openStack.length * 2) + `</${openStack.pop()}>`);
+    }
+
+    let bodyAttr = '';
+    if (bodyStyles.length > 0) {
+      bodyAttr = ` style="${bodyStyles.join(' ')}"`;
+    }
+
+    let scriptBlock = '';
+    if (scriptLines.length > 0) {
+      scriptBlock = `\n  <script>\n    ${scriptLines.join('\n    ')}\n  </script>`;
+    }
+
+    return `<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>${title}</title>
+</head>
+<body${bodyAttr}>
+${bodyHtml.join('\n')}${scriptBlock}
+</body>
+</html>\n`;
+  }
+
+  function parseStyleString(styleStr, rcLines) {
+    if (!styleStr) return;
+    const decls = styleStr.split(';');
+    decls.forEach(d => {
+      const parts = d.split(':');
+      if (parts.length < 2) return;
+      const prop = parts[0].trim().toLowerCase();
+      const val = cleanParam(parts[1].trim());
+
+      if (prop === 'background-color' || prop === 'background') rcLines.push(`fondo(${val})`);
+      else if (prop === 'color') rcLines.push(`color(${val})`);
+      else if (prop === 'font-family') rcLines.push(`letra(${val.split(',')[0].trim()})`);
+      else if (prop === 'font-size') rcLines.push(`tamano(${val})`);
+      else if (prop === 'width') rcLines.push(`ancho(${val})`);
+      else if (prop === 'height') rcLines.push(`alto(${val})`);
+      else if (prop === 'gap') rcLines.push(`gap(${val})`);
+      else if (prop === 'margin') rcLines.push(`margen(${val})`);
+      else if (prop === 'padding') rcLines.push(`relleno(${val})`);
+      else if (prop === 'border-radius') rcLines.push(`radio(${val})`);
+      else if (prop === 'text-align') {
+        if (val === 'center') rcLines.push('centrar');
+        else if (val === 'left') rcLines.push('alinearizquierda');
+        else if (val === 'right') rcLines.push('alinearderecha');
+      }
+      else if (prop === 'border') rcLines.push(`borde(${val})`);
+      else if (prop === 'box-shadow') rcLines.push('sombra(2)');
+      else if (prop === 'opacity') {
+        const num = Math.round(parseFloat(val) * 10) || 10;
+        rcLines.push(`transparencia(${num})`);
+      }
+      else if (prop === 'position') rcLines.push(`flotante(${val})`);
+      else if (prop === 'overflow' && val === 'auto') rcLines.push('desplazamiento');
+    });
+  }
+
+  function parseScriptContent(scriptText, rcLines) {
+    if (!scriptText) return;
+
+    let m = scriptText.match(/getElementById\('([^']+)'\)\?\.addEventListener\('click',\s*\(\)\s*=>\s*alert\('([^']+)'\)\)/g);
+    if (m) {
+      m.forEach(str => {
+        const parts = str.match(/getElementById\('([^']+)'\)\?\.addEventListener\('click',\s*\(\)\s*=>\s*alert\('([^']+)'\)\)/);
+        if (parts) rcLines.push(`avisar(${cleanParam(parts[1])})(${cleanParam(parts[2])})`);
+      });
+    }
+
+    m = scriptText.match(/getElementById\('([^']+)'\)\?\.addEventListener\('click',\s*\(\)\s*=>\s*window\.location\.href\s*=\s*'([^']+)'\)/g);
+    if (m) {
+      m.forEach(str => {
+        const parts = str.match(/getElementById\('([^']+)'\)\?\.addEventListener\('click',\s*\(\)\s*=>\s*window\.location\.href\s*=\s*'([^']+)'\)/);
+        if (parts) rcLines.push(`ira(${cleanParam(parts[1])})(${cleanParam(parts[2])})`);
+      });
+    }
+
+    m = scriptText.match(/getElementById\('([^']+)'\)\?\.addEventListener\('click',\s*\(\)\s*=>\s*\{\s*const\s+el\s*=\s*document\.getElementById\('([^']+)'\);\s*if\(el\)\s*el\.style\.display\s*=\s*'none';\s*\}\)/g);
+    if (m) {
+      m.forEach(str => {
+        const parts = str.match(/getElementById\('([^']+)'\)\?\.addEventListener\('click',\s*\(\)\s*=>\s*\{\s*const\s+el\s*=\s*document\.getElementById\('([^']+)'\);\s*if\(el\)\s*el\.style\.display\s*=\s*'none';\s*\}\)/);
+        if (parts) rcLines.push(`ocultarboton(${cleanParam(parts[1])})(${cleanParam(parts[2])})`);
+      });
+    }
+
+    m = scriptText.match(/getElementById\('([^']+)'\)\?\.addEventListener\('click',\s*\(\)\s*=>\s*\{\s*const\s+el\s*=\s*document\.getElementById\('([^']+)'\);\s*if\(el\)\s*el\.style\.display\s*=\s*'block';\s*\}\)/g);
+    if (m) {
+      m.forEach(str => {
+        const parts = str.match(/getElementById\('([^']+)'\)\?\.addEventListener\('click',\s*\(\)\s*=>\s*\{\s*const\s+el\s*=\s*document\.getElementById\('([^']+)'\);\s*if\(el\)\s*el\.style\.display\s*=\s*'block';\s*\}\)/);
+        if (parts) rcLines.push(`mostrarboton(${cleanParam(parts[1])})(${cleanParam(parts[2])})`);
+      });
+    }
+
+    m = scriptText.match(/getElementById\('([^']+)'\)\?\.addEventListener\('click',\s*\(\)\s*=>\s*\{\s*const\s+el\s*=\s*document\.getElementById\('([^']+)'\);\s*if\(el\)\s*el\.style\.display\s*=\s*\(el\.style\.display\s*===\s*'none'\s*\?\s*'block'\s*:\s*'none'\);\s*\}\)/g);
+    if (m) {
+      m.forEach(str => {
+        const parts = str.match(/getElementById\('([^']+)'\)\?\.addEventListener\('click',\s*\(\)\s*=>\s*\{\s*const\s+el\s*=\s*document\.getElementById\('([^']+)'\);\s*if\(el\)\s*el\.style\.display\s*=\s*\(el\.style\.display\s*===\s*'none'\s*\?\s*'block'\s*:\s*'none'\);\s*\}\)/);
+        if (parts) rcLines.push(`alternar(${cleanParam(parts[1])})(${cleanParam(parts[2])})`);
+      });
+    }
+
+    m = scriptText.match(/getElementById\('([^']+)'\)\?\.addEventListener\('click',\s*\(\)\s*=>\s*\{\s*const\s+el\s*=\s*document\.getElementById\('([^']+)'\);\s*if\(el\)\s*el\.value\s*=\s*'';\s*\}\)/g);
+    if (m) {
+      m.forEach(str => {
+        const parts = str.match(/getElementById\('([^']+)'\)\?\.addEventListener\('click',\s*\(\)\s*=>\s*\{\s*const\s+el\s*=\s*document\.getElementById\('([^']+)'\);\s*if\(el\)\s*el\.value\s*=\s*'';\s*\}\)/);
+        if (parts) rcLines.push(`limpiar(${cleanParam(parts[1])})(${cleanParam(parts[2])})`);
+      });
+    }
+
+    const mathRegex = /getElementById\('([^']+)'\)\?\.addEventListener\('click',\s*\(\)\s*=>\s*\{\s*const\s+v1\s*=\s*parseFloat\(document\.getElementById\('([^']+)'\)\?\.value\)\|\|0;\s*const\s+v2\s*=\s*parseFloat\(document\.getElementById\('([^']+)'\)\?\.value\)\|\|0;\s*const\s+lbl\s*=\s*document\.getElementById\('([^']+)'\);\s*if\(lbl\)\s*lbl\.innerText\s*=\s*\(v1\s*([+\-*\/])\s*v2\)\.toString\(\);?\s*\}\)/g;
+    let mm;
+    while ((mm = mathRegex.exec(scriptText)) !== null) {
+      const btn = cleanParam(mm[1]), in1 = cleanParam(mm[2]), in2 = cleanParam(mm[3]), lbl = cleanParam(mm[4]), op = mm[5];
+      let cmd = 'sumar';
+      if (op === '-') cmd = 'restar';
+      else if (op === '*') cmd = 'multiplicar';
+      else if (op === '/') cmd = 'dividir';
+      rcLines.push(`${cmd}(${btn})(${in1})(${in2})(${lbl})`);
+    }
+
+    m = scriptText.match(/localStorage\.setItem\('([^']+)',\s*el\.value\)/g);
+    if (m) {
+      m.forEach(str => {
+        const parts = str.match(/localStorage\.setItem\('([^']+)',\s*el\.value\)/);
+        if (parts) rcLines.push(`guardarlocal(btn1)(${cleanParam(parts[1])})(inp1)`);
+      });
+    }
+  }
+
+  function htmlToRc(htmlCode) {
+    if (!htmlCode) return '';
+    const rcLines = [];
+
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(htmlCode, 'text/html');
+
+    const titleEl = doc.querySelector('title');
+    if (titleEl && titleEl.textContent.trim()) {
+      rcLines.push(`titulo(${cleanParam(titleEl.textContent)})`);
+    }
+
+    const body = doc.body;
+    if (body) {
+      parseStyleString(body.getAttribute('style') || '', rcLines);
+    }
+
+    function traverse(node) {
+      if (!node) return;
+
+      if (node.nodeType === 8) { // Comment
+        const commentText = cleanParam(node.textContent);
+        if (commentText.startsWith('incluir:')) {
+          const file = commentText.replace('incluir:', '').trim();
+          rcLines.push(`incluir(${file})`);
+        } else {
+          rcLines.push(`// ${commentText}`);
+        }
+        return;
+      }
+
+      if (node.nodeType !== 1) return;
+
+      const tag = node.tagName.toLowerCase();
+      const id = cleanParam(node.getAttribute('id') || '');
+      const styleAttr = node.getAttribute('style') || '';
+
+      switch (tag) {
+        case 'section':
+          rcLines.push(`seccion(${id || 'seccion1'})`);
+          parseStyleString(styleAttr, rcLines);
+          node.childNodes.forEach(traverse);
+          break;
+
+        case 'div':
+          const cls = node.getAttribute('class') || '';
+          if (cls.includes('rejilla') || styleAttr.includes('grid-template-columns')) {
+            const match = styleAttr.match(/repeat\((\d+)/);
+            const cols = match ? match[1] : '2';
+            rcLines.push(`rejilla(${cols})`);
+          } else if (cls.includes('cargando')) {
+            rcLines.push('cargando');
+            return;
+          } else if (id) {
+            rcLines.push(`contenedor(${id})`);
+          } else {
+            rcLines.push(`bloque(${cleanParam(node.textContent)})`);
+            return;
+          }
+          parseStyleString(styleAttr, rcLines);
+          node.childNodes.forEach(traverse);
+          break;
+
+        case 'hr':
+          rcLines.push('linea');
+          break;
+
+        case 'p':
+          rcLines.push(`parrafo(${cleanParam(node.textContent)})`);
+          break;
+
+        case 'h1': case 'h2': case 'h3': case 'h4': case 'h5': case 'h6':
+          const lvl = tag.slice(1);
+          rcLines.push(`encabezado(${lvl})(${cleanParam(node.textContent)})`);
+          break;
+
+        case 'b': case 'strong':
+          rcLines.push(`negrita(${cleanParam(node.textContent)})`);
+          break;
+
+        case 'i': case 'em':
+          rcLines.push(`cursiva(${cleanParam(node.textContent)})`);
+          break;
+
+        case 'u':
+          rcLines.push(`subrayado(${cleanParam(node.textContent)})`);
+          break;
+
+        case 'span':
+          if (id) {
+            rcLines.push(`etiqueta(${id})(${cleanParam(node.textContent)})`);
+          } else {
+            rcLines.push(`texto(${cleanParam(node.textContent)})`);
+          }
+          break;
+
+        case 'blockquote':
+          rcLines.push(`cita(${cleanParam(node.textContent)})`);
+          break;
+
+        case 'code':
+          rcLines.push(`codigo(${cleanParam(node.textContent)})`);
+          break;
+
+        case 'a':
+          const href = cleanParam(node.getAttribute('href') || '#');
+          rcLines.push(`enlace(${href})(${cleanParam(node.textContent)})`);
+          break;
+
+        case 'img':
+          const src = cleanParam(node.getAttribute('src') || '');
+          rcLines.push(`imagen(${src})`);
+          break;
+
+        case 'ul':
+          rcLines.push('listadesordenada');
+          node.childNodes.forEach(traverse);
+          break;
+
+        case 'ol':
+          rcLines.push('listaordenada');
+          node.childNodes.forEach(traverse);
+          break;
+
+        case 'li':
+          rcLines.push(`elementolista(${cleanParam(node.textContent)})`);
+          break;
+
+        case 'table':
+          rcLines.push('tabla');
+          node.childNodes.forEach(traverse);
+          break;
+
+        case 'tr':
+          rcLines.push('filatabla');
+          node.childNodes.forEach(traverse);
+          break;
+
+        case 'th':
+          rcLines.push(`encabezadotabla(${cleanParam(node.textContent)})`);
+          break;
+
+        case 'td':
+          rcLines.push(`celdatabla(${cleanParam(node.textContent)})`);
+          break;
+
+        case 'button':
+          rcLines.push(`boton(${id || 'btn1'})(${cleanParam(node.textContent)})`);
+          break;
+
+        case 'label':
+          const chk = node.querySelector('input[type="checkbox"]');
+          if (chk) {
+            const chkId = cleanParam(chk.getAttribute('id') || 'chk1');
+            const txt = cleanParam(node.textContent);
+            rcLines.push(`campochequeo(${chkId})(${txt})`);
+          } else {
+            rcLines.push(`etiquetacampo(${cleanParam(node.textContent)})`);
+          }
+          break;
+
+        case 'canvas':
+          rcLines.push(`lienzo(${id || 'lienzo1'})`);
+          break;
+
+        case 'textarea':
+          rcLines.push(`areatexto(${id || 'txt1'})(${cleanParam(node.value || node.textContent)})`);
+          break;
+
+        case 'input':
+          const type = (node.getAttribute('type') || 'text').toLowerCase();
+          const val = cleanParam(node.getAttribute('value') || '');
+          if (type === 'text') rcLines.push(`entrada(${id || 'inp1'})(${val})`);
+          else if (type === 'number') rcLines.push(`camponumero(${id || 'num1'})(${val})`);
+          else if (type === 'email') rcLines.push(`campocorreo(${id || 'email1'})(${val})`);
+          else if (type === 'password') rcLines.push(`campocontrasena(${id || 'pass1'})`);
+          else if (type === 'date') rcLines.push(`campofecha(${id || 'fec1'})`);
+          break;
+
+        case 'select':
+          rcLines.push(`desplegable(${id || 'sel1'})`);
+          break;
+
+        case 'progress':
+          rcLines.push('cargando');
+          break;
+
+        case 'script':
+          parseScriptContent(node.textContent, rcLines);
+          break;
+
+        default:
+          node.childNodes.forEach(traverse);
+          break;
+      }
+    }
+
+    if (body) {
+      body.childNodes.forEach(traverse);
+    }
+
+    return rcLines.join('\n') + '\n';
+  }
+
   function notify(message) {
     const el = document.getElementById("toast");
     el.textContent = message; el.style.display = "block";
     clearTimeout(toastTimer); toastTimer = setTimeout(() => el.style.display = "none", 2200);
   }
   function paneFor(name) { return files.get(name).type; }
-  function escapeHtml(s) { return s.replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
   function saveCurrentContent(type) {
     const name = active[type];
     if (name && files.has(name)) files.get(name).content = editors[type].value;
@@ -167,7 +816,7 @@
     let base = requested.trim().replace(/[\\\\/:*?"<>|]/g, "");
     if (!base) { notify("Escribe un nombre válido."); return; }
     const name = uniqueName(base, type);
-    const content = type === "rc" ? '// Nuevo archivo RC\\n\\n' : '<!DOCTYPE html>\\n<html lang="es">\\n<head>\\n  <meta charset="UTF-8">\\n  <title>Nuevo documento</title>\\n</head>\\n<body>\\n\\n</body>\\n</html>\\n';
+    const content = type === "rc" ? '// nuevo archivo rc\n\n' : '<!DOCTYPE html>\n<html lang="es">\n<head>\n  <meta charset="UTF-8">\n  <title>nuevo documento</title>\n</head>\n<body>\n\n</body>\n</html>\n';
     files.set(name, {type, content}); active[type] = name;
     renderAll(); editors[type].focus(); notify("Archivo creado: " + name);
   }
@@ -194,8 +843,8 @@
   }
   function updateCursor(type) {
     const el = editors[type], before = el.value.slice(0, el.selectionStart);
-    const line = before.split("\\n").length;
-    const col = before.length - before.lastIndexOf("\\n");
+    const line = before.split("\n").length;
+    const col = before.length - before.lastIndexOf("\n");
     document.getElementById(type + "StatusLine").textContent = `Línea ${line}, Col ${col}`;
   }
   for (const type of ["rc","html"]) {
@@ -213,6 +862,52 @@
       }
     });
   }
+
+  // Translation triggers
+  document.getElementById("translateRcBtn").onclick = () => {
+    saveCurrentContent("rc"); saveCurrentContent("html");
+    const rcName = active.rc;
+    if (!rcName || !files.has(rcName)) {
+      notify("Abre o crea un archivo .rc para traducir.");
+      return;
+    }
+    const rcContent = files.get(rcName).content;
+    const generatedHtml = rcToHtml(rcContent);
+
+    let htmlName = active.html;
+    if (!htmlName || !files.has(htmlName)) {
+      htmlName = "index.html";
+      files.set(htmlName, {type: "html", content: generatedHtml});
+      active.html = htmlName;
+    } else {
+      files.get(htmlName).content = generatedHtml;
+    }
+    renderAll();
+    notify("¡Código RC traducido a HTML correctamente!");
+  };
+
+  document.getElementById("translateHtmlBtn").onclick = () => {
+    saveCurrentContent("rc"); saveCurrentContent("html");
+    const htmlName = active.html;
+    if (!htmlName || !files.has(htmlName)) {
+      notify("Abre o crea un archivo HTML para traducir.");
+      return;
+    }
+    const htmlContent = files.get(htmlName).content;
+    const generatedRc = htmlToRc(htmlContent);
+
+    let rcName = active.rc;
+    if (!rcName || !files.has(rcName)) {
+      rcName = "main.rc";
+      files.set(rcName, {type: "rc", content: generatedRc});
+      active.rc = rcName;
+    } else {
+      files.get(rcName).content = generatedRc;
+    }
+    renderAll();
+    notify("¡Código HTML traducido a RC correctamente!");
+  };
+
   document.getElementById("newRc").onclick = () => createFile("rc");
   document.getElementById("newHtml").onclick = () => createFile("html");
   document.getElementById("toggleExplorer").onclick = () => {
