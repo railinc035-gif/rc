@@ -19,7 +19,9 @@
   .tabs{height:43px;display:flex;align-items:stretch;gap:4px;padding:5px 7px 0;background:#191b22;border-bottom:1px solid var(--line);overflow:auto}
   .tab{white-space:nowrap;border:0;border-radius:6px 6px 0 0;background:transparent;color:var(--muted);padding:8px 12px}
   .tab.active{background:#272b36;color:var(--text);border:1px solid var(--line);border-bottom-color:#272b36}
-  .editor textarea{resize:none;flex:1;width:100%;min-height:0;border:0;outline:0;background:#0e1015;color:#d9e2f2;padding:17px;font:14px/1.75 ui-monospace,SFMono-Regular,Consolas,monospace;tab-size:2;white-space:pre;overflow:auto}
+  .editor-body{display:flex;flex:1;min-height:0;position:relative;overflow:hidden;background:#0e1015}
+  .gutter{width:42px;flex:0 0 42px;padding:17px 8px 17px 0;background:#15171e;color:#5a6275;font:14px/1.75 ui-monospace,SFMono-Regular,Consolas,monospace;text-align:right;user-select:none;border-right:1px solid var(--line);overflow:hidden;white-space:pre}
+  .editor textarea{resize:none;flex:1;min-width:0;height:100%;border:0;outline:0;background:#0e1015;color:#d9e2f2;padding:17px;font:14px/1.75 ui-monospace,SFMono-Regular,Consolas,monospace;tab-size:2;white-space:pre;overflow:auto}
   .status{height:30px;display:flex;align-items:center;gap:15px;padding:0 12px;border-top:1px solid var(--line);color:var(--muted);font-size:12px}
   .status .spacer{flex:1}
   .explorer{width:250px;flex:0 0 250px;display:flex;flex-direction:column;background:var(--panel);border:1px solid var(--line);border-radius:9px;overflow:hidden}
@@ -37,7 +39,7 @@
   .explorer-note{padding:10px;border-top:1px solid var(--line);font-size:12px;color:var(--muted)}
   .empty{padding:15px;color:var(--muted);text-align:center}
   .toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:#292d38;border:1px solid #454b5a;padding:9px 14px;border-radius:8px;display:none;z-index:99}
-  @media(max-width:720px){.layout{padding:5px;gap:5px}.explorer{width:205px;flex-basis:205px}.editor textarea{padding:10px;font-size:12px}.tab{padding:8px}.topbar{padding:0 7px}}
+  @media(max-width:720px){.layout{padding:5px;gap:5px}.explorer{width:205px;flex-basis:205px}.editor textarea{padding:10px;font-size:12px}.gutter{padding:10px 6px 10px 0;font-size:12px;width:34px;flex-basis:34px}.tab{padding:8px}.topbar{padding:0 7px}}
   @media(max-width:560px){.layout{position:relative}.editor{min-width:0}.explorer{position:absolute;z-index:5;right:5px;top:5px;bottom:5px;box-shadow:0 10px 35px #0009}.explorer.hidden{display:none}}
 </style>
 </head>
@@ -51,12 +53,18 @@
 <main class="layout">
   <section class="editor" aria-label="Editor RC">
     <div class="tabs" id="rcTabs"></div>
-    <textarea id="rcEditor" spellcheck="false" aria-label="Código RC" autocapitalize="off" autocomplete="off"></textarea>
+    <div class="editor-body">
+      <div class="gutter" id="rcGutter">1</div>
+      <textarea id="rcEditor" spellcheck="false" aria-label="Código RC" autocapitalize="off" autocomplete="off"></textarea>
+    </div>
     <div class="status"><span id="rcStatusName">main.rc</span><span class="spacer"></span><span id="rcStatusLine">Línea 1, Col 1</span></div>
   </section>
   <section class="editor" aria-label="Editor HTML">
     <div class="tabs" id="htmlTabs"></div>
-    <textarea id="htmlEditor" spellcheck="false" aria-label="Código HTML" autocapitalize="off" autocomplete="off"></textarea>
+    <div class="editor-body">
+      <div class="gutter" id="htmlGutter">1</div>
+      <textarea id="htmlEditor" spellcheck="false" aria-label="Código HTML" autocapitalize="off" autocomplete="off"></textarea>
+    </div>
     <div class="status"><span id="htmlStatusName">index.html</span><span class="spacer"></span><span id="htmlStatusLine">Línea 1, Col 1</span></div>
   </section>
   <aside class="explorer" id="explorer">
@@ -768,11 +776,24 @@ color(#e8eaf0)
   ]);
   const active = {rc:"main.rc", html:"index.html"};
   const editors = {rc:document.getElementById("rcEditor"), html:document.getElementById("htmlEditor")};
+  const gutters = {rc:document.getElementById("rcGutter"), html:document.getElementById("htmlGutter")};
   const tabs = {rc:document.getElementById("rcTabs"), html:document.getElementById("htmlTabs")};
   const list = document.getElementById("fileList");
   const explorer = document.getElementById("explorer");
   let toastTimer;
   let isTranslating = false;
+  let translateTimer = null;
+
+  function updateLineNumbers(type) {
+    if (!editors[type] || !gutters[type]) return;
+    const lines = editors[type].value.split("\n").length;
+    let nums = "";
+    for (let i = 1; i <= lines; i++) {
+      nums += i + "\n";
+    }
+    gutters[type].textContent = nums;
+    gutters[type].scrollTop = editors[type].scrollTop;
+  }
 
   function autoTranslate(sourceType) {
     if (isTranslating) return;
@@ -793,7 +814,13 @@ color(#e8eaf0)
           } else {
             files.get(htmlName).content = generatedHtml;
           }
-          editors.html.value = generatedHtml;
+          const htmlEl = editors.html;
+          const start = htmlEl.selectionStart, end = htmlEl.selectionEnd;
+          htmlEl.value = generatedHtml;
+          if (document.activeElement === htmlEl) {
+            htmlEl.setSelectionRange(start, end);
+          }
+          updateLineNumbers("html");
           document.getElementById("htmlStatusName").textContent = active.html;
         }
       } else if (sourceType === "html") {
@@ -811,13 +838,26 @@ color(#e8eaf0)
           } else {
             files.get(rcName).content = generatedRc;
           }
-          editors.rc.value = generatedRc;
+          const rcEl = editors.rc;
+          const start = rcEl.selectionStart, end = rcEl.selectionEnd;
+          rcEl.value = generatedRc;
+          if (document.activeElement === rcEl) {
+            rcEl.setSelectionRange(start, end);
+          }
+          updateLineNumbers("rc");
           document.getElementById("rcStatusName").textContent = active.rc;
         }
       }
     } finally {
       isTranslating = false;
     }
+  }
+
+  function debounceTranslate(sourceType) {
+    clearTimeout(translateTimer);
+    translateTimer = setTimeout(() => {
+      autoTranslate(sourceType);
+    }, 180);
   }
 
   function notify(message) {
@@ -877,6 +917,7 @@ color(#e8eaf0)
         document.getElementById(type + "StatusName").textContent = "Sin archivo abierto";
       }
       updateCursor(type);
+      updateLineNumbers(type);
     }
     renderExplorer();
   }
@@ -936,7 +977,11 @@ color(#e8eaf0)
     editors[type].addEventListener("input", () => {
       saveCurrentContent(type);
       updateCursor(type);
-      autoTranslate(type);
+      updateLineNumbers(type);
+      debounceTranslate(type);
+    });
+    editors[type].addEventListener("scroll", () => {
+      gutters[type].scrollTop = editors[type].scrollTop;
     });
     editors[type].addEventListener("click", () => updateCursor(type));
     editors[type].addEventListener("keyup", () => updateCursor(type));
@@ -945,7 +990,7 @@ color(#e8eaf0)
         e.preventDefault();
         const start = editors[type].selectionStart, end = editors[type].selectionEnd;
         editors[type].setRangeText("  ", start, end, "end");
-        saveCurrentContent(type); updateCursor(type); autoTranslate(type);
+        saveCurrentContent(type); updateCursor(type); updateLineNumbers(type); debounceTranslate(type);
       }
     });
   }
