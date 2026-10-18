@@ -2959,7 +2959,43 @@ function updatePreviewImmediate(sequence = previewUpdateSequence){
     const files = project.files || {};  
   
     let html = "";
-    if (typeof currentFileName !== "undefined" && currentFileName && typeof getFileType === "function" && getFileType(currentFileName) === "html" && files[currentFileName] !== undefined) {
+    let rcJs = "";
+
+    // RC File handling
+    let rcActiveFile = null;
+    if (typeof currentFileName !== "undefined" && currentFileName && typeof getFileType === "function" && getFileType(currentFileName) === "rc" && files[currentFileName] !== undefined) {
+        rcActiveFile = currentFileName;
+    } else if (files["main.rc"] !== undefined) {
+        rcActiveFile = "main.rc";
+    } else if (files["index.rc"] !== undefined) {
+        rcActiveFile = "index.rc";
+    } else {
+        const rcFiles = Object.keys(files).filter(f => typeof getFileType === "function" && getFileType(f) === "rc");
+        if (rcFiles.length > 0) rcActiveFile = rcFiles[0];
+    }
+
+    if (rcActiveFile && typeof parseRC === "function") {
+        const rcResult = parseRC(files[rcActiveFile], files, rcActiveFile);
+        html = `<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>${escapeHTML(rcResult.title || "RC App")}</title>
+<style>
+body { margin: 0; padding: 20px; font-family: sans-serif; background: #090b0f; color: #f8fafc; box-sizing: border-box; }
+* { box-sizing: border-box; }
+${rcResult.css}
+</style>
+</head>
+<body>
+<div class="rc-app">
+${rcResult.html}
+</div>
+</body>
+</html>`;
+        rcJs = rcResult.js;
+    } else if (typeof currentFileName !== "undefined" && currentFileName && typeof getFileType === "function" && getFileType(currentFileName) === "html" && files[currentFileName] !== undefined) {
         html = files[currentFileName];
     } else if (files["index.html"] !== undefined) {
         html = files["index.html"];
@@ -3402,9 +3438,9 @@ body.theme-claro .file-tree, body.theme-claro .editor-container {
     }  
 
     if(html.includes("</body>")){  
-        html = html.replace("</body>", script + "</body>");  
+        html = html.replace("</body>", (rcJs ? `<script>\n${rcJs}\n</script>` : "") + script + "</body>");
     } else {  
-        html += script;  
+        html += (rcJs ? `<script>\n${rcJs}\n</script>` : "") + script;
     }  
 
     const visualEditorScript = `
@@ -6327,10 +6363,464 @@ projects.forEach(project => {
    TIPO DE ARCHIVO  
 ===================================================== */  
   
+/* =====================================================
+   INTERPRETE DEL LENGUAJE RC (RAPID CODE)
+===================================================== */
+function parseRC(rcCode, files = {}, currentFile = "main.rc", visited = new Set()) {
+    if (!rcCode) return { title: "RC App", html: "", css: "", js: "" };
+    if (visited.has(currentFile)) return { title: "", html: "", css: "", js: "" };
+    visited.add(currentFile);
+
+    let lines = rcCode.split("\n");
+    let htmlOutput = [];
+    let cssOutput = [];
+    let jsEvents = [];
+    let title = "RC Application";
+
+    function fixColor(c) {
+        if (!c) return "#ffffff";
+        c = c.trim();
+        if (/^[0-9a-fA-F]{3,6}$/.test(c)) return "#" + c;
+        return c;
+    }
+
+    for (let rawLine of lines) {
+        let commentIdx = rawLine.indexOf("//");
+        let line = commentIdx !== -1 ? rawLine.slice(0, commentIdx) : rawLine;
+        line = line.trim().toLowerCase();
+        if (!line) continue;
+
+        let cmdRegex = /([a-z0-9_]+)((?:\([^)]*\))*)/g;
+        let match;
+
+        while ((match = cmdRegex.exec(line)) !== null) {
+            let cmd = match[1];
+            let rawArgs = match[2];
+            let args = [];
+            if (rawArgs) {
+                let argRegex = /\(([^)]*)\)/g;
+                let argMatch;
+                while ((argMatch = argRegex.exec(rawArgs)) !== null) {
+                    args.push(argMatch[1].trim());
+                }
+            }
+
+            switch (cmd) {
+                // 1. ESTRUCTURA Y MÓDULOS
+                case "incluir": {
+                    let fileToInclude = args[0] || "";
+                    if (fileToInclude) {
+                        if (!fileToInclude.endsWith(".rc")) fileToInclude += ".rc";
+                        if (files[fileToInclude]) {
+                            let subResult = parseRC(files[fileToInclude], files, fileToInclude, visited);
+                            if (subResult.title && subResult.title !== "RC Application") title = subResult.title;
+                            if (subResult.html) htmlOutput.push(subResult.html);
+                            if (subResult.css) cssOutput.push(subResult.css);
+                            if (subResult.js) jsEvents.push(subResult.js);
+                        }
+                    }
+                    break;
+                }
+                case "titulo": {
+                    title = args[0] || title;
+                    htmlOutput.push(`<h1 class="rc-title">${args[0] || ""}</h1>`);
+                    break;
+                }
+                case "seccion": {
+                    htmlOutput.push(`<section class="rc-seccion"><h2 class="rc-seccion-titulo">${args[0] || ""}</h2>`);
+                    break;
+                }
+                case "contenedor": {
+                    let idAttr = args[0] ? `id="${args[0]}"` : "";
+                    htmlOutput.push(`<div ${idAttr} class="rc-contenedor">`);
+                    break;
+                }
+                case "rejilla": {
+                    let cols = parseInt(args[0]) || 2;
+                    htmlOutput.push(`<div class="rc-rejilla" style="display:grid; grid-template-columns:repeat(${cols}, 1fr); gap:12px;">`);
+                    break;
+                }
+                case "linea": {
+                    htmlOutput.push(`<hr class="rc-linea" style="border:0; border-top:1px solid rgba(255,255,255,0.2); margin:16px 0;">`);
+                    break;
+                }
+
+                // 2. TEXTO Y CONTENIDO
+                case "texto":
+                case "parrafo":
+                case "bloque": {
+                    htmlOutput.push(`<p class="rc-${cmd}">${args[0] || ""}</p>`);
+                    break;
+                }
+                case "encabezado": {
+                    let lvl = Math.min(6, Math.max(1, parseInt(args[0]) || 1));
+                    let msg = args[1] !== undefined ? args[1] : (args[0] || "");
+                    htmlOutput.push(`<h${lvl} class="rc-encabezado">${msg}</h${lvl}>`);
+                    break;
+                }
+                case "negrita": {
+                    htmlOutput.push(`<strong class="rc-negrita">${args[0] || ""}</strong>`);
+                    break;
+                }
+                case "cursiva": {
+                    htmlOutput.push(`<em class="rc-cursiva">${args[0] || ""}</em>`);
+                    break;
+                }
+                case "subrayado": {
+                    htmlOutput.push(`<u class="rc-subrayado">${args[0] || ""}</u>`);
+                    break;
+                }
+                case "etiqueta": {
+                    let id = args[0] || "";
+                    let txt = args[1] || "";
+                    htmlOutput.push(`<span id="${id}" class="rc-etiqueta">${txt}</span>`);
+                    break;
+                }
+                case "cita": {
+                    htmlOutput.push(`<blockquote class="rc-cita" style="border-left:3px solid var(--orange, #ff6a00); padding-left:10px; margin:10px 0; font-style:italic;">${args[0] || ""}</blockquote>`);
+                    break;
+                }
+                case "codigo": {
+                    htmlOutput.push(`<pre class="rc-codigo" style="background:rgba(0,0,0,0.4); padding:10px; border-radius:6px; font-family:monospace; overflow-x:auto;"><code>${args[0] || ""}</code></pre>`);
+                    break;
+                }
+                case "enlace": {
+                    let url = args[0] || "#";
+                    let txt = args[1] || url;
+                    htmlOutput.push(`<a href="${url}" target="_blank" class="rc-enlace" style="color:#38bdf8; text-decoration:underline;">${txt}</a>`);
+                    break;
+                }
+                case "imagen": {
+                    let url = args[0] || "";
+                    htmlOutput.push(`<img src="${url}" class="rc-imagen" style="max-width:100%; height:auto; border-radius:6px; margin:8px 0;" />`);
+                    break;
+                }
+
+                // 3. LISTAS Y TABLAS
+                case "listadesordenada": {
+                    htmlOutput.push(`<ul class="rc-listadesordenada">`);
+                    break;
+                }
+                case "listaordenada": {
+                    htmlOutput.push(`<ol class="rc-listaordenada">`);
+                    break;
+                }
+                case "elementolista": {
+                    htmlOutput.push(`<li>${args[0] || ""}</li>`);
+                    break;
+                }
+                case "tabla": {
+                    htmlOutput.push(`<table class="rc-tabla" style="width:100%; border-collapse:collapse; margin:10px 0;">`);
+                    break;
+                }
+                case "filatabla": {
+                    htmlOutput.push(`<tr>`);
+                    break;
+                }
+                case "encabezadotabla": {
+                    htmlOutput.push(`<th style="border:1px solid rgba(255,255,255,0.2); padding:8px; background:rgba(255,255,255,0.05);">${args[0] || ""}</th>`);
+                    break;
+                }
+                case "celdatabla": {
+                    htmlOutput.push(`<td style="border:1px solid rgba(255,255,255,0.1); padding:8px;">${args[0] || ""}</td>`);
+                    break;
+                }
+
+                // 4. COMPONENTES DE INTERFAZ
+                case "boton": {
+                    let id = args[0] || "";
+                    let txt = args[1] || id;
+                    htmlOutput.push(`<button id="${id}" class="rc-boton" style="padding:8px 16px; border-radius:6px; background:#ff6a00; color:#000; font-weight:bold; border:none; cursor:pointer; margin:4px;">${txt}</button>`);
+                    break;
+                }
+                case "etiquetacampo": {
+                    htmlOutput.push(`<label class="rc-etiquetacampo" style="display:block; margin-top:8px; font-weight:bold; font-size:12px;">${args[0] || ""}</label>`);
+                    break;
+                }
+                case "cargando": {
+                    htmlOutput.push(`<div class="rc-cargando" style="padding:12px; font-style:italic; color:#aaa;"><span class="rc-spinner">⏳</span> Cargando...</div>`);
+                    break;
+                }
+                case "lienzo": {
+                    let id = args[0] || "lienzo1";
+                    htmlOutput.push(`<canvas id="${id}" class="rc-lienzo" width="500" height="300" style="background:#111; border:1px solid #333; border-radius:8px; cursor:crosshair; touch-action:none; display:block; margin:10px 0;"></canvas>`);
+                    jsEvents.push(`
+                        (function() {
+                            var cv = document.getElementById("${id}");
+                            if (!cv) return;
+                            var ctx = cv.getContext("2d");
+                            var drawing = false;
+                            ctx.strokeStyle = "#ff6a00";
+                            ctx.lineWidth = 3;
+                            ctx.lineCap = "round";
+
+                            function getPos(e) {
+                                var r = cv.getBoundingClientRect();
+                                var cx = e.touches ? e.touches[0].clientX : e.clientX;
+                                var cy = e.touches ? e.touches[0].clientY : e.clientY;
+                                return { x: cx - r.left, y: cy - r.top };
+                            }
+                            function start(e) { drawing = true; var p = getPos(e); ctx.beginPath(); ctx.moveTo(p.x, p.y); }
+                            function move(e) { if (!drawing) return; var p = getPos(e); ctx.lineTo(p.x, p.y); ctx.stroke(); }
+                            function stop() { drawing = false; }
+
+                            cv.addEventListener("mousedown", start);
+                            cv.addEventListener("mousemove", move);
+                            cv.addEventListener("mouseup", stop);
+                            cv.addEventListener("mouseleave", stop);
+                            cv.addEventListener("touchstart", start, {passive:true});
+                            cv.addEventListener("touchmove", move, {passive:true});
+                            cv.addEventListener("touchend", stop);
+                        })();
+                    `);
+                    break;
+                }
+
+                // 5. DISEÑO Y ESTILOS VISUALES
+                case "fondo": {
+                    let col = fixColor(args[0]);
+                    cssOutput.push(`body, .rc-app { background-color: ${col} !important; }`);
+                    break;
+                }
+                case "color": {
+                    let col = fixColor(args[0]);
+                    cssOutput.push(`body, .rc-app { color: ${col} !important; }`);
+                    break;
+                }
+                case "letra": {
+                    let font = args[0] || "sans-serif";
+                    cssOutput.push(`body, .rc-app { font-family: ${font}, sans-serif !important; }`);
+                    break;
+                }
+                case "tamano": {
+                    let sz = args[0] ? (isNaN(args[0]) ? args[0] : args[0] + "px") : "16px";
+                    cssOutput.push(`body, .rc-app { font-size: ${sz} !important; }`);
+                    break;
+                }
+                case "ancho": {
+                    let w = args[0] ? (isNaN(args[0]) ? args[0] : args[0] + "px") : "100%";
+                    cssOutput.push(`.rc-app, .rc-contenedor { width: ${w} !important; max-width: 100%; }`);
+                    break;
+                }
+                case "alto": {
+                    let h = args[0] ? (isNaN(args[0]) ? args[0] : args[0] + "px") : "auto";
+                    cssOutput.push(`.rc-app { height: ${h} !important; }`);
+                    break;
+                }
+                case "centrar": {
+                    cssOutput.push(`.rc-app, .rc-contenedor { margin: 0 auto !important; text-align: center !important; }`);
+                    break;
+                }
+                case "gap": {
+                    let g = args[0] ? (isNaN(args[0]) ? args[0] : args[0] + "px") : "10px";
+                    cssOutput.push(`.rc-rejilla, .rc-contenedor { gap: ${g} !important; }`);
+                    break;
+                }
+                case "radio": {
+                    let r = args[0] ? (isNaN(args[0]) ? args[0] : args[0] + "px") : "8px";
+                    cssOutput.push(`.rc-boton, .rc-entrada, .rc-contenedor, .rc-bloque { border-radius: ${r} !important; }`);
+                    break;
+                }
+                case "ocultar": {
+                    let id = args[0] || "";
+                    if (id) cssOutput.push(`#${id} { display: none !important; }`);
+                    break;
+                }
+                case "mostrar": {
+                    let id = args[0] || "";
+                    if (id) cssOutput.push(`#${id} { display: block !important; }`);
+                    break;
+                }
+
+                // 6. FORMULARIOS Y CAMPOS
+                case "entrada": {
+                    let id = args[0] || "";
+                    let val = args[1] !== undefined ? args[1] : "";
+                    htmlOutput.push(`<input type="text" id="${id}" value="${val}" placeholder="${val}" class="rc-entrada" style="padding:8px 12px; border:1px solid #333; border-radius:6px; background:#000; color:#fff; margin:4px 0; width:100%; max-width:300px;">`);
+                    break;
+                }
+                case "camponumero": {
+                    let id = args[0] || "";
+                    let val = args[1] !== undefined ? args[1] : "";
+                    htmlOutput.push(`<input type="number" id="${id}" value="${val}" placeholder="${val}" class="rc-entrada" style="padding:8px 12px; border:1px solid #333; border-radius:6px; background:#000; color:#fff; margin:4px 0; width:100%; max-width:300px;">`);
+                    break;
+                }
+                case "campocorreo": {
+                    let id = args[0] || "";
+                    let val = args[1] !== undefined ? args[1] : "";
+                    htmlOutput.push(`<input type="email" id="${id}" value="${val}" placeholder="${val}" class="rc-entrada" style="padding:8px 12px; border:1px solid #333; border-radius:6px; background:#000; color:#fff; margin:4px 0; width:100%; max-width:300px;">`);
+                    break;
+                }
+                case "campocontrasena": {
+                    let id = args[0] || "";
+                    htmlOutput.push(`<input type="password" id="${id}" placeholder="contraseña" class="rc-entrada" style="padding:8px 12px; border:1px solid #333; border-radius:6px; background:#000; color:#fff; margin:4px 0; width:100%; max-width:300px;">`);
+                    break;
+                }
+                case "areatexto": {
+                    let id = args[0] || "";
+                    let txt = args[1] || "";
+                    htmlOutput.push(`<textarea id="${id}" class="rc-areatexto" placeholder="${txt}" style="padding:8px 12px; border:1px solid #333; border-radius:6px; background:#000; color:#fff; margin:4px 0; width:100%; min-height:80px;">${txt}</textarea>`);
+                    break;
+                }
+                case "limpiar": {
+                    let btn = args[0] || "";
+                    let target = args[1] || "";
+                    jsEvents.push(`
+                        document.getElementById("${btn}")?.addEventListener("click", function() {
+                            var el = document.getElementById("${target}");
+                            if (el) {
+                                if ("value" in el) el.value = "";
+                                else el.textContent = "";
+                            }
+                        });
+                    `);
+                    break;
+                }
+
+                // 7. EVENTOS E INTERACCIÓN
+                case "avisar": {
+                    let btn = args[0] || "";
+                    let msg = args[1] || "";
+                    jsEvents.push(`
+                        document.getElementById("${btn}")?.addEventListener("click", function() {
+                            alert("${msg}");
+                        });
+                    `);
+                    break;
+                }
+                case "ira": {
+                    let btn = args[0] || "";
+                    let url = args[1] || "";
+                    jsEvents.push(`
+                        document.getElementById("${btn}")?.addEventListener("click", function() {
+                            window.open("${url}", "_blank");
+                        });
+                    `);
+                    break;
+                }
+                case "ocultarboton": {
+                    let btn = args[0] || "";
+                    let target = args[1] || "";
+                    jsEvents.push(`
+                        document.getElementById("${btn}")?.addEventListener("click", function() {
+                            var el = document.getElementById("${target}");
+                            if (el) el.style.display = "none";
+                        });
+                    `);
+                    break;
+                }
+                case "mostrarboton": {
+                    let btn = args[0] || "";
+                    let target = args[1] || "";
+                    jsEvents.push(`
+                        document.getElementById("${btn}")?.addEventListener("click", function() {
+                            var el = document.getElementById("${target}");
+                            if (el) el.style.display = "block";
+                        });
+                    `);
+                    break;
+                }
+                case "alternar": {
+                    let btn = args[0] || "";
+                    let target = args[1] || "";
+                    jsEvents.push(`
+                        document.getElementById("${btn}")?.addEventListener("click", function() {
+                            var el = document.getElementById("${target}");
+                            if (el) {
+                                if (el.style.display === "none") el.style.display = "block";
+                                else el.style.display = "none";
+                            }
+                        });
+                    `);
+                    break;
+                }
+                case "limpiarlienzo": {
+                    let btn = args[0] || "";
+                    let canvasId = args[1] || "";
+                    jsEvents.push(`
+                        document.getElementById("${btn}")?.addEventListener("click", function() {
+                            var cv = document.getElementById("${canvasId}");
+                            if (cv) {
+                                var ctx = cv.getContext("2d");
+                                ctx.clearRect(0, 0, cv.width, cv.height);
+                            }
+                        });
+                    `);
+                    break;
+                }
+
+                // 8. LÓGICA Y OPERACIONES
+                case "sumar":
+                case "restar":
+                case "multiplicar":
+                case "dividir": {
+                    let btn = args[0] || "";
+                    let in1 = args[1] || "";
+                    let in2 = args[2] || "";
+                    let lbl = args[3] || "";
+                    let opMap = { sumar: "+", restar: "-", multiplicar: "*", dividir: "/" };
+                    let op = opMap[cmd];
+                    jsEvents.push(`
+                        document.getElementById("${btn}")?.addEventListener("click", function() {
+                            var e1 = document.getElementById("${in1}");
+                            var e2 = document.getElementById("${in2}");
+                            var res = document.getElementById("${lbl}");
+                            if (e1 && e2 && res) {
+                                var v1 = parseFloat(e1.value || e1.textContent || 0);
+                                var v2 = parseFloat(e2.value || e2.textContent || 0);
+                                var r = 0;
+                                if ("${op}" === "+") r = v1 + v2;
+                                if ("${op}" === "-") r = v1 - v2;
+                                if ("${op}" === "*") r = v1 * v2;
+                                if ("${op}" === "/") r = v2 !== 0 ? v1 / v2 : "error (div 0)";
+                                if ("value" in res) res.value = r;
+                                else res.textContent = r;
+                            }
+                        });
+                    `);
+                    break;
+                }
+
+                // DYNAMIC FALLBACK ENGINE FOR CUSTOM / NEW COMMANDS
+                default: {
+                    if (args.length === 0) {
+                        htmlOutput.push(`<div class="rc-custom rc-${cmd}" style="margin:6px 0; padding:8px;">${cmd}</div>`);
+                    } else if (args.length === 1) {
+                        htmlOutput.push(`<div class="rc-custom rc-${cmd}" style="margin:6px 0;"><strong style="color:var(--orange, #ff6a00);">${cmd}:</strong> ${args[0]}</div>`);
+                    } else if (args.length === 2) {
+                        let id = args[0];
+                        let txt = args[1];
+                        htmlOutput.push(`<div id="${id}" class="rc-custom rc-${cmd}" style="margin:6px 0; padding:10px; background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.1); border-radius:6px;">${txt}</div>`);
+                    } else if (args.length === 3) {
+                        let id = args[0];
+                        let title = args[1];
+                        let body = args[2];
+                        htmlOutput.push(`<div id="${id}" class="rc-custom rc-${cmd}" style="margin:6px 0; padding:10px; background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.1); border-radius:6px;"><h4 style="margin:0 0 6px;">${title}</h4><p style="margin:0;">${body}</p></div>`);
+                    } else {
+                        let id = args[0];
+                        let content = args.slice(1).map(a => `<span>${a}</span>`).join(" ");
+                        htmlOutput.push(`<div id="${id}" class="rc-custom rc-${cmd}" style="margin:6px 0; padding:10px; background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.1); border-radius:6px;">${content}</div>`);
+                    }
+                    break;
+                }
+            }
+        }
+    }
+
+    return {
+        title: title,
+        html: htmlOutput.join("\n"),
+        css: cssOutput.join("\n"),
+        js: jsEvents.join("\n")
+    };
+}
+
+
 function getFileType(filename){  
     if (!filename) return "file";
     const ext = filename.split(".").pop().toLowerCase();  
   
+    if (ext === "rc") return "rc";
     if (ext === "html" || ext === "htm") return "html";  
     if (ext === "js" || ext === "mjs" || ext === "cjs") return "js";  
     if (ext === "ts" || ext === "mts") return "ts";  
@@ -6356,6 +6846,7 @@ function getFileType(filename){
   
 function getFileIcon(filename){  
     const type = getFileType(filename);  
+    if (type === "rc") return `<span style="color:#ff6a00; font-weight:bold;">⭐ .RC</span>`;
   
     if (type === "html") return `<span style="color:#e34f26; font-weight:bold;">🌐 HTML</span>`;  
     if (type === "css") return `<span style="color:#1572b6; font-weight:bold;">🎨 CSS</span>`;  
@@ -6846,6 +7337,7 @@ function renderSyntaxHighlighting() {
     else if (ext === "kotlin") grammarName = "kotlin";
     else if (ext === "dart") grammarName = "dart";
     else if (ext === "json") grammarName = "json";
+    else if (ext === "rc") grammarName = "markup";
 
     const prismReady = typeof Prism !== "undefined" && Boolean(Prism.languages[grammarName]);
     if (highlightedEditorValue === val && highlightedEditorFile === currentFileName && highlightedWithPrism === prismReady) {
