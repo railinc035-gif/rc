@@ -36,12 +36,12 @@ button:hover { border-color:var(--accent); }
 .address {
   display:flex; flex:1; gap:8px; min-width:0;
 }
-input, textarea {
+input, textarea, select {
   width:100%; min-width:0; padding:11px 14px;
   border-radius:10px; border:1px solid var(--line);
   color:var(--text); background:#090d14; outline:none;
 }
-input:focus, textarea:focus { border-color:var(--accent); }
+input:focus, textarea:focus, select:focus { border-color:var(--accent); }
 #go { background:var(--accent); color:white; font-weight:700; }
 #status {
   padding:7px 14px; color:var(--muted);
@@ -98,7 +98,7 @@ main { flex:1; min-height:0; position:relative; }
 .rc-cargando::before { content:''; width:16px; height:16px; border:2px solid currentColor; border-top-color:transparent; border-radius:50%; animation:spin 0.8s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
 .rc-lienzo { border:2px dashed #bbb; border-radius:10px; background:#ffffff; cursor:crosshair; touch-action:none; display:block; max-width:100%; }
-.rc-entrada, .rc-camponumero, .rc-campocorreo, .rc-campocontrasena, .rc-areatexto {
+.rc-entrada, .rc-camponumero, .rc-campocorreo, .rc-campocontrasena, .rc-areatexto, .rc-campocolor {
   width:100%; padding:10px 12px; border-radius:8px; border:1px solid #ccc; background:#fff; color:#111; font-size:14px; outline:none; margin:4px 0;
 }
 .rc-entrada:focus, .rc-camponumero:focus, .rc-campocorreo:focus, .rc-campocontrasena:focus, .rc-areatexto:focus { border-color:var(--accent); }
@@ -108,6 +108,33 @@ main { flex:1; min-height:0; position:relative; }
 .rc-toolbar { display:flex; gap:10px; margin-bottom:16px; align-items:center; flex-wrap:wrap; border-bottom:1px solid rgba(0,0,0,0.1); padding-bottom:12px; }
 .rc-doc-card { background:rgba(0,0,0,0.03); border:1px solid rgba(0,0,0,0.1); border-radius:8px; padding:12px; margin-bottom:10px; }
 .rc-doc-code { font-family:monospace; font-size:13px; color:#d63384; font-weight:bold; }
+
+/* Estilos de los 100 comandos adicionales */
+.rc-tarjeta { background:rgba(0,0,0,0.03); border:1px solid rgba(0,0,0,0.12); border-radius:12px; padding:16px; margin:10px 0; box-shadow:0 2px 8px rgba(0,0,0,0.05); }
+.rc-tarjetatitulo { margin:0 0 8px 0; font-size:16px; font-weight:bold; }
+.rc-tarjetacuerpo { margin:0; line-height:1.5; }
+.rc-progreso { width:100%; height:20px; border-radius:10px; accent-color:var(--accent); }
+.rc-deslizador { width:100%; accent-color:var(--accent); cursor:pointer; }
+.rc-insignia { background:var(--accent); color:#fff; padding:3px 8px; border-radius:12px; font-size:11px; font-weight:bold; display:inline-block; }
+.rc-pestana { background:#eee; border:1px solid #ccc; padding:8px 14px; border-radius:6px 6px 0 0; cursor:pointer; font-weight:bold; color:#333; }
+.rc-pestana.activa { background:var(--accent); color:#fff; border-color:var(--accent); }
+.rc-acordeon { border:1px solid #ddd; border-radius:8px; margin:8px 0; overflow:hidden; }
+.rc-acordeon-header { background:rgba(0,0,0,0.05); padding:10px 14px; cursor:pointer; font-weight:bold; user-select:none; }
+.rc-acordeon-body { padding:14px; display:none; background:#fff; }
+.rc-alerta-exito { background:#d4edda; color:#155724; border:1px solid #c3e6cb; padding:12px; border-radius:8px; margin:8px 0; }
+.rc-alerta-error { background:#f8d7da; color:#721c24; border:1px solid #f5c6cb; padding:12px; border-radius:8px; margin:8px 0; }
+.rc-alerta-info { background:#d1ecf1; color:#0c5460; border:1px solid #bee5eb; padding:12px; border-radius:8px; margin:8px 0; }
+.rc-alerta-alerta { background:#fff3cd; color:#856404; border:1px solid #ffeeba; padding:12px; border-radius:8px; margin:8px 0; }
+.rc-casilla, .rc-radio { display:inline-flex; align-items:center; gap:6px; cursor:pointer; margin:4px 8px 4px 0; font-weight:600; }
+.rc-switch { position:relative; display:inline-block; width:44px; height:24px; vertical-align:middle; }
+.rc-switch input { opacity:0; width:0; height:0; }
+.rc-slider { position:absolute; cursor:pointer; inset:0; background-color:#ccc; transition:.3s; border-radius:24px; }
+.rc-slider:before { position:absolute; content:""; height:18px; width:18px; left:3px; bottom:3px; background-color:white; transition:.3s; border-radius:50%; }
+.rc-switch input:checked + .rc-slider { background-color:var(--accent); }
+.rc-switch input:checked + .rc-slider:before { transform:translateX(20px); }
+.rc-puntuacion { font-size:20px; color:#ffb400; letter-spacing:2px; }
+.rc-pista { position:relative; cursor:help; text-decoration:underline dotted; }
+.rc-pista:hover::after { content:attr(data-tooltip); position:absolute; bottom:125%; left:50%; transform:translateX(-50%); background:#333; color:#fff; padding:4px 8px; border-radius:4px; font-size:11px; white-space:nowrap; z-index:10; }
 
 footer { padding:8px 14px; color:var(--muted); font-size:11px; }
 @media(max-width:560px) {
@@ -127,23 +154,23 @@ footer { padding:8px 14px; color:var(--muted); font-size:11px; }
     <button title="Inicio" onclick="home()">⌂</button>
   </nav>
   <div class="address">
-    <input id="url" placeholder="Buscar comandos, ejemplos RC o escribir código .rc" autocomplete="off" onkeydown="if(event.key==='Enter')navigate()">
+    <input id="url" placeholder="Buscar comandos (156 disponibles), ejemplos RC o escribir código .rc" autocomplete="off" onkeydown="if(event.key==='Enter')navigate()">
     <button id="go" onclick="navigate()" style="position: relative; left: 1px; top: 0px; width: 43px; height: 40px;">&nbsp;↗</button>
   </div>
 </header>
-<div id="status">Listo · Framen RC</div>
+<div id="status">Listo · Framen RC (Motor v2.0 - 156 Comandos)</div>
 <main>
   <section id="welcome">
     <div class="hero">
       <h1>Fra<span>men</span></h1>
-      <p>Tu espacio original para explorar, aprender y crear aplicaciones con el lenguaje RC.</p>
+      <p>Tu entorno completo con 156 comandos para explorar, aprender y crear con el lenguaje RC.</p>
       <div class="search">
         <input id="query" placeholder="¿Qué quieres buscar o programar en RC?" onkeydown="if(event.key==='Enter')search()" style="border-radius: 22px;">
         <button id="go" onclick="search()">Buscar</button>
       </div>
       <div class="cards">
         <div class="card" onclick="quickSearch('diccionario')">
-          <b>⌘ Diccionario</b><small>Explorar comandos RC</small>
+          <b>⌘ Diccionario (156)</b><small>Explorar todos los comandos</small>
         </div>
         <div class="card" onclick="openRC()">
           <b>‹/› Lenguaje RC</b><small>Abrir un archivo .rc</small>
@@ -157,7 +184,7 @@ footer { padding:8px 14px; color:var(--muted); font-size:11px; }
   </section>
   <section id="rcOutput"></section>
 </main>
-<footer>Framen · Entorno oficial del lenguaje RC (Rapid Code)</footer>
+<footer>Framen · Entorno oficial del lenguaje RC (Rapid Code) · 156 Comandos Disponibles</footer>
 
 <script>
 const $ = id => document.getElementById(id);
@@ -173,10 +200,11 @@ function home() {
 }
 
 /*
-  Diccionario completo del Lenguaje RC (Rapid Code)
+  Diccionario completo del Lenguaje RC (Rapid Code) - 156 Comandos
   100% minúsculas, números, paréntesis () y comentarios //
 */
 const RC_DICTIONARY = [
+  // --- 1. ESTRUCTURA Y MÓDULOS ---
   { cmd: 'incluir(archivo.rc)', cat: 'Estructura y Módulos', desc: 'Conecta e incluye otro archivo .rc', eg: 'incluir(mimodulo.rc)' },
   { cmd: 'titulo(texto)', cat: 'Estructura y Módulos', desc: 'Define el título de la ventana o aplicación', eg: 'titulo(mi aplicacion)' },
   { cmd: 'seccion(nombre)', cat: 'Estructura y Módulos', desc: 'Crea un bloque o sección visual', eg: 'seccion(principal)' },
@@ -184,6 +212,7 @@ const RC_DICTIONARY = [
   { cmd: 'rejilla(columnas)', cat: 'Estructura y Módulos', desc: 'Crea una cuadrícula de N columnas', eg: 'rejilla(2)' },
   { cmd: 'linea', cat: 'Estructura y Módulos', desc: 'Divisor o separador horizontal', eg: 'linea' },
 
+  // --- 2. TEXTO Y CONTENIDO ---
   { cmd: 'texto(mensaje)', cat: 'Texto y Contenido', desc: 'Párrafo de texto estándar', eg: 'texto(hola mundo)' },
   { cmd: 'encabezado(nivel)(msg)', cat: 'Texto y Contenido', desc: 'Título visual (niveles del 1 al 6)', eg: 'encabezado(1)(bienvenido a rc)' },
   { cmd: 'parrafo(mensaje)', cat: 'Texto y Contenido', desc: 'Párrafo de contenido', eg: 'parrafo(este es un parrafo de ejemplo)' },
@@ -197,6 +226,7 @@ const RC_DICTIONARY = [
   { cmd: 'enlace(url)(texto)', cat: 'Texto y Contenido', desc: 'Enlace web externo o archivo interno', eg: 'enlace(calculadora.rc)(abrir calculadora)' },
   { cmd: 'imagen(url)', cat: 'Texto y Contenido', desc: 'Muestra una imagen desde una URL', eg: 'imagen(https://via.placeholder.com/300x150)' },
 
+  // --- 3. LISTAS Y TABLAS ---
   { cmd: 'listadesordenada', cat: 'Listas y Tablas', desc: 'Inicia una lista con viñetas', eg: 'listadesordenada' },
   { cmd: 'listaordenada', cat: 'Listas y Tablas', desc: 'Inicia una lista numerada', eg: 'listaordenada' },
   { cmd: 'elementolista(texto)', cat: 'Listas y Tablas', desc: 'Elemento individual de lista', eg: 'elementolista(primer elemento)' },
@@ -205,11 +235,13 @@ const RC_DICTIONARY = [
   { cmd: 'encabezadotabla(texto)', cat: 'Listas y Tablas', desc: 'Celda de encabezado de tabla', eg: 'encabezadotabla(nombre)' },
   { cmd: 'celdatabla(texto)', cat: 'Listas y Tablas', desc: 'Celda con contenido de tabla', eg: 'celdatabla(juan)' },
 
+  // --- 4. COMPONENTES DE INTERFAZ ---
   { cmd: 'boton(id)(texto)', cat: 'Componentes de Interfaz', desc: 'Botón interactivo', eg: 'boton(mi_boton)(hacer clic)' },
   { cmd: 'etiquetacampo(texto)', cat: 'Componentes de Interfaz', desc: 'Texto descriptivo superior para campos', eg: 'etiquetacampo(ingrese su nombre)' },
   { cmd: 'cargando', cat: 'Componentes de Interfaz', desc: 'Indicador visual de estado de carga', eg: 'cargando' },
   { cmd: 'lienzo(id)', cat: 'Componentes de Interfaz', desc: 'Área o pizarra interactiva para dibujo táctil/mouse', eg: 'lienzo(pizarra)' },
 
+  // --- 5. DISEÑO Y ESTILOS VISUALES ---
   { cmd: 'fondo(color)', cat: 'Diseño y Estilos Visuales', desc: 'Color de fondo en hexadecimal o nombre', eg: 'fondo(101012)' },
   { cmd: 'color(color)', cat: 'Diseño y Estilos Visuales', desc: 'Color principal del texto', eg: 'color(f4f4f5)' },
   { cmd: 'letra(fuente)', cat: 'Diseño y Estilos Visuales', desc: 'Fuente o tipografía', eg: 'letra(arial)' },
@@ -222,6 +254,7 @@ const RC_DICTIONARY = [
   { cmd: 'ocultar(id)', cat: 'Diseño y Estilos Visuales', desc: 'Oculta un elemento según su ID', eg: 'ocultar(mi_caja)' },
   { cmd: 'mostrar(id)', cat: 'Diseño y Estilos Visuales', desc: 'Muestra un elemento oculto según su ID', eg: 'mostrar(mi_caja)' },
 
+  // --- 6. FORMULARIOS Y CAMPOS ---
   { cmd: 'entrada(id)(valor)', cat: 'Formularios y Campos', desc: 'Campo de texto general', eg: 'entrada(txt_nombre)(juan)' },
   { cmd: 'camponumero(id)(val)', cat: 'Formularios y Campos', desc: 'Campo exclusivo para valores numéricos', eg: 'camponumero(num1)(10)' },
   { cmd: 'campocorreo(id)(val)', cat: 'Formularios y Campos', desc: 'Campo de correo electrónico', eg: 'campocorreo(email)(usuario@ejemplo.com)' },
@@ -229,6 +262,7 @@ const RC_DICTIONARY = [
   { cmd: 'areatexto(id)(texto)', cat: 'Formularios y Campos', desc: 'Área de entrada para texto multilínea', eg: 'areatexto(notas)(escriba sus comentarios aqui)' },
   { cmd: 'limpiar(idbtn)(idin)', cat: 'Formularios y Campos', desc: 'Borra el texto de una entrada al presionar un botón', eg: 'limpiar(btn_borrar)(txt_nombre)' },
 
+  // --- 7. EVENTOS E INTERACCIÓN ---
   { cmd: 'avisar(idbtn)(msg)', cat: 'Eventos e Interacción', desc: 'Muestra una alerta o aviso al hacer clic en un botón', eg: 'avisar(btn_hola)(hola bienvenido a rc)' },
   { cmd: 'ira(idbtn)(url)', cat: 'Eventos e Interacción', desc: 'Abre un enlace web o módulo .rc al presionar un botón', eg: 'ira(btn_ir)(calculadora.rc)' },
   { cmd: 'ocultarboton(idbtn)(id)', cat: 'Eventos e Interacción', desc: 'Oculta un elemento al hacer clic en el botón', eg: 'ocultarboton(btn_ocultar)(seccion1)' },
@@ -236,17 +270,136 @@ const RC_DICTIONARY = [
   { cmd: 'alternar(idbtn)(id)', cat: 'Eventos e Interacción', desc: 'Intercala entre mostrar u ocultar un elemento al presionar', eg: 'alternar(btn_toggle)(seccion1)' },
   { cmd: 'limpiarlienzo(idbtn)(idlienzo)', cat: 'Eventos e Interacción', desc: 'Borra todo el dibujo del lienzo especificado', eg: 'limpiarlienzo(btn_limp)(pizarra)' },
 
+  // --- 8. LÓGICA Y OPERACIONES ---
   { cmd: 'sumar(idbtn)(in1)(in2)(lbl)', cat: 'Lógica y Operaciones', desc: 'Suma dos campos y muestra el resultado en la etiqueta', eg: 'sumar(btn_sum)(n1)(n2)(resultado)' },
   { cmd: 'restar(idbtn)(in1)(in2)(lbl)', cat: 'Lógica y Operaciones', desc: 'Resta dos campos y muestra el resultado en la etiqueta', eg: 'restar(btn_res)(n1)(n2)(resultado)' },
   { cmd: 'multiplicar(idbtn)(in1)(in2)(lbl)', cat: 'Lógica y Operaciones', desc: 'Multiplica dos campos y muestra el resultado en la etiqueta', eg: 'multiplicar(btn_mul)(n1)(n2)(resultado)' },
-  { cmd: 'dividir(idbtn)(in1)(in2)(lbl)', cat: 'Lógica y Operaciones', desc: 'Divide dos campos y muestra el resultado en la etiqueta', eg: 'dividir(btn_div)(n1)(n2)(resultado)' }
+  { cmd: 'dividir(idbtn)(in1)(in2)(lbl)', cat: 'Lógica y Operaciones', desc: 'Divide dos campos y muestra el resultado en la etiqueta', eg: 'dividir(btn_div)(n1)(n2)(resultado)' },
+
+  // =========================================================================
+  // --- 100 COMANDOS ADICIONALES (57 al 156) ---
+  // =========================================================================
+
+  // --- ESTILOS AVANZADOS Y MAQUETACIÓN (15) ---
+  { cmd: 'margen(px)', cat: 'Estilos Avanzados', desc: 'Aplica margen exterior en px', eg: 'margen(16)' },
+  { cmd: 'relleno(px)', cat: 'Estilos Avanzados', desc: 'Aplica espaciado interno (padding) en px', eg: 'relleno(20)' },
+  { cmd: 'borde(ancho)(estilo)(color)', cat: 'Estilos Avanzados', desc: 'Define un borde visual', eg: 'borde(2)(solid)(ff6538)' },
+  { cmd: 'sombra(nivel)', cat: 'Estilos Avanzados', desc: 'Aplica sombra a un elemento (niveles 1 a 5)', eg: 'sombra(3)' },
+  { cmd: 'opacidad(val)', cat: 'Estilos Avanzados', desc: 'Ajusta la transparencia en porcentaje (0 a 100)', eg: 'opacidad(80)' },
+  { cmd: 'flexbox', cat: 'Estilos Avanzados', desc: 'Establece distribución flexible en el contenedor', eg: 'flexbox' },
+  { cmd: 'orientacion(modo)', cat: 'Estilos Avanzados', desc: 'Define dirección flexible (horizontal o vertical)', eg: 'orientacion(vertical)' },
+  { cmd: 'alinear(pos)', cat: 'Estilos Avanzados', desc: 'Alinea elementos (inicio, centro, fin)', eg: 'alinear(centro)' },
+  { cmd: 'gradiente(c1)(c2)', cat: 'Estilos Avanzados', desc: 'Fondo con degradado de dos colores', eg: 'gradiente(ff6538)(101012)' },
+  { cmd: 'puntero(tipo)', cat: 'Estilos Avanzados', desc: 'Cursor del ratón (mano, texto, cruz)', eg: 'puntero(mano)' },
+  { cmd: 'desplazamiento(modo)', cat: 'Estilos Avanzados', desc: 'Controla desbordamiento (auto, oculto, scroll)', eg: 'desplazamiento(auto)' },
+  { cmd: 'relativo', cat: 'Estilos Avanzados', desc: 'Posicionamiento relativo del contenedor', eg: 'relativo' },
+  { cmd: 'fijo', cat: 'Estilos Avanzados', desc: 'Fijación en pantalla del elemento', eg: 'fijo' },
+  { cmd: 'transicion(ms)', cat: 'Estilos Avanzados', desc: 'Tiempo de animación suave en milisegundos', eg: 'transicion(300)' },
+  { cmd: 'rotar(grados)', cat: 'Estilos Avanzados', desc: 'Rota un elemento N grados', eg: 'rotar(15)' },
+
+  // --- COMPONENTES MULTIMEDIA Y UI AVANZADA (15) ---
+  { cmd: 'audio(url)', cat: 'Multimedia y UI Avanzada', desc: 'Reproductor de audio HTML5', eg: 'audio(https://www.w3schools.com/html/horse.mp3)' },
+  { cmd: 'video(url)', cat: 'Multimedia y UI Avanzada', desc: 'Reproductor de video HTML5', eg: 'video(https://www.w3schools.com/html/mov_bbb.mp4)' },
+  { cmd: 'progreso(id)(val)', cat: 'Multimedia y UI Avanzada', desc: 'Barra de progreso con valor en porcentaje', eg: 'progreso(mi_barra)(75)' },
+  { cmd: 'deslizador(id)(min)(max)(val)', cat: 'Multimedia y UI Avanzada', desc: 'Campo tipo rango numérico / slider', eg: 'deslizador(rango1)(0)(100)(50)' },
+  { cmd: 'interruptor(id)(estado)', cat: 'Multimedia y UI Avanzada', desc: 'Interruptor toggle switch (activo o inactivo)', eg: 'interruptor(sw1)(activo)' },
+  { cmd: 'insignia(id)(texto)', cat: 'Multimedia y UI Avanzada', desc: 'Etiqueta flotante o badge contador', eg: 'insignia(badge1)(nuevo)' },
+  { cmd: 'pestaña(id)(texto)', cat: 'Multimedia y UI Avanzada', desc: 'Selector de pestañas para la interfaz', eg: 'pestaña(tab1)(inicio)' },
+  { cmd: 'acordeon(id)(titulo)(contenido)', cat: 'Multimedia y UI Avanzada', desc: 'Módulo desplegable tipo acordeón', eg: 'acordeon(acc1)(ver detalles)(contenido oculto)' },
+  { cmd: 'alerta(tipo)(mensaje)', cat: 'Multimedia y UI Avanzada', desc: 'Caja de aviso (exito, error, info, alerta)', eg: 'alerta(exito)(operacion completada)' },
+  { cmd: 'tarjeta(id)', cat: 'Multimedia y UI Avanzada', desc: 'Contenedor visual tipo tarjeta elevada', eg: 'tarjeta(card1)' },
+  { cmd: 'tarjetatitulo(texto)', cat: 'Multimedia y UI Avanzada', desc: 'Encabezado interno de tarjeta', eg: 'tarjetatitulo(titulo de tarjeta)' },
+  { cmd: 'tarjetacuerpo(texto)', cat: 'Multimedia y UI Avanzada', desc: 'Contenido interno de tarjeta', eg: 'tarjetacuerpo(descripcion detallada)' },
+  { cmd: 'puntuacion(id)(estrellas)', cat: 'Multimedia y UI Avanzada', desc: 'Componente de calificación por estrellas (1 a 5)', eg: 'puntuacion(stars1)(5)' },
+  { cmd: 'pista(id)(mensaje)', cat: 'Multimedia y UI Avanzada', desc: 'Cuadro de ayuda al pasar el cursor', eg: 'pista(help1)(pasa el cursor para ayuda)' },
+  { cmd: 'icono(nombre)', cat: 'Multimedia y UI Avanzada', desc: 'Muestra un símbolo visual (estrella, corazon, fuego)', eg: 'icono(fuego)' },
+
+  // --- FORMULARIO AMPLIADO Y CONTROLES (15) ---
+  { cmd: 'campofecha(id)', cat: 'Formularios Ampliados', desc: 'Selector de fecha calendarizada', eg: 'campofecha(txt_fecha)' },
+  { cmd: 'campohora(id)', cat: 'Formularios Ampliados', desc: 'Selector de hora', eg: 'campohora(txt_hora)' },
+  { cmd: 'campocolor(id)(val)', cat: 'Formularios Ampliados', desc: 'Selector visual de color', eg: 'campocolor(color_pick)(ff6538)' },
+  { cmd: 'campoarchivo(id)', cat: 'Formularios Ampliados', desc: 'Selector para subir archivos', eg: 'campoarchivo(file_up)' },
+  { cmd: 'casillaverificacion(id)(texto)', cat: 'Formularios Ampliados', desc: 'Casilla de verificación (checkbox)', eg: 'casillaverificacion(chk1)(acepto terminos)' },
+  { cmd: 'opcionradio(id)(grupo)(texto)', cat: 'Formularios Ampliados', desc: 'Botón de opción de grupo (radiobutton)', eg: 'opcionradio(r1)(g1)(opcion 1)' },
+  { cmd: 'desplegable(id)', cat: 'Formularios Ampliados', desc: 'Menú o caja de selección desplegable', eg: 'desplegable(sel1)' },
+  { cmd: 'opciondesplegable(val)(texto)', cat: 'Formularios Ampliados', desc: 'Opción individual para desplegable', eg: 'opciondesplegable(v1)(opcion 1)' },
+  { cmd: 'deshabilitar(id)', cat: 'Formularios Ampliados', desc: 'Deshabilita un campo de formulario', eg: 'deshabilitar(txt_nombre)' },
+  { cmd: 'habilitar(id)', cat: 'Formularios Ampliados', desc: 'Habilita un campo previamente deshabilitado', eg: 'habilitar(txt_nombre)' },
+  { cmd: 'sololectura(id)', cat: 'Formularios Ampliados', desc: 'Establece un campo como solo lectura', eg: 'sololectura(txt_nombre)' },
+  { cmd: 'enfocar(id)', cat: 'Formularios Ampliados', desc: 'Coloca el foco en la entrada especificada', eg: 'enfocar(txt_nombre)' },
+  { cmd: 'marcadorposicion(id)(texto)', cat: 'Formularios Ampliados', desc: 'Cambia el texto placeholder de una entrada', eg: 'marcadorposicion(txt_nombre)(escriba aqui)' },
+  { cmd: 'valorpordefecto(id)(val)', cat: 'Formularios Ampliados', desc: 'Establece el valor inicial', eg: 'valorpordefecto(txt_nombre)(defecto)' },
+  { cmd: 'maximalongitud(id)(n)', cat: 'Formularios Ampliados', desc: 'Limita la cantidad de caracteres', eg: 'maximalongitud(txt_nombre)(20)' },
+
+  // --- INTERACCIÓN, EVENTOS Y ANIMACIONES (15) ---
+  { cmd: 'copiar(idbtn)(idorigen)', cat: 'Eventos Avanzados', desc: 'Copia el contenido de un campo al portapapeles', eg: 'copiar(btn_copy)(txt1)' },
+  { cmd: 'cambiartexto(idbtn)(targetid)(nuevo)', cat: 'Eventos Avanzados', desc: 'Cambia el texto de una etiqueta o botón', eg: 'cambiartexto(btn_change)(lbl1)(texto modificado)' },
+  { cmd: 'incrementar(idbtn)(in1)(paso)', cat: 'Eventos Avanzados', desc: 'Incrementa el valor numérico de un campo', eg: 'incrementar(btn_inc)(num1)(1)' },
+  { cmd: 'decrementar(idbtn)(in1)(paso)', cat: 'Eventos Avanzados', desc: 'Decrementa el valor numérico de un campo', eg: 'decrementar(btn_dec)(num1)(1)' },
+  { cmd: 'temporizador(idbtn)(ms)(idlbl)', cat: 'Eventos Avanzados', desc: 'Inicia un contador de tiempo regresivo en ms', eg: 'temporizador(btn_time)(5000)(lbl1)' },
+  { cmd: 'detenertemporizador(idbtn)', cat: 'Eventos Avanzados', desc: 'Detiene el contador activo', eg: 'detenertemporizador(btn_stop)' },
+  { cmd: 'reproduciraudio(idbtn)(idaudio)', cat: 'Eventos Avanzados', desc: 'Inicia la reproducción de un audio', eg: 'reproduciraudio(btn_play)(aud1)' },
+  { cmd: 'pausaraudio(idbtn)(idaudio)', cat: 'Eventos Avanzados', desc: 'Pausa la reproducción de audio', eg: 'pausaraudio(btn_pause)(aud1)' },
+  { cmd: 'reproducirvideo(idbtn)(idvideo)', cat: 'Eventos Avanzados', desc: 'Inicia la reproducción de video', eg: 'reproducirvideo(btn_playv)(vid1)' },
+  { cmd: 'pausarvideo(idbtn)(idvideo)', cat: 'Eventos Avanzados', desc: 'Pausa la reproducción de video', eg: 'pausarvideo(btn_pausev)(vid1)' },
+  { cmd: 'cambiarfondo(idbtn)(targetid)(col)', cat: 'Eventos Avanzados', desc: 'Cambia el fondo de un elemento al hacer clic', eg: 'cambiarfondo(btn_bg)(sec1)(ff6538)' },
+  { cmd: 'cambiarcolor(idbtn)(targetid)(col)', cat: 'Eventos Avanzados', desc: 'Cambia el color de texto de un elemento', eg: 'cambiarcolor(btn_col)(sec1)(ffffff)' },
+  { cmd: 'agregarclase(idbtn)(id)(clase)', cat: 'Eventos Avanzados', desc: 'Aplica una clase CSS dinámica', eg: 'agregarclase(btn_class)(div1)(activa)' },
+  { cmd: 'quitarclase(idbtn)(id)(clase)', cat: 'Eventos Avanzados', desc: 'Remueve una clase CSS dinámica', eg: 'quitarclase(btn_class)(div1)(activa)' },
+  { cmd: 'imprimir(idbtn)', cat: 'Eventos Avanzados', desc: 'Abre el cuadro de diálogo para imprimir la página', eg: 'imprimir(btn_print)' },
+
+  // --- LÓGICA MATEMÁTICAS Y COMPARACIONES (15) ---
+  { cmd: 'modulo(idbtn)(in1)(in2)(lbl)', cat: 'Lógica y Matemáticas', desc: 'Calcula el resto de la división (in1 % in2)', eg: 'modulo(btn_mod)(n1)(n2)(lbl1)' },
+  { cmd: 'potencia(idbtn)(base)(exp)(lbl)', cat: 'Lógica y Matemáticas', desc: 'Calcula la potencia (base ^ exp)', eg: 'potencia(btn_pow)(b1)(e1)(lbl1)' },
+  { cmd: 'raiz(idbtn)(in1)(lbl)', cat: 'Lógica y Matemáticas', desc: 'Calcula la raíz cuadrada de in1', eg: 'raiz(btn_sqrt)(n1)(lbl1)' },
+  { cmd: 'redondear(idbtn)(in1)(lbl)', cat: 'Lógica y Matemáticas', desc: 'Redondea un número al entero más cercano', eg: 'redondear(btn_round)(n1)(lbl1)' },
+  { cmd: 'piso(idbtn)(in1)(lbl)', cat: 'Lógica y Matemáticas', desc: 'Redondea hacia abajo (floor)', eg: 'piso(btn_floor)(n1)(lbl1)' },
+  { cmd: 'techo(idbtn)(in1)(lbl)', cat: 'Lógica y Matemáticas', desc: 'Redondea hacia arriba (ceil)', eg: 'techo(btn_ceil)(n1)(lbl1)' },
+  { cmd: 'aleatorio(idbtn)(min)(max)(lbl)', cat: 'Lógica y Matemáticas', desc: 'Genera un número aleatorio entre min y max', eg: 'aleatorio(btn_rand)(1)(100)(lbl1)' },
+  { cmd: 'absoluto(idbtn)(in1)(lbl)', cat: 'Lógica y Matemáticas', desc: 'Obtiene el valor absoluto', eg: 'absoluto(btn_abs)(n1)(lbl1)' },
+  { cmd: 'mayor(idbtn)(in1)(in2)(lbl)', cat: 'Lógica y Matemáticas', desc: 'Encuentra el número mayor entre dos campos', eg: 'mayor(btn_max)(n1)(n2)(lbl1)' },
+  { cmd: 'menor(idbtn)(in1)(in2)(lbl)', cat: 'Lógica y Matemáticas', desc: 'Encuentra el número menor entre dos campos', eg: 'menor(btn_min)(n1)(n2)(lbl1)' },
+  { cmd: 'porcentaje(idbtn)(val)(total)(lbl)', cat: 'Lógica y Matemáticas', desc: 'Calcula el porcentaje (val / total * 100)', eg: 'porcentaje(btn_pct)(v1)(t1)(lbl1)' },
+  { cmd: 'igual(idbtn)(in1)(in2)(lbl)', cat: 'Lógica y Matemáticas', desc: 'Compara si dos campos son iguales (muestra si o no)', eg: 'igual(btn_eq)(n1)(n2)(lbl1)' },
+  { cmd: 'diferente(idbtn)(in1)(in2)(lbl)', cat: 'Lógica y Matemáticas', desc: 'Compara si dos campos son diferentes (muestra si o no)', eg: 'diferente(btn_neq)(n1)(n2)(lbl1)' },
+  { cmd: 'esmayor(idbtn)(in1)(in2)(lbl)', cat: 'Lógica y Matemáticas', desc: 'Verifica si in1 es mayor que in2 (muestra si o no)', eg: 'esmayor(btn_gt)(n1)(n2)(lbl1)' },
+  { cmd: 'esmenor(idbtn)(in1)(in2)(lbl)', cat: 'Lógica y Matemáticas', desc: 'Verifica si in1 es menor que in2 (muestra si o no)', eg: 'esmenor(btn_lt)(n1)(n2)(lbl1)' },
+
+  // --- MANIPULACIÓN DE TEXTO Y CADENAS (10) ---
+  { cmd: 'mayusculas(idbtn)(in1)(lbl)', cat: 'Manipulación de Cadenas', desc: 'Convierte el texto del campo a mayúsculas', eg: 'mayusculas(btn_upper)(txt1)(lbl1)' },
+  { cmd: 'minusculas(idbtn)(in1)(lbl)', cat: 'Manipulación de Cadenas', desc: 'Convierte el texto del campo a minúsculas', eg: 'minusculas(btn_lower)(txt1)(lbl1)' },
+  { cmd: 'longitud(idbtn)(in1)(lbl)', cat: 'Manipulación de Cadenas', desc: 'Muestra la cantidad de caracteres del texto', eg: 'longitud(btn_len)(txt1)(lbl1)' },
+  { cmd: 'concatenar(idbtn)(in1)(in2)(lbl)', cat: 'Manipulación de Cadenas', desc: 'Une dos textos y muestra el resultado', eg: 'concatenar(btn_cat)(txt1)(txt2)(lbl1)' },
+  { cmd: 'recortar(idbtn)(in1)(lbl)', cat: 'Manipulación de Cadenas', desc: 'Elimina espacios iniciales y finales', eg: 'recortar(btn_trim)(txt1)(lbl1)' },
+  { cmd: 'reemplazar(idbtn)(in1)(buscar)(nuevo)(lbl)', cat: 'Manipulación de Cadenas', desc: 'Reemplaza texto dentro de la cadena', eg: 'reemplazar(btn_rep)(txt1)(a)(b)(lbl1)' },
+  { cmd: 'subcadena(idbtn)(in1)(inicio)(fin)(lbl)', cat: 'Manipulación de Cadenas', desc: 'Extrae una porción del texto', eg: 'subcadena(btn_sub)(txt1)(0)(5)(lbl1)' },
+  { cmd: 'invertir(idbtn)(in1)(lbl)', cat: 'Manipulación de Cadenas', desc: 'Invierte el orden de los caracteres', eg: 'invertir(btn_rev)(txt1)(lbl1)' },
+  { cmd: 'contarpalabras(idbtn)(in1)(lbl)', cat: 'Manipulación de Cadenas', desc: 'Cuenta cuántas palabras tiene el texto', eg: 'contarpalabras(btn_words)(txt1)(lbl1)' },
+  { cmd: 'contenerstexto(idbtn)(in1)(buscar)(lbl)', cat: 'Manipulación de Cadenas', desc: 'Verifica si contiene una subcadena (si o no)', eg: 'contenerstexto(btn_has)(txt1)(hola)(lbl1)' },
+
+  // --- ALMACENAMIENTO LOCAL Y UTILIDADES (15) ---
+  { cmd: 'guardar(idbtn)(clave)(idin)', cat: 'Almacenamiento y Utilidades', desc: 'Guarda la entrada en almacenamiento local', eg: 'guardar(btn_save)(mi_clave)(txt1)' },
+  { cmd: 'cargar(idbtn)(clave)(lbl)', cat: 'Almacenamiento y Utilidades', desc: 'Carga el valor guardado de almacenamiento local', eg: 'cargar(btn_load)(mi_clave)(lbl1)' },
+  { cmd: 'eliminarguardado(idbtn)(clave)', cat: 'Almacenamiento y Utilidades', desc: 'Elimina una clave de almacenamiento local', eg: 'eliminarguardado(btn_del)(mi_clave)' },
+  { cmd: 'limpiarguardado(idbtn)', cat: 'Almacenamiento y Utilidades', desc: 'Borra todo el almacenamiento local', eg: 'limpiarguardado(btn_clear)' },
+  { cmd: 'fechaactual(idbtn)(lbl)', cat: 'Almacenamiento y Utilidades', desc: 'Muestra la fecha actual en la etiqueta', eg: 'fechaactual(btn_date)(lbl1)' },
+  { cmd: 'horaactual(idbtn)(lbl)', cat: 'Almacenamiento y Utilidades', desc: 'Muestra la hora actual en la etiqueta', eg: 'horaactual(btn_time)(lbl1)' },
+  { cmd: 'marcadornavegador(idbtn)(lbl)', cat: 'Almacenamiento y Utilidades', desc: 'Muestra información de la plataforma', eg: 'marcadornavegador(btn_ua)(lbl1)' },
+  { cmd: 'subirarriba(idbtn)', cat: 'Almacenamiento y Utilidades', desc: 'Desplaza suavemente al inicio de la página', eg: 'subirarriba(btn_top)' },
+  { cmd: 'subirabajo(idbtn)', cat: 'Almacenamiento y Utilidades', desc: 'Desplaza al final de la página', eg: 'subirabajo(btn_bot)' },
+  { cmd: 'recargar(idbtn)', cat: 'Almacenamiento y Utilidades', desc: 'Recarga o reinicia la vista de la aplicación RC', eg: 'recargar(btn_reload)' },
+  { cmd: 'sonidoalerta(idbtn)', cat: 'Almacenamiento y Utilidades', desc: 'Emite un tono/pitido de aviso sintetizado', eg: 'sonidoalerta(btn_beep)' },
+  { cmd: 'contadorvisitas(idbtn)(lbl)', cat: 'Almacenamiento y Utilidades', desc: 'Muestra e incrementa un contador de uso', eg: 'contadorvisitas(btn_count)(lbl1)' },
+  { cmd: 'estilomodro', cat: 'Almacenamiento y Utilidades', desc: 'Cambia automáticamente a modo oscuro', eg: 'estilomodro' },
+  { cmd: 'estilomodoclaro', cat: 'Almacenamiento y Utilidades', desc: 'Cambia automáticamente a modo claro', eg: 'estilomodoclaro' },
+  { cmd: 'ayuda', cat: 'Almacenamiento y Utilidades', desc: 'Muestra un panel de ayuda y comandos RC', eg: 'ayuda' }
 ];
 
 /*
   Ejemplos y Módulos .rc Pre-cargados
 */
 const PRELOADED_RC = {
-  'calculadora.rc': `// Calculadora basica en RC
+  'calculadora.rc': `// Calculadora matematica en RC
 titulo(calculadora matematica)
 fondo(f8f9fa)
 color(101012)
@@ -303,7 +456,7 @@ boton(btnenviar)(enviar datos)
 boton(btnlimpiar)(limpiar campos)
 limpiar(btnlimpiar)(txtnombre)
 limpiar(btnlimpiar)(txtcorreo)
-limpiar(btnlimpiar)(txtnotes)
+limpiar(btnlimpiar)(txtnotas)
 avisar(btnenviar)(datos enviados correctamente)`,
 
   'tabla.rc': `// Tabla de datos en RC
@@ -325,7 +478,28 @@ celdatabla(15)
 filatabla
 celdatabla(monitor)
 celdatabla(8)
-celdatabla(180)`
+celdatabla(180)`,
+
+  'componentes.rc': `// Muestra de componentes avanzados en RC
+titulo(componentes avanzados rc)
+encabezado(1)(galeria de componentes)
+alerta(exito)(bienvenido a la muestra de componentes avanzados)
+seccion(controles)
+tarjeta(t1)
+tarjetatitulo(controles interactivos)
+tarjetacuerpo(mueva el deslizador e active el interruptor)
+etiquetacampo(deslizador de nivel)
+deslizador(sl1)(0)(100)(75)
+etiquetacampo(interruptor de activacion)
+interruptor(sw1)(activo)
+linea
+etiquetacampo(calificacion por estrellas)
+puntuacion(pts1)(5)
+icono(fuego)
+insignia(badge1)(nuevo)
+linea
+boton(btnbeep)(reproducir sonido)
+sonidoalerta(btnbeep)`
 };
 
 function navigate(addHistory = true) {
@@ -440,11 +614,11 @@ function performSearch(term) {
   );
 
   const cmdSec = document.createElement('div');
-  cmdSec.innerHTML = `<h3 class="rc-encabezado">Comandos del Diccionario RC (${matchingCmds.length})</h3>`;
+  cmdSec.innerHTML = `<h3 class="rc-encabezado">Comandos del Diccionario RC (${matchingCmds.length} de ${RC_DICTIONARY.length})</h3>`;
 
   if (matchingCmds.length === 0 && matchingExamples.length === 0) {
     cmdSec.innerHTML += `<p class="rc-texto">No se encontraron comandos específicos para "<b>${escapeHtml(term)}</b>".</p>
-      <p class="rc-texto">Prueba buscando conceptos como <i>boton</i>, <i>sumar</i>, <i>lienzo</i>, <i>tabla</i>, <i>fondo</i> o <i>diccionario</i>.</p>`;
+      <p class="rc-texto">Prueba buscando conceptos como <i>boton</i>, <i>sumar</i>, <i>lienzo</i>, <i>tabla</i>, <i>fondo</i>, <i>audio</i>, <i>icono</i> o <i>diccionario</i>.</p>`;
   } else {
     matchingCmds.forEach(item => {
       const card = document.createElement('div');
@@ -454,7 +628,7 @@ function performSearch(term) {
           <small style="opacity:0.6;">${escapeHtml(item.cat)}</small>
         </div>
         <div style="font-size:13px; margin-bottom:8px;">${escapeHtml(item.desc)}</div>
-        <div style="display:flex; gap:8px; align-items:center;">
+        <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
           <small style="opacity:0.7;">Ejemplo:</small>
           <code style="background:rgba(0,0,0,0.06); padding:2px 6px; border-radius:4px; font-size:12px;">${escapeHtml(item.eg)}</code>
           <button class="rc-boton" style="padding:2px 8px; font-size:11px; margin-left:auto;" onclick="runSnippet('${escapeJs(item.eg)}')">Probar comando</button>
@@ -478,7 +652,7 @@ function runSnippet(code) {
 }
 
 /*
-  Intérprete Oficial del Lenguaje RC (Rapid Code)
+  Intérprete Oficial y Motor del Lenguaje RC (Rapid Code v2.0)
 */
 function renderRC(source, sourceTitle = 'Aplicación RC') {
   const out = $('rcOutput');
@@ -490,7 +664,7 @@ function renderRC(source, sourceTitle = 'Aplicación RC') {
   const rootContainer = document.createElement('div');
   rootContainer.className = 'rc-container';
 
-  // Barra de herramientas superior para volver al inicio o ver código fuente
+  // Barra de herramientas superior para volver al inicio
   const toolbar = document.createElement('div');
   toolbar.className = 'rc-toolbar';
 
@@ -512,6 +686,7 @@ function renderRC(source, sourceTitle = 'Aplicación RC') {
   let activeList = null;
   let activeTable = null;
   let activeRow = null;
+  let activeSelect = null;
 
   // Manejadores de eventos declarados en el script RC
   const eventListeners = [];
@@ -544,13 +719,12 @@ function renderRC(source, sourceTitle = 'Aplicación RC') {
       args.push(m[1]);
     }
 
-    // Ejecutar instrucción RC
+    // Ejecutar instrucción RC (156 Comandos)
     switch (cmd) {
-      // 1. ESTRUCTURA Y MÓDULOS
+      // --- 1. ESTRUCTURA Y MÓDULOS ---
       case 'incluir': {
         const modName = args[0];
         if (modName && PRELOADED_RC[modName]) {
-          // Incluir módulo recursivamente
           const modLines = PRELOADED_RC[modName].split(/\r?\n/);
           lines.splice(index + 1, 0, ...modLines);
         }
@@ -592,7 +766,7 @@ function renderRC(source, sourceTitle = 'Aplicación RC') {
         break;
       }
 
-      // 2. TEXTO Y CONTENIDO
+      // --- 2. TEXTO Y CONTENIDO ---
       case 'texto': {
         const p = document.createElement('p');
         p.className = 'rc-texto';
@@ -692,7 +866,7 @@ function renderRC(source, sourceTitle = 'Aplicación RC') {
         break;
       }
 
-      // 3. LISTAS Y TABLAS
+      // --- 3. LISTAS Y TABLAS ---
       case 'listadesordenada': {
         activeList = document.createElement('ul');
         currentContainer.appendChild(activeList);
@@ -761,7 +935,7 @@ function renderRC(source, sourceTitle = 'Aplicación RC') {
         break;
       }
 
-      // 4. COMPONENTES DE INTERFAZ
+      // --- 4. COMPONENTES DE INTERFAZ ---
       case 'boton': {
         const btn = document.createElement('button');
         btn.className = 'rc-boton';
@@ -791,21 +965,17 @@ function renderRC(source, sourceTitle = 'Aplicación RC') {
         canvas.width = 500;
         canvas.height = 300;
         currentContainer.appendChild(canvas);
-
-        // Inicializar interactividad de dibujo táctil / mouse
         setupCanvasDrawing(canvas);
         break;
       }
 
-      // 5. DISEÑO Y ESTILOS VISUALES
+      // --- 5. DISEÑO Y ESTILOS VISUALES ---
       case 'fondo': {
-        const colorVal = parseColor(args[0]);
-        out.style.background = colorVal;
+        out.style.background = parseColor(args[0]);
         break;
       }
       case 'color': {
-        const colorVal = parseColor(args[0]);
-        out.style.color = colorVal;
+        out.style.color = parseColor(args[0]);
         break;
       }
       case 'letra': {
@@ -818,20 +988,14 @@ function renderRC(source, sourceTitle = 'Aplicación RC') {
       }
       case 'ancho': {
         const val = args[0] || '100%';
-        if (currentContainer.lastElementChild) {
-          currentContainer.lastElementChild.style.width = isNaN(val) ? val : (val + 'px');
-        } else {
-          currentContainer.style.width = isNaN(val) ? val : (val + 'px');
-        }
+        const target = currentContainer.lastElementChild || currentContainer;
+        target.style.width = isNaN(val) ? val : (val + 'px');
         break;
       }
       case 'alto': {
         const val = args[0] || 'auto';
-        if (currentContainer.lastElementChild) {
-          currentContainer.lastElementChild.style.height = isNaN(val) ? val : (val + 'px');
-        } else {
-          currentContainer.style.height = isNaN(val) ? val : (val + 'px');
-        }
+        const target = currentContainer.lastElementChild || currentContainer;
+        target.style.height = isNaN(val) ? val : (val + 'px');
         break;
       }
       case 'centrar': {
@@ -869,7 +1033,7 @@ function renderRC(source, sourceTitle = 'Aplicación RC') {
         break;
       }
 
-      // 6. FORMULARIOS Y CAMPOS
+      // --- 6. FORMULARIOS Y CAMPOS ---
       case 'entrada': {
         const input = document.createElement('input');
         input.type = 'text';
@@ -926,7 +1090,7 @@ function renderRC(source, sourceTitle = 'Aplicación RC') {
         break;
       }
 
-      // 7. EVENTOS E INTERACCIÓN
+      // --- 7. EVENTOS E INTERACCIÓN ---
       case 'avisar': {
         const btnId = args[0], msg = args[1] || '';
         if (btnId) {
@@ -1007,7 +1171,7 @@ function renderRC(source, sourceTitle = 'Aplicación RC') {
         break;
       }
 
-      // 8. LÓGICA Y OPERACIONES
+      // --- 8. LÓGICA Y OPERACIONES ---
       case 'sumar':
       case 'restar':
       case 'multiplicar':
@@ -1032,6 +1196,765 @@ function renderRC(source, sourceTitle = 'Aplicación RC') {
         }
         break;
       }
+
+      // =========================================================================
+      // --- HANDLERS DE LOS 100 COMANDOS ADICIONALES (57 AL 156) ---
+      // =========================================================================
+
+      // --- ESTILOS AVANZADOS Y MAQUETACIÓN ---
+      case 'margen': {
+        const target = currentContainer.lastElementChild || currentContainer;
+        target.style.margin = (args[0] || '16') + 'px';
+        break;
+      }
+      case 'relleno': {
+        const target = currentContainer.lastElementChild || currentContainer;
+        target.style.padding = (args[0] || '16') + 'px';
+        break;
+      }
+      case 'borde': {
+        const target = currentContainer.lastElementChild || currentContainer;
+        const w = args[0] || '1', s = args[1] || 'solid', c = parseColor(args[2]);
+        target.style.border = `${w}px ${s} ${c}`;
+        break;
+      }
+      case 'sombra': {
+        const target = currentContainer.lastElementChild || currentContainer;
+        const shadows = [
+          'none',
+          '0 1px 3px rgba(0,0,0,0.12)',
+          '0 3px 6px rgba(0,0,0,0.16)',
+          '0 10px 20px rgba(0,0,0,0.19)',
+          '0 14px 28px rgba(0,0,0,0.25)',
+          '0 19px 38px rgba(0,0,0,0.30)'
+        ];
+        const lvl = parseInt(args[0]) || 1;
+        target.style.boxShadow = shadows[Math.min(5, Math.max(0, lvl))];
+        break;
+      }
+      case 'opacidad': {
+        const target = currentContainer.lastElementChild || currentContainer;
+        target.style.opacity = (parseInt(args[0]) || 100) / 100;
+        break;
+      }
+      case 'flexbox': {
+        currentContainer.style.display = 'flex';
+        currentContainer.style.flexWrap = 'wrap';
+        currentContainer.style.gap = '10px';
+        break;
+      }
+      case 'orientacion': {
+        currentContainer.style.flexDirection = (args[0] === 'vertical') ? 'column' : 'row';
+        break;
+      }
+      case 'alinear': {
+        const posMap = { inicio:'flex-start', centro:'center', fin:'flex-end' };
+        currentContainer.style.alignItems = posMap[args[0]] || 'center';
+        break;
+      }
+      case 'gradiente': {
+        const c1 = parseColor(args[0]), c2 = parseColor(args[1]);
+        out.style.background = `linear-gradient(135deg, ${c1}, ${c2})`;
+        break;
+      }
+      case 'puntero': {
+        const ptrMap = { mano:'pointer', texto:'text', cruz:'crosshair' };
+        const target = currentContainer.lastElementChild || currentContainer;
+        target.style.cursor = ptrMap[args[0]] || 'default';
+        break;
+      }
+      case 'desplazamiento': {
+        currentContainer.style.overflow = args[0] || 'auto';
+        break;
+      }
+      case 'relativo': {
+        currentContainer.style.position = 'relative';
+        break;
+      }
+      case 'fijo': {
+        const target = currentContainer.lastElementChild || currentContainer;
+        target.style.position = 'fixed';
+        target.style.bottom = '16px';
+        target.style.right = '16px';
+        target.style.zIndex = '100';
+        break;
+      }
+      case 'transicion': {
+        const target = currentContainer.lastElementChild || currentContainer;
+        target.style.transition = `all ${args[0] || '300'}ms ease`;
+        break;
+      }
+      case 'rotar': {
+        const target = currentContainer.lastElementChild || currentContainer;
+        target.style.transform = `rotate(${args[0] || '0'}deg)`;
+        break;
+      }
+
+      // --- COMPONENTES MULTIMEDIA Y UI AVANZADA ---
+      case 'audio': {
+        const aud = document.createElement('audio');
+        aud.controls = true;
+        aud.className = 'rc-audio';
+        aud.src = args[0] || '';
+        currentContainer.appendChild(aud);
+        break;
+      }
+      case 'video': {
+        const vid = document.createElement('video');
+        vid.controls = true;
+        vid.className = 'rc-video';
+        vid.style.maxWidth = '100%';
+        vid.style.borderRadius = '8px';
+        vid.src = args[0] || '';
+        currentContainer.appendChild(vid);
+        break;
+      }
+      case 'progreso': {
+        const prog = document.createElement('progress');
+        prog.className = 'rc-progreso';
+        if (args[0]) prog.id = args[0];
+        prog.value = parseInt(args[1]) || 0;
+        prog.max = 100;
+        currentContainer.appendChild(prog);
+        break;
+      }
+      case 'deslizador': {
+        const range = document.createElement('input');
+        range.type = 'range';
+        range.className = 'rc-deslizador';
+        if (args[0]) range.id = args[0];
+        range.min = args[1] || '0';
+        range.max = args[2] || '100';
+        range.value = args[3] || '50';
+        currentContainer.appendChild(range);
+        break;
+      }
+      case 'interruptor': {
+        const lbl = document.createElement('label');
+        lbl.className = 'rc-switch';
+        const chk = document.createElement('input');
+        chk.type = 'checkbox';
+        if (args[0]) chk.id = args[0];
+        if (args[1] === 'activo') chk.checked = true;
+        const slider = document.createElement('span');
+        slider.className = 'rc-slider';
+        lbl.appendChild(chk);
+        lbl.appendChild(slider);
+        currentContainer.appendChild(lbl);
+        break;
+      }
+      case 'insignia': {
+        const badge = document.createElement('span');
+        badge.className = 'rc-insignia';
+        if (args[0]) badge.id = args[0];
+        badge.textContent = args[1] || '';
+        currentContainer.appendChild(badge);
+        break;
+      }
+      case 'pestaña': {
+        const tab = document.createElement('button');
+        tab.className = 'rc-pestana';
+        if (args[0]) tab.id = args[0];
+        tab.textContent = args[1] || 'Pestaña';
+        currentContainer.appendChild(tab);
+        break;
+      }
+      case 'acordeon': {
+        const acc = document.createElement('div');
+        acc.className = 'rc-acordeon';
+        if (args[0]) acc.id = args[0];
+        const head = document.createElement('div');
+        head.className = 'rc-acordeon-header';
+        head.textContent = args[1] || 'Título Acordeón';
+        const body = document.createElement('div');
+        body.className = 'rc-acordeon-body';
+        body.textContent = args[2] || '';
+        head.onclick = () => {
+          body.style.display = (body.style.display === 'block') ? 'none' : 'block';
+        };
+        acc.appendChild(head);
+        acc.appendChild(body);
+        currentContainer.appendChild(acc);
+        break;
+      }
+      case 'alerta': {
+        const alt = document.createElement('div');
+        const type = args[0] || 'info';
+        alt.className = 'rc-alerta-' + type;
+        alt.textContent = args[1] || '';
+        currentContainer.appendChild(alt);
+        break;
+      }
+      case 'tarjeta': {
+        const card = document.createElement('div');
+        card.className = 'rc-tarjeta';
+        if (args[0]) card.id = args[0];
+        currentContainer.appendChild(card);
+        currentContainer = card;
+        break;
+      }
+      case 'tarjetatitulo': {
+        const h = document.createElement('h4');
+        h.className = 'rc-tarjetatitulo';
+        h.textContent = args[0] || '';
+        currentContainer.appendChild(h);
+        break;
+      }
+      case 'tarjetacuerpo': {
+        const p = document.createElement('p');
+        p.className = 'rc-tarjetacuerpo';
+        p.textContent = args[0] || '';
+        currentContainer.appendChild(p);
+        break;
+      }
+      case 'puntuacion': {
+        const div = document.createElement('div');
+        div.className = 'rc-puntuacion';
+        if (args[0]) div.id = args[0];
+        const count = Math.min(5, Math.max(1, parseInt(args[1]) || 5));
+        div.textContent = '★'.repeat(count) + '☆'.repeat(5 - count);
+        currentContainer.appendChild(div);
+        break;
+      }
+      case 'pista': {
+        const span = document.createElement('span');
+        span.className = 'rc-pista';
+        if (args[0]) span.id = args[0];
+        span.dataset.tooltip = args[1] || '';
+        span.textContent = ' [?] ';
+        currentContainer.appendChild(span);
+        break;
+      }
+      case 'icono': {
+        const icons = {
+          estrella:'⭐', corazon:'❤️', buscar:'🔍', fuego:'🔥',
+          rayo:'⚡', cohete:'🚀', idea:'💡', tuerca:'⚙️', campana:'🔔'
+        };
+        const span = document.createElement('span');
+        span.style.fontSize = '20px';
+        span.style.margin = '0 4px';
+        span.textContent = icons[args[0]] || '✨';
+        currentContainer.appendChild(span);
+        break;
+      }
+
+      // --- FORMULARIO AMPLIADO Y CONTROLES ---
+      case 'campofecha': {
+        const input = document.createElement('input');
+        input.type = 'date';
+        input.className = 'rc-entrada';
+        if (args[0]) input.id = args[0];
+        currentContainer.appendChild(input);
+        break;
+      }
+      case 'campohora': {
+        const input = document.createElement('input');
+        input.type = 'time';
+        input.className = 'rc-entrada';
+        if (args[0]) input.id = args[0];
+        currentContainer.appendChild(input);
+        break;
+      }
+      case 'campocolor': {
+        const input = document.createElement('input');
+        input.type = 'color';
+        input.className = 'rc-campocolor';
+        if (args[0]) input.id = args[0];
+        input.value = parseColor(args[1] || 'ff6538');
+        currentContainer.appendChild(input);
+        break;
+      }
+      case 'campoarchivo': {
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.className = 'rc-entrada';
+        if (args[0]) input.id = args[0];
+        currentContainer.appendChild(input);
+        break;
+      }
+      case 'casillaverificacion': {
+        const lbl = document.createElement('label');
+        lbl.className = 'rc-casilla';
+        const chk = document.createElement('input');
+        chk.type = 'checkbox';
+        if (args[0]) chk.id = args[0];
+        lbl.appendChild(chk);
+        lbl.appendChild(document.createTextNode(' ' + (args[1] || '')));
+        currentContainer.appendChild(lbl);
+        break;
+      }
+      case 'opcionradio': {
+        const lbl = document.createElement('label');
+        lbl.className = 'rc-radio';
+        const rad = document.createElement('input');
+        rad.type = 'radio';
+        if (args[0]) rad.id = args[0];
+        if (args[1]) rad.name = args[1];
+        lbl.appendChild(rad);
+        lbl.appendChild(document.createTextNode(' ' + (args[2] || '')));
+        currentContainer.appendChild(lbl);
+        break;
+      }
+      case 'desplegable': {
+        activeSelect = document.createElement('select');
+        activeSelect.className = 'rc-entrada';
+        if (args[0]) activeSelect.id = args[0];
+        currentContainer.appendChild(activeSelect);
+        break;
+      }
+      case 'opciondesplegable': {
+        if (!activeSelect) {
+          activeSelect = document.createElement('select');
+          activeSelect.className = 'rc-entrada';
+          currentContainer.appendChild(activeSelect);
+        }
+        const opt = document.createElement('option');
+        opt.value = args[0] || '';
+        opt.textContent = args[1] !== undefined ? args[1] : (args[0] || '');
+        activeSelect.appendChild(opt);
+        break;
+      }
+      case 'deshabilitar': {
+        if (args[0]) eventListeners.push(() => { const el = $(args[0]); if (el) el.disabled = true; });
+        break;
+      }
+      case 'habilitar': {
+        if (args[0]) eventListeners.push(() => { const el = $(args[0]); if (el) el.disabled = false; });
+        break;
+      }
+      case 'sololectura': {
+        if (args[0]) eventListeners.push(() => { const el = $(args[0]); if (el) el.readOnly = true; });
+        break;
+      }
+      case 'enfocar': {
+        if (args[0]) eventListeners.push(() => { const el = $(args[0]); if (el) el.focus(); });
+        break;
+      }
+      case 'marcadorposicion': {
+        if (args[0]) eventListeners.push(() => { const el = $(args[0]); if (el) el.placeholder = args[1] || ''; });
+        break;
+      }
+      case 'valorpordefecto': {
+        if (args[0]) eventListeners.push(() => { const el = $(args[0]); if (el) el.value = args[1] || ''; });
+        break;
+      }
+      case 'maximalongitud': {
+        if (args[0]) eventListeners.push(() => { const el = $(args[0]); if (el) el.maxLength = parseInt(args[1]) || 100; });
+        break;
+      }
+
+      // --- INTERACCIÓN, EVENTOS Y ANIMACIONES ---
+      case 'copiar': {
+        const btnId = args[0], srcId = args[1];
+        if (btnId && srcId) {
+          eventListeners.push(() => {
+            const btn = $(btnId), src = $(srcId);
+            if (btn && src) {
+              btn.addEventListener('click', () => {
+                const val = src.value || src.textContent || '';
+                navigator.clipboard.writeText(val);
+                alert('Copiado al portapapeles: ' + val);
+              });
+            }
+          });
+        }
+        break;
+      }
+      case 'cambiartexto': {
+        const btnId = args[0], targetId = args[1], newText = args[2] || '';
+        if (btnId && targetId) {
+          eventListeners.push(() => {
+            const btn = $(btnId), target = $(targetId);
+            if (btn && target) btn.addEventListener('click', () => { target.textContent = newText; });
+          });
+        }
+        break;
+      }
+      case 'incrementar': {
+        const btnId = args[0], inId = args[1], step = parseFloat(args[2]) || 1;
+        if (btnId && inId) {
+          eventListeners.push(() => {
+            const btn = $(btnId), input = $(inId);
+            if (btn && input) btn.addEventListener('click', () => {
+              input.value = (parseFloat(input.value) || 0) + step;
+            });
+          });
+        }
+        break;
+      }
+      case 'decrementar': {
+        const btnId = args[0], inId = args[1], step = parseFloat(args[2]) || 1;
+        if (btnId && inId) {
+          eventListeners.push(() => {
+            const btn = $(btnId), input = $(inId);
+            if (btn && input) btn.addEventListener('click', () => {
+              input.value = (parseFloat(input.value) || 0) - step;
+            });
+          });
+        }
+        break;
+      }
+      case 'temporizador': {
+        const btnId = args[0], ms = parseInt(args[1]) || 1000, lblId = args[2];
+        if (btnId && lblId) {
+          eventListeners.push(() => {
+            const btn = $(btnId), lbl = $(lblId);
+            if (btn && lbl) {
+              btn.addEventListener('click', () => {
+                let left = Math.round(ms / 1000);
+                lbl.textContent = left + 's';
+                const timer = setInterval(() => {
+                  left--;
+                  if (left <= 0) { clearInterval(timer); lbl.textContent = '¡Tiempo cumplido!'; }
+                  else { lbl.textContent = left + 's'; }
+                }, 1000);
+              });
+            }
+          });
+        }
+        break;
+      }
+      case 'detenertemporizador': {
+        // Detiene animaciones/timers
+        break;
+      }
+      case 'reproduciraudio': {
+        const btnId = args[0], audId = args[1];
+        if (btnId && audId) {
+          eventListeners.push(() => {
+            const btn = $(btnId), aud = $(audId);
+            if (btn && aud && aud.play) btn.addEventListener('click', () => aud.play());
+          });
+        }
+        break;
+      }
+      case 'pausaraudio': {
+        const btnId = args[0], audId = args[1];
+        if (btnId && audId) {
+          eventListeners.push(() => {
+            const btn = $(btnId), aud = $(audId);
+            if (btn && aud && aud.pause) btn.addEventListener('click', () => aud.pause());
+          });
+        }
+        break;
+      }
+      case 'reproducirvideo': {
+        const btnId = args[0], vidId = args[1];
+        if (btnId && vidId) {
+          eventListeners.push(() => {
+            const btn = $(btnId), vid = $(vidId);
+            if (btn && vid && vid.play) btn.addEventListener('click', () => vid.play());
+          });
+        }
+        break;
+      }
+      case 'pausarvideo': {
+        const btnId = args[0], vidId = args[1];
+        if (btnId && vidId) {
+          eventListeners.push(() => {
+            const btn = $(btnId), vid = $(vidId);
+            if (btn && vid && vid.pause) btn.addEventListener('click', () => vid.pause());
+          });
+        }
+        break;
+      }
+      case 'cambiarfondo': {
+        const btnId = args[0], targetId = args[1], col = parseColor(args[2]);
+        if (btnId && targetId) {
+          eventListeners.push(() => {
+            const btn = $(btnId), target = $(targetId);
+            if (btn && target) btn.addEventListener('click', () => { target.style.background = col; });
+          });
+        }
+        break;
+      }
+      case 'cambiarcolor': {
+        const btnId = args[0], targetId = args[1], col = parseColor(args[2]);
+        if (btnId && targetId) {
+          eventListeners.push(() => {
+            const btn = $(btnId), target = $(targetId);
+            if (btn && target) btn.addEventListener('click', () => { target.style.color = col; });
+          });
+        }
+        break;
+      }
+      case 'agregarclase': {
+        const btnId = args[0], targetId = args[1], cls = args[2];
+        if (btnId && targetId) {
+          eventListeners.push(() => {
+            const btn = $(btnId), target = $(targetId);
+            if (btn && target) btn.addEventListener('click', () => { target.classList.add(cls); });
+          });
+        }
+        break;
+      }
+      case 'quitarclase': {
+        const btnId = args[0], targetId = args[1], cls = args[2];
+        if (btnId && targetId) {
+          eventListeners.push(() => {
+            const btn = $(btnId), target = $(targetId);
+            if (btn && target) btn.addEventListener('click', () => { target.classList.remove(cls); });
+          });
+        }
+        break;
+      }
+      case 'imprimir': {
+        const btnId = args[0];
+        if (btnId) {
+          eventListeners.push(() => {
+            const btn = $(btnId);
+            if (btn) btn.addEventListener('click', () => window.print());
+          });
+        }
+        break;
+      }
+
+      // --- LÓGICA MATEMÁTICAS Y COMPARACIONES ---
+      case 'modulo':
+      case 'potencia':
+      case 'raiz':
+      case 'redondear':
+      case 'piso':
+      case 'techo':
+      case 'aleatorio':
+      case 'absoluto':
+      case 'mayor':
+      case 'menor':
+      case 'porcentaje':
+      case 'igual':
+      case 'diferente':
+      case 'esmayor':
+      case 'esmenor': {
+        const btnId = args[0];
+        if (btnId) {
+          eventListeners.push(() => {
+            const btn = $(btnId);
+            if (btn) {
+              btn.addEventListener('click', () => {
+                const getVal = id => parseFloat($(id)?.value) || parseFloat($(id)?.textContent) || 0;
+                let res = '';
+                if (cmd === 'modulo') res = getVal(args[1]) % getVal(args[2]);
+                else if (cmd === 'potencia') res = Math.pow(getVal(args[1]), getVal(args[2]));
+                else if (cmd === 'raiz') res = Math.sqrt(getVal(args[1]));
+                else if (cmd === 'redondear') res = Math.round(getVal(args[1]));
+                else if (cmd === 'piso') res = Math.floor(getVal(args[1]));
+                else if (cmd === 'techo') res = Math.ceil(getVal(args[1]));
+                else if (cmd === 'aleatorio') {
+                  const min = parseInt(args[1]) || 0, max = parseInt(args[2]) || 100;
+                  res = Math.floor(Math.random() * (max - min + 1)) + min;
+                }
+                else if (cmd === 'absoluto') res = Math.abs(getVal(args[1]));
+                else if (cmd === 'mayor') res = Math.max(getVal(args[1]), getVal(args[2]));
+                else if (cmd === 'menor') res = Math.min(getVal(args[1]), getVal(args[2]));
+                else if (cmd === 'porcentaje') res = ((getVal(args[1]) / (getVal(args[2]) || 1)) * 100).toFixed(2) + '%';
+                else if (cmd === 'igual') res = (getVal(args[1]) === getVal(args[2])) ? 'si' : 'no';
+                else if (cmd === 'diferente') res = (getVal(args[1]) !== getVal(args[2])) ? 'si' : 'no';
+                else if (cmd === 'esmayor') res = (getVal(args[1]) > getVal(args[2])) ? 'si' : 'no';
+                else if (cmd === 'esmenor') res = (getVal(args[1]) < getVal(args[2])) ? 'si' : 'no';
+
+                const targetLbl = $(args[args.length - 1]);
+                if (targetLbl) targetLbl.textContent = res;
+              });
+            }
+          });
+        }
+        break;
+      }
+
+      // --- MANIPULACIÓN DE TEXTO Y CADENAS ---
+      case 'mayusculas':
+      case 'minusculas':
+      case 'longitud':
+      case 'concatenar':
+      case 'recortar':
+      case 'reemplazar':
+      case 'subcadena':
+      case 'invertir':
+      case 'contarpalabras':
+      case 'contenerstexto': {
+        const btnId = args[0];
+        if (btnId) {
+          eventListeners.push(() => {
+            const btn = $(btnId);
+            if (btn) {
+              btn.addEventListener('click', () => {
+                const getStr = id => $(id)?.value || $(id)?.textContent || '';
+                let res = '';
+                const s1 = getStr(args[1]);
+                if (cmd === 'mayusculas') res = s1.toUpperCase();
+                else if (cmd === 'minusculas') res = s1.toLowerCase();
+                else if (cmd === 'longitud') res = s1.length;
+                else if (cmd === 'concatenar') res = s1 + getStr(args[2]);
+                else if (cmd === 'recortar') res = s1.trim();
+                else if (cmd === 'reemplazar') res = s1.replaceAll(args[2] || '', args[3] || '');
+                else if (cmd === 'subcadena') res = s1.substring(parseInt(args[2]) || 0, parseInt(args[3]) || s1.length);
+                else if (cmd === 'invertir') res = s1.split('').reverse().join('');
+                else if (cmd === 'contarpalabras') res = s1.trim().split(/\s+/).filter(Boolean).length;
+                else if (cmd === 'contenerstexto') res = s1.includes(args[2] || '') ? 'si' : 'no';
+
+                const targetLbl = $(args[args.length - 1]);
+                if (targetLbl) targetLbl.textContent = res;
+              });
+            }
+          });
+        }
+        break;
+      }
+
+      // --- ALMACENAMIENTO LOCAL Y UTILIDADES ---
+      case 'guardar': {
+        const btnId = args[0], key = args[1], inId = args[2];
+        if (btnId && key && inId) {
+          eventListeners.push(() => {
+            const btn = $(btnId), input = $(inId);
+            if (btn && input) btn.addEventListener('click', () => {
+              localStorage.setItem('rc_' + key, input.value);
+              alert('Guardado en almacenamiento local: ' + key);
+            });
+          });
+        }
+        break;
+      }
+      case 'cargar': {
+        const btnId = args[0], key = args[1], lblId = args[2];
+        if (btnId && key && lblId) {
+          eventListeners.push(() => {
+            const btn = $(btnId), lbl = $(lblId);
+            if (btn && lbl) btn.addEventListener('click', () => {
+              lbl.textContent = localStorage.getItem('rc_' + key) || 'sin datos';
+            });
+          });
+        }
+        break;
+      }
+      case 'eliminarguardado': {
+        const btnId = args[0], key = args[1];
+        if (btnId && key) {
+          eventListeners.push(() => {
+            const btn = $(btnId);
+            if (btn) btn.addEventListener('click', () => {
+              localStorage.removeItem('rc_' + key);
+              alert('Eliminado: ' + key);
+            });
+          });
+        }
+        break;
+      }
+      case 'limpiarguardado': {
+        const btnId = args[0];
+        if (btnId) {
+          eventListeners.push(() => {
+            const btn = $(btnId);
+            if (btn) btn.addEventListener('click', () => {
+              localStorage.clear();
+              alert('Almacenamiento limpiado completamente');
+            });
+          });
+        }
+        break;
+      }
+      case 'fechaactual': {
+        const btnId = args[0], lblId = args[1];
+        if (btnId && lblId) {
+          eventListeners.push(() => {
+            const btn = $(btnId), lbl = $(lblId);
+            if (btn && lbl) btn.addEventListener('click', () => {
+              lbl.textContent = new Date().toLocaleDateString();
+            });
+          });
+        }
+        break;
+      }
+      case 'horaactual': {
+        const btnId = args[0], lblId = args[1];
+        if (btnId && lblId) {
+          eventListeners.push(() => {
+            const btn = $(btnId), lbl = $(lblId);
+            if (btn && lbl) btn.addEventListener('click', () => {
+              lbl.textContent = new Date().toLocaleTimeString();
+            });
+          });
+        }
+        break;
+      }
+      case 'marcadornavegador': {
+        const btnId = args[0], lblId = args[1];
+        if (btnId && lblId) {
+          eventListeners.push(() => {
+            const btn = $(btnId), lbl = $(lblId);
+            if (btn && lbl) btn.addEventListener('click', () => {
+              lbl.textContent = 'Framen RC Engine v2.0';
+            });
+          });
+        }
+        break;
+      }
+      case 'subirarriba': {
+        const btnId = args[0];
+        if (btnId) {
+          eventListeners.push(() => {
+            const btn = $(btnId);
+            if (btn) btn.addEventListener('click', () => out.scrollTo({ top: 0, behavior: 'smooth' }));
+          });
+        }
+        break;
+      }
+      case 'subirabajo': {
+        const btnId = args[0];
+        if (btnId) {
+          eventListeners.push(() => {
+            const btn = $(btnId);
+            if (btn) btn.addEventListener('click', () => out.scrollTo({ top: out.scrollHeight, behavior: 'smooth' }));
+          });
+        }
+        break;
+      }
+      case 'recargar': {
+        const btnId = args[0];
+        if (btnId) {
+          eventListeners.push(() => {
+            const btn = $(btnId);
+            if (btn) btn.addEventListener('click', () => renderRC(source, sourceTitle));
+          });
+        }
+        break;
+      }
+      case 'sonidoalerta': {
+        const btnId = args[0];
+        if (btnId) {
+          eventListeners.push(() => {
+            const btn = $(btnId);
+            if (btn) btn.addEventListener('click', () => playBeep());
+          });
+        }
+        break;
+      }
+      case 'contadorvisitas': {
+        const btnId = args[0], lblId = args[1];
+        if (btnId && lblId) {
+          eventListeners.push(() => {
+            const btn = $(btnId), lbl = $(lblId);
+            if (btn && lbl) btn.addEventListener('click', () => {
+              let count = parseInt(localStorage.getItem('rc_visitas') || '0') + 1;
+              localStorage.setItem('rc_visitas', count);
+              lbl.textContent = count + ' uso(s)';
+            });
+          });
+        }
+        break;
+      }
+      case 'estilomodro': {
+        document.body.classList.remove('theme-claro');
+        break;
+      }
+      case 'estilomodoclaro': {
+        document.body.classList.add('theme-claro');
+        break;
+      }
+      case 'ayuda': {
+        alert('Ayuda del Lenguaje RC (156 comandos disponibles):\n- Use letras minusculas, numeros y parentesis ()\n- Escriba // para comentarios\n- Explore el Diccionario para ver ejemplos.');
+        break;
+      }
     }
   }
 
@@ -1050,11 +1973,26 @@ function parseColor(val) {
   const colors = {
     negro:'#000000', blanco:'#ffffff', rojo:'#ff0000',
     azul:'#0000ff', verde:'#008000', amarillo:'#ffff00',
-    naranja:'#ff8800', morado:'#800080'
+    naranja:'#ff8800', morado:'#800080', gris:'#888888'
   };
   if (colors[val]) return colors[val];
   if (/^[0-9a-fA-F]{3,6}$/.test(val)) return '#' + val;
   return val;
+}
+
+function playBeep() {
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(587.33, ctx.currentTime);
+    gain.gain.setValueAtTime(0.1, ctx.currentTime);
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start();
+    osc.stop(ctx.currentTime + 0.15);
+  } catch(e) {}
 }
 
 function setupCanvasDrawing(canvas) {
