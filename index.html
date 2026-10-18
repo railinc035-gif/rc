@@ -6766,8 +6766,10 @@ function parseRC(rcCode, files = {}, currentFile = "main.rc", visited = new Set(
                             var e2 = document.getElementById("${in2}");
                             var res = document.getElementById("${lbl}");
                             if (e1 && e2 && res) {
-                                var v1 = parseFloat(e1.value || e1.textContent || 0);
-                                var v2 = parseFloat(e2.value || e2.textContent || 0);
+                                var raw1 = "value" in e1 ? e1.value : e1.textContent;
+                                var raw2 = "value" in e2 ? e2.value : e2.textContent;
+                                var v1 = parseFloat(raw1) || 0;
+                                var v2 = parseFloat(raw2) || 0;
                                 var r = 0;
                                 if ("${op}" === "+") r = v1 + v2;
                                 if ("${op}" === "-") r = v1 - v2;
