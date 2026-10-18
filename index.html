@@ -59,7 +59,7 @@ main { flex:1; min-height:0; position:relative; }
 .hero h1 span { color:var(--accent); }
 .hero p { color:var(--muted); line-height:1.7; }
 .search { display:flex; gap:8px; margin:24px 0; }
-.cards { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; }
+.cards { display:grid; grid-template-columns:repeat(4,1fr); gap:10px; }
 .card {
   background:var(--panel); border:1px solid var(--line);
   padding:16px 8px; border-radius:12px; cursor:pointer;
@@ -72,6 +72,32 @@ main { flex:1; min-height:0; position:relative; }
 #rcOutput {
   display:none; position:absolute; inset:0; overflow:auto;
   padding:24px; background:#fff; color:#171717;
+}
+
+/* Modal del Editor RC */
+.rc-modal {
+  display:none; position:fixed; inset:0; z-index:1000;
+  background:rgba(0,0,0,0.75); backdrop-filter:blur(4px);
+  align-items:center; justify-content:center; padding:16px;
+}
+.rc-modal-content {
+  background:var(--panel); border:1px solid var(--line);
+  border-radius:16px; width:100%; max-width:800px; max-height:90vh;
+  display:flex; flex-direction:column; padding:20px; gap:12px;
+  box-shadow:0 10px 30px rgba(0,0,0,0.5);
+}
+.rc-editor-textarea {
+  font-family:monospace; font-size:13px; line-height:1.5;
+  background:#090d14; color:#00ff66; border:1px solid var(--line);
+  border-radius:10px; padding:14px; flex:1; min-height:280px; resize:none;
+}
+.rc-chip {
+  padding:5px 12px; border-radius:20px; background:#1b2230;
+  border:1px solid var(--line); cursor:pointer; font-size:12px;
+  color:var(--text); transition:all 0.15s ease;
+}
+.rc-chip:hover, .rc-chip.activo {
+  background:var(--accent); color:#fff; border-color:var(--accent);
 }
 
 /* Estilos para renderizado RC */
@@ -137,10 +163,10 @@ main { flex:1; min-height:0; position:relative; }
 .rc-pista:hover::after { content:attr(data-tooltip); position:absolute; bottom:125%; left:50%; transform:translateX(-50%); background:#333; color:#fff; padding:4px 8px; border-radius:4px; font-size:11px; white-space:nowrap; z-index:10; }
 
 footer { padding:8px 14px; color:var(--muted); font-size:11px; }
-@media(max-width:560px) {
+@media(max-width:680px) {
   header { flex-wrap:wrap; }
   .address { order:3; flex-basis:100%; }
-  .cards { grid-template-columns:1fr; }
+  .cards { grid-template-columns:1fr 1fr; }
   .card { padding:12px; }
 }
 </style>
@@ -172,8 +198,11 @@ footer { padding:8px 14px; color:var(--muted); font-size:11px; }
         <div class="card" onclick="quickSearch('diccionario')">
           <b>⌘ Diccionario (156)</b><small>Explorar todos los comandos</small>
         </div>
+        <div class="card" onclick="openEditorModal()">
+          <b>✎ Editor RC</b><small>Escribir y crear un .rc</small>
+        </div>
         <div class="card" onclick="openRC()">
-          <b>‹/› Lenguaje RC</b><small>Abrir un archivo .rc</small>
+          <b>‹/› Cargar Archivo</b><small>Abrir un archivo .rc</small>
         </div>
         <div class="card" onclick="quickSearch('ejemplos')">
           <b>◈ Ejemplos</b><small>Probar plantillas y demos</small>
@@ -184,6 +213,40 @@ footer { padding:8px 14px; color:var(--muted); font-size:11px; }
   </section>
   <section id="rcOutput"></section>
 </main>
+
+<!-- Modal del Editor RC Integrado -->
+<div id="editorModal" class="rc-modal">
+  <div class="rc-modal-content">
+    <div style="display:flex; justify-content:space-between; align-items:center;">
+      <h3 style="margin:0; font-size:18px;">✎ Editor y Creador del Lenguaje RC</h3>
+      <button onclick="closeEditorModal()" style="padding:4px 10px; border-radius:6px;">✕ Cerrar</button>
+    </div>
+    <div style="display:flex; gap:8px; align-items:center;">
+      <small style="color:var(--muted);">Plantillas rápidas:</small>
+      <select id="tplSelect" onchange="loadTemplateToEditor(this.value)" style="width:auto; padding:6px 10px;">
+        <option value="">-- Seleccionar Plantilla --</option>
+        <option value="calculadora.rc">Calculadora Matemática</option>
+        <option value="pizarra.rc">Pizarra Interactiva</option>
+        <option value="formulario.rc">Formulario de Registro</option>
+        <option value="tabla.rc">Tabla de Datos</option>
+        <option value="componentes.rc">Componentes Avanzados</option>
+        <option value="juego.rc">Juego de Adivinar Número</option>
+        <option value="notas.rc">Gestor de Notas Local</option>
+      </select>
+    </div>
+    <textarea id="editorCode" class="rc-editor-textarea" placeholder="// Escriba su codigo RC aqui
+titulo(mi primera app)
+encabezado(1)(hola mundo)
+texto(esta es una aplicacion creada en rc)
+boton(btn1)(haz clic aqui)
+avisar(btn1)(hola desde rc)"></textarea>
+    <div style="display:flex; gap:10px; justify-content:flex-end;">
+      <button onclick="downloadRCCode()" style="background:#1b2230;">💾 Descargar .rc</button>
+      <button onclick="runEditorCode()" style="background:var(--accent); font-weight:bold;">▶ Ejecutar Código RC</button>
+    </div>
+  </div>
+</div>
+
 <footer>Framen · Entorno oficial del lenguaje RC (Rapid Code) · 156 Comandos Disponibles</footer>
 
 <script>
@@ -199,9 +262,40 @@ function home() {
   setStatus('Inicio · Framen RC');
 }
 
+function openEditorModal() {
+  $('editorModal').style.display = 'flex';
+}
+
+function closeEditorModal() {
+  $('editorModal').style.display = 'none';
+}
+
+function loadTemplateToEditor(key) {
+  if (key && PRELOADED_RC[key]) {
+    $('editorCode').value = PRELOADED_RC[key];
+  }
+}
+
+function runEditorCode() {
+  const code = $('editorCode').value.trim();
+  if (!code) return;
+  closeEditorModal();
+  $('url').value = code;
+  renderRC(code, 'Aplicación RC del Editor');
+}
+
+function downloadRCCode() {
+  const code = $('editorCode').value;
+  if (!code) return;
+  const blob = new Blob([code], { type: 'text/plain;charset=utf-8' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'aplicacion.rc';
+  a.click();
+}
+
 /*
   Diccionario completo del Lenguaje RC (Rapid Code) - 156 Comandos
-  100% minúsculas, números, paréntesis () y comentarios //
 */
 const RC_DICTIONARY = [
   // --- 1. ESTRUCTURA Y MÓDULOS ---
@@ -276,11 +370,7 @@ const RC_DICTIONARY = [
   { cmd: 'multiplicar(idbtn)(in1)(in2)(lbl)', cat: 'Lógica y Operaciones', desc: 'Multiplica dos campos y muestra el resultado en la etiqueta', eg: 'multiplicar(btn_mul)(n1)(n2)(resultado)' },
   { cmd: 'dividir(idbtn)(in1)(in2)(lbl)', cat: 'Lógica y Operaciones', desc: 'Divide dos campos y muestra el resultado en la etiqueta', eg: 'dividir(btn_div)(n1)(n2)(resultado)' },
 
-  // =========================================================================
-  // --- 100 COMANDOS ADICIONALES (57 al 156) ---
-  // =========================================================================
-
-  // --- ESTILOS AVANZADOS Y MAQUETACIÓN (15) ---
+  // --- ESTILOS AVANZADOS Y MAQUETACIÓN ---
   { cmd: 'margen(px)', cat: 'Estilos Avanzados', desc: 'Aplica margen exterior en px', eg: 'margen(16)' },
   { cmd: 'relleno(px)', cat: 'Estilos Avanzados', desc: 'Aplica espaciado interno (padding) en px', eg: 'relleno(20)' },
   { cmd: 'borde(ancho)(estilo)(color)', cat: 'Estilos Avanzados', desc: 'Define un borde visual', eg: 'borde(2)(solid)(ff6538)' },
@@ -297,7 +387,7 @@ const RC_DICTIONARY = [
   { cmd: 'transicion(ms)', cat: 'Estilos Avanzados', desc: 'Tiempo de animación suave en milisegundos', eg: 'transicion(300)' },
   { cmd: 'rotar(grados)', cat: 'Estilos Avanzados', desc: 'Rota un elemento N grados', eg: 'rotar(15)' },
 
-  // --- COMPONENTES MULTIMEDIA Y UI AVANZADA (15) ---
+  // --- COMPONENTES MULTIMEDIA Y UI AVANZADA ---
   { cmd: 'audio(url)', cat: 'Multimedia y UI Avanzada', desc: 'Reproductor de audio HTML5', eg: 'audio(https://www.w3schools.com/html/horse.mp3)' },
   { cmd: 'video(url)', cat: 'Multimedia y UI Avanzada', desc: 'Reproductor de video HTML5', eg: 'video(https://www.w3schools.com/html/mov_bbb.mp4)' },
   { cmd: 'progreso(id)(val)', cat: 'Multimedia y UI Avanzada', desc: 'Barra de progreso con valor en porcentaje', eg: 'progreso(mi_barra)(75)' },
@@ -314,7 +404,7 @@ const RC_DICTIONARY = [
   { cmd: 'pista(id)(mensaje)', cat: 'Multimedia y UI Avanzada', desc: 'Cuadro de ayuda al pasar el cursor', eg: 'pista(help1)(pasa el cursor para ayuda)' },
   { cmd: 'icono(nombre)', cat: 'Multimedia y UI Avanzada', desc: 'Muestra un símbolo visual (estrella, corazon, fuego)', eg: 'icono(fuego)' },
 
-  // --- FORMULARIO AMPLIADO Y CONTROLES (15) ---
+  // --- FORMULARIO AMPLIADO Y CONTROLES ---
   { cmd: 'campofecha(id)', cat: 'Formularios Ampliados', desc: 'Selector de fecha calendarizada', eg: 'campofecha(txt_fecha)' },
   { cmd: 'campohora(id)', cat: 'Formularios Ampliados', desc: 'Selector de hora', eg: 'campohora(txt_hora)' },
   { cmd: 'campocolor(id)(val)', cat: 'Formularios Ampliados', desc: 'Selector visual de color', eg: 'campocolor(color_pick)(ff6538)' },
@@ -331,7 +421,7 @@ const RC_DICTIONARY = [
   { cmd: 'valorpordefecto(id)(val)', cat: 'Formularios Ampliados', desc: 'Establece el valor inicial', eg: 'valorpordefecto(txt_nombre)(defecto)' },
   { cmd: 'maximalongitud(id)(n)', cat: 'Formularios Ampliados', desc: 'Limita la cantidad de caracteres', eg: 'maximalongitud(txt_nombre)(20)' },
 
-  // --- INTERACCIÓN, EVENTOS Y ANIMACIONES (15) ---
+  // --- INTERACCIÓN, EVENTOS Y ANIMACIONES ---
   { cmd: 'copiar(idbtn)(idorigen)', cat: 'Eventos Avanzados', desc: 'Copia el contenido de un campo al portapapeles', eg: 'copiar(btn_copy)(txt1)' },
   { cmd: 'cambiartexto(idbtn)(targetid)(nuevo)', cat: 'Eventos Avanzados', desc: 'Cambia el texto de una etiqueta o botón', eg: 'cambiartexto(btn_change)(lbl1)(texto modificado)' },
   { cmd: 'incrementar(idbtn)(in1)(paso)', cat: 'Eventos Avanzados', desc: 'Incrementa el valor numérico de un campo', eg: 'incrementar(btn_inc)(num1)(1)' },
@@ -348,7 +438,7 @@ const RC_DICTIONARY = [
   { cmd: 'quitarclase(idbtn)(id)(clase)', cat: 'Eventos Avanzados', desc: 'Remueve una clase CSS dinámica', eg: 'quitarclase(btn_class)(div1)(activa)' },
   { cmd: 'imprimir(idbtn)', cat: 'Eventos Avanzados', desc: 'Abre el cuadro de diálogo para imprimir la página', eg: 'imprimir(btn_print)' },
 
-  // --- LÓGICA MATEMÁTICAS Y COMPARACIONES (15) ---
+  // --- LÓGICA MATEMÁTICAS Y COMPARACIONES ---
   { cmd: 'modulo(idbtn)(in1)(in2)(lbl)', cat: 'Lógica y Matemáticas', desc: 'Calcula el resto de la división (in1 % in2)', eg: 'modulo(btn_mod)(n1)(n2)(lbl1)' },
   { cmd: 'potencia(idbtn)(base)(exp)(lbl)', cat: 'Lógica y Matemáticas', desc: 'Calcula la potencia (base ^ exp)', eg: 'potencia(btn_pow)(b1)(e1)(lbl1)' },
   { cmd: 'raiz(idbtn)(in1)(lbl)', cat: 'Lógica y Matemáticas', desc: 'Calcula la raíz cuadrada de in1', eg: 'raiz(btn_sqrt)(n1)(lbl1)' },
@@ -365,7 +455,7 @@ const RC_DICTIONARY = [
   { cmd: 'esmayor(idbtn)(in1)(in2)(lbl)', cat: 'Lógica y Matemáticas', desc: 'Verifica si in1 es mayor que in2 (muestra si o no)', eg: 'esmayor(btn_gt)(n1)(n2)(lbl1)' },
   { cmd: 'esmenor(idbtn)(in1)(in2)(lbl)', cat: 'Lógica y Matemáticas', desc: 'Verifica si in1 es menor que in2 (muestra si o no)', eg: 'esmenor(btn_lt)(n1)(n2)(lbl1)' },
 
-  // --- MANIPULACIÓN DE TEXTO Y CADENAS (10) ---
+  // --- MANIPULACIÓN DE TEXTO Y CADENAS ---
   { cmd: 'mayusculas(idbtn)(in1)(lbl)', cat: 'Manipulación de Cadenas', desc: 'Convierte el texto del campo a mayúsculas', eg: 'mayusculas(btn_upper)(txt1)(lbl1)' },
   { cmd: 'minusculas(idbtn)(in1)(lbl)', cat: 'Manipulación de Cadenas', desc: 'Convierte el texto del campo a minúsculas', eg: 'minusculas(btn_lower)(txt1)(lbl1)' },
   { cmd: 'longitud(idbtn)(in1)(lbl)', cat: 'Manipulación de Cadenas', desc: 'Muestra la cantidad de caracteres del texto', eg: 'longitud(btn_len)(txt1)(lbl1)' },
@@ -377,7 +467,7 @@ const RC_DICTIONARY = [
   { cmd: 'contarpalabras(idbtn)(in1)(lbl)', cat: 'Manipulación de Cadenas', desc: 'Cuenta cuántas palabras tiene el texto', eg: 'contarpalabras(btn_words)(txt1)(lbl1)' },
   { cmd: 'contenerstexto(idbtn)(in1)(buscar)(lbl)', cat: 'Manipulación de Cadenas', desc: 'Verifica si contiene una subcadena (si o no)', eg: 'contenerstexto(btn_has)(txt1)(hola)(lbl1)' },
 
-  // --- ALMACENAMIENTO LOCAL Y UTILIDADES (15) ---
+  // --- ALMACENAMIENTO LOCAL Y UTILIDADES ---
   { cmd: 'guardar(idbtn)(clave)(idin)', cat: 'Almacenamiento y Utilidades', desc: 'Guarda la entrada en almacenamiento local', eg: 'guardar(btn_save)(mi_clave)(txt1)' },
   { cmd: 'cargar(idbtn)(clave)(lbl)', cat: 'Almacenamiento y Utilidades', desc: 'Carga el valor guardado de almacenamiento local', eg: 'cargar(btn_load)(mi_clave)(lbl1)' },
   { cmd: 'eliminarguardado(idbtn)(clave)', cat: 'Almacenamiento y Utilidades', desc: 'Elimina una clave de almacenamiento local', eg: 'eliminarguardado(btn_del)(mi_clave)' },
@@ -499,7 +589,39 @@ icono(fuego)
 insignia(badge1)(nuevo)
 linea
 boton(btnbeep)(reproducir sonido)
-sonidoalerta(btnbeep)`
+sonidoalerta(btnbeep)`,
+
+  'juego.rc': `// Juego interactivo de adivinar numero en RC
+titulo(juego adivina el numero)
+fondo(101012)
+color(ffffff)
+encabezado(1)(adivina el numero secreto)
+texto(ingrese un numero del 1 al 10 e intente adivinar)
+camponumero(txtnum)(5)
+etiqueta(secretnum)(7)
+ocultar(secretnum)
+linea
+rejilla(2)
+boton(btnprobar)(probar suerte)
+boton(btnrand)(nuevo numero)
+linea
+etiquetacampo(resultado)
+etiqueta(lbljuego)(haga clic en probar suerte)
+igual(btnprobar)(txtnum)(secretnum)(lbljuego)
+aleatorio(btnrand)(1)(10)(secretnum)`,
+
+  'notas.rc': `// Gestor de notas persistente en RC
+titulo(mis notas)
+encabezado(2)(gestor de notas)
+etiquetacampo(escriba su nota)
+areatexto(txtnota)(recordatorio importante)
+rejilla(2)
+boton(btnguardar)(guardar nota)
+boton(btncargar)(cargar nota)
+etiquetacampo(nota guardada)
+etiqueta(lblnota)(ninguna)
+guardar(btnguardar)(minota)(txtnota)
+cargar(btncargar)(minota)(lblnota)`
 };
 
 function navigate(addHistory = true) {
@@ -512,19 +634,16 @@ function navigate(addHistory = true) {
     historyIndex = historyList.length - 1;
   }
 
-  // Si la búsqueda coincide con un módulo precargado (e.g. calculadora.rc)
   if (PRELOADED_RC[query.toLowerCase()]) {
     renderRC(PRELOADED_RC[query.toLowerCase()], query);
     return;
   }
 
-  // Si contiene instrucciones con paréntesis (), lo interpretamos como código RC directo
   if (query.includes('(') && query.includes(')')) {
     renderRC(query, 'Código RC personalizado');
     return;
   }
 
-  // De lo contrario, realizamos una búsqueda en la documentación RC y ejemplos
   performSearch(query);
 }
 
@@ -570,7 +689,7 @@ function loadRC(event) {
   event.target.value = '';
 }
 
-function performSearch(term) {
+function performSearch(term, selectedCategory = 'todos') {
   const out = $('rcOutput');
   out.replaceChildren();
   out.style.display = 'block';
@@ -587,9 +706,26 @@ function performSearch(term) {
   header.innerHTML = `<h2 style="margin:0; flex:1;">Búsqueda en RC: <i>${escapeHtml(term)}</i></h2><button class="rc-boton" onclick="home()">← Volver al inicio</button>`;
   container.appendChild(header);
 
+  // Chips de filtro por categorías
+  const categories = ['todos', 'Estructura y Módulos', 'Texto y Contenido', 'Listas y Tablas', 'Componentes de Interfaz', 'Diseño y Estilos Visuales', 'Formularios y Campos', 'Eventos e Interacción', 'Lógica y Operaciones', 'Estilos Avanzados', 'Multimedia y UI Avanzada', 'Lógica y Matemáticas', 'Manipulación de Cadenas', 'Almacenamiento y Utilidades'];
+  const filterRow = document.createElement('div');
+  filterRow.style.display = 'flex';
+  filterRow.style.gap = '6px';
+  filterRow.style.flexWrap = 'wrap';
+  filterRow.style.marginBottom = '16px';
+
+  categories.forEach(cat => {
+    const chip = document.createElement('span');
+    chip.className = 'rc-chip' + (selectedCategory === cat ? ' activo' : '');
+    chip.textContent = cat === 'todos' ? '🌐 Todos los Comandos' : cat;
+    chip.onclick = () => performSearch(term, cat);
+    filterRow.appendChild(chip);
+  });
+  container.appendChild(filterRow);
+
   // Buscar en ejemplos precargados
   const matchingExamples = Object.keys(PRELOADED_RC).filter(key => key.includes(cleanTerm) || cleanTerm === 'ejemplos' || cleanTerm === 'ejemplo' || cleanTerm === 'todos');
-  if (matchingExamples.length > 0) {
+  if (matchingExamples.length > 0 && (selectedCategory === 'todos' || cleanTerm === 'ejemplos')) {
     const exSec = document.createElement('div');
     exSec.innerHTML = `<h3 class="rc-encabezado">Ejemplos y Módulos .rc Coincidentes</h3>`;
     matchingExamples.forEach(key => {
@@ -606,19 +742,20 @@ function performSearch(term) {
   }
 
   // Buscar en el diccionario de comandos
-  const matchingCmds = RC_DICTIONARY.filter(item =>
-    cleanTerm === 'diccionario' || cleanTerm === 'todos' ||
-    item.cmd.toLowerCase().includes(cleanTerm) ||
-    item.cat.toLowerCase().includes(cleanTerm) ||
-    item.desc.toLowerCase().includes(cleanTerm)
-  );
+  const matchingCmds = RC_DICTIONARY.filter(item => {
+    const catMatch = (selectedCategory === 'todos' || item.cat === selectedCategory);
+    const textMatch = (cleanTerm === 'diccionario' || cleanTerm === 'todos' ||
+      item.cmd.toLowerCase().includes(cleanTerm) ||
+      item.cat.toLowerCase().includes(cleanTerm) ||
+      item.desc.toLowerCase().includes(cleanTerm));
+    return catMatch && textMatch;
+  });
 
   const cmdSec = document.createElement('div');
   cmdSec.innerHTML = `<h3 class="rc-encabezado">Comandos del Diccionario RC (${matchingCmds.length} de ${RC_DICTIONARY.length})</h3>`;
 
   if (matchingCmds.length === 0 && matchingExamples.length === 0) {
-    cmdSec.innerHTML += `<p class="rc-texto">No se encontraron comandos específicos para "<b>${escapeHtml(term)}</b>".</p>
-      <p class="rc-texto">Prueba buscando conceptos como <i>boton</i>, <i>sumar</i>, <i>lienzo</i>, <i>tabla</i>, <i>fondo</i>, <i>audio</i>, <i>icono</i> o <i>diccionario</i>.</p>`;
+    cmdSec.innerHTML += `<p class="rc-texto">No se encontraron comandos para "<b>${escapeHtml(term)}</b>" en la categoría seleccionada.</p>`;
   } else {
     matchingCmds.forEach(item => {
       const card = document.createElement('div');
@@ -660,11 +797,9 @@ function renderRC(source, sourceTitle = 'Aplicación RC') {
   out.style.display = 'block';
   $('welcome').style.display = 'none';
 
-  // Opciones de renderizado y contenedor principal
   const rootContainer = document.createElement('div');
   rootContainer.className = 'rc-container';
 
-  // Barra de herramientas superior para volver al inicio
   const toolbar = document.createElement('div');
   toolbar.className = 'rc-toolbar';
 
@@ -673,12 +808,22 @@ function renderRC(source, sourceTitle = 'Aplicación RC') {
   titleEl.style.flex = '1';
   titleEl.textContent = sourceTitle;
 
+  const btnEdit = document.createElement('button');
+  btnEdit.className = 'rc-boton';
+  btnEdit.style.background = '#1b2230';
+  btnEdit.textContent = '✎ Ver / Editar Código';
+  btnEdit.onclick = () => {
+    $('editorCode').value = source;
+    openEditorModal();
+  };
+
   const btnHome = document.createElement('button');
   btnHome.className = 'rc-boton';
   btnHome.textContent = '← Inicio';
   btnHome.onclick = home;
 
   toolbar.appendChild(titleEl);
+  toolbar.appendChild(btnEdit);
   toolbar.appendChild(btnHome);
   rootContainer.appendChild(toolbar);
 
@@ -688,26 +833,21 @@ function renderRC(source, sourceTitle = 'Aplicación RC') {
   let activeRow = null;
   let activeSelect = null;
 
-  // Manejadores de eventos declarados en el script RC
   const eventListeners = [];
 
-  // Parsear línea por línea
   const lines = source.split(/\r?\n/);
   for (let index = 0; index < lines.length; index++) {
     let raw = lines[index].trim();
     if (!raw) continue;
 
-    // Ignorar comentarios //
     if (raw.startsWith('//')) continue;
     if (raw.includes('//')) {
       raw = raw.split('//')[0].trim();
     }
     if (!raw) continue;
 
-    // Regla estricta: todo en minúsculas
     const line = raw.toLowerCase();
 
-    // Extraer comando y argumentos usando parentesis ()
     const cmdMatch = line.match(/^([a-z0-9]+)/);
     if (!cmdMatch) continue;
 
@@ -719,7 +859,6 @@ function renderRC(source, sourceTitle = 'Aplicación RC') {
       args.push(m[1]);
     }
 
-    // Ejecutar instrucción RC (156 Comandos)
     switch (cmd) {
       // --- 1. ESTRUCTURA Y MÓDULOS ---
       case 'incluir': {
@@ -1197,10 +1336,6 @@ function renderRC(source, sourceTitle = 'Aplicación RC') {
         break;
       }
 
-      // =========================================================================
-      // --- HANDLERS DE LOS 100 COMANDOS ADICIONALES (57 AL 156) ---
-      // =========================================================================
-
       // --- ESTILOS AVANZADOS Y MAQUETACIÓN ---
       case 'margen': {
         const target = currentContainer.lastElementChild || currentContainer;
@@ -1615,7 +1750,6 @@ function renderRC(source, sourceTitle = 'Aplicación RC') {
         break;
       }
       case 'detenertemporizador': {
-        // Detiene animaciones/timers
         break;
       }
       case 'reproduciraudio': {
@@ -1960,7 +2094,6 @@ function renderRC(source, sourceTitle = 'Aplicación RC') {
 
   out.appendChild(rootContainer);
 
-  // Vincular manejadores de eventos tras agregar elementos al DOM
   setTimeout(() => {
     eventListeners.forEach(fn => fn());
   }, 0);
