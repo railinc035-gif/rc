@@ -1,12 +1,9 @@
 <!DOCTYPE html>
-<html lang="es"><head>
-
-
-
-
+<html lang="es">
+<head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Framen Browser</title>
+<title>Framen - Lenguaje RC</title>
 <style>
 :root {
   color-scheme: dark;
@@ -28,7 +25,7 @@ header {
   padding:12px 16px; background:var(--panel);
   border-bottom:1px solid var(--line);
 }
-.logo { font-size:22px; font-weight:850; letter-spacing:-1px; }
+.logo { font-size:22px; font-weight:850; letter-spacing:-1px; cursor:pointer; }
 .logo span { color:var(--accent); }
 nav { display:flex; gap:7px; }
 button {
@@ -39,19 +36,18 @@ button:hover { border-color:var(--accent); }
 .address {
   display:flex; flex:1; gap:8px; min-width:0;
 }
-input {
+input, textarea {
   width:100%; min-width:0; padding:11px 14px;
   border-radius:10px; border:1px solid var(--line);
   color:var(--text); background:#090d14; outline:none;
 }
-input:focus { border-color:var(--accent); }
+input:focus, textarea:focus { border-color:var(--accent); }
 #go { background:var(--accent); color:white; font-weight:700; }
 #status {
   padding:7px 14px; color:var(--muted);
   border-bottom:1px solid var(--line); font-size:12px;
 }
 main { flex:1; min-height:0; position:relative; }
-iframe { width:100%; height:100%; border:0; background:white; }
 #welcome {
   position:absolute; inset:0; overflow:auto;
   display:flex; align-items:center; justify-content:center;
@@ -67,14 +63,52 @@ iframe { width:100%; height:100%; border:0; background:white; }
 .card {
   background:var(--panel); border:1px solid var(--line);
   padding:16px 8px; border-radius:12px; cursor:pointer;
+  transition: transform 0.15s ease, border-color 0.15s ease;
 }
+.card:hover { transform: translateY(-2px); border-color: var(--accent); }
 .card b { display:block; margin-bottom:6px; }
 .card small { color:var(--muted); }
+
 #rcOutput {
   display:none; position:absolute; inset:0; overflow:auto;
   padding:24px; background:#fff; color:#171717;
 }
-#rcOutput button { color:#171717; background:#eee; }
+
+/* Estilos para renderizado RC */
+.rc-container { display:flex; flex-direction:column; gap:12px; max-width:900px; margin:0 auto; width:100%; }
+.rc-seccion { border:1px solid rgba(0,0,0,0.12); padding:16px; border-radius:12px; margin-bottom:12px; background:rgba(0,0,0,0.02); }
+.rc-contenedor { padding:12px; border-radius:8px; }
+.rc-rejilla { display:grid; gap:12px; }
+.rc-linea { border:0; border-top:1px solid currentColor; opacity:0.3; margin:12px 0; }
+.rc-texto, .rc-parrafo { margin:6px 0; line-height:1.5; }
+.rc-encabezado { margin:10px 0 6px 0; font-weight:800; }
+.rc-negrita { font-weight:bold; }
+.rc-cursiva { font-style:italic; }
+.rc-subrayado { text-decoration:underline; }
+.rc-etiqueta { font-weight:600; padding:2px 6px; border-radius:4px; display:inline-block; }
+.rc-bloque { padding:10px 14px; border-left:4px solid var(--accent); background:rgba(0,0,0,0.03); margin:6px 0; border-radius:0 6px 6px 0; }
+.rc-cita { margin:10px 0; padding-left:14px; border-left:4px solid #888; font-style:italic; color:#555; }
+.rc-codigo { font-family:monospace; background:#1e1e1e; color:#00ff66; padding:12px; border-radius:8px; overflow-x:auto; margin:8px 0; white-space:pre-wrap; }
+.rc-enlace { color:#ff6538; text-decoration:underline; cursor:pointer; font-weight:600; }
+.rc-imagen { max-width:100%; height:auto; border-radius:8px; display:block; margin:8px 0; }
+.rc-boton { background:var(--accent); color:#fff; border:none; padding:10px 16px; border-radius:8px; font-weight:bold; cursor:pointer; font-size:14px; display:inline-block; }
+.rc-boton:hover { opacity:0.9; }
+.rc-etiquetacampo { font-size:12px; font-weight:bold; text-transform:uppercase; letter-spacing:0.5px; opacity:0.8; margin-top:8px; display:block; }
+.rc-cargando { display:inline-flex; align-items:center; gap:8px; font-weight:bold; color:var(--accent); margin:8px 0; }
+.rc-cargando::before { content:''; width:16px; height:16px; border:2px solid currentColor; border-top-color:transparent; border-radius:50%; animation:spin 0.8s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.rc-lienzo { border:2px dashed #bbb; border-radius:10px; background:#ffffff; cursor:crosshair; touch-action:none; display:block; max-width:100%; }
+.rc-entrada, .rc-camponumero, .rc-campocorreo, .rc-campocontrasena, .rc-areatexto {
+  width:100%; padding:10px 12px; border-radius:8px; border:1px solid #ccc; background:#fff; color:#111; font-size:14px; outline:none; margin:4px 0;
+}
+.rc-entrada:focus, .rc-camponumero:focus, .rc-campocorreo:focus, .rc-campocontrasena:focus, .rc-areatexto:focus { border-color:var(--accent); }
+.rc-tabla { width:100%; border-collapse:collapse; margin:12px 0; }
+.rc-tabla th, .rc-tabla td { border:1px solid #ddd; padding:8px 12px; text-align:left; }
+.rc-tabla th { background:rgba(0,0,0,0.06); font-weight:bold; }
+.rc-toolbar { display:flex; gap:10px; margin-bottom:16px; align-items:center; flex-wrap:wrap; border-bottom:1px solid rgba(0,0,0,0.1); padding-bottom:12px; }
+.rc-doc-card { background:rgba(0,0,0,0.03); border:1px solid rgba(0,0,0,0.1); border-radius:8px; padding:12px; margin-bottom:10px; }
+.rc-doc-code { font-family:monospace; font-size:13px; color:#d63384; font-weight:bold; }
+
 footer { padding:8px 14px; color:var(--muted); font-size:11px; }
 @media(max-width:560px) {
   header { flex-wrap:wrap; }
@@ -83,100 +117,47 @@ footer { padding:8px 14px; color:var(--muted); font-size:11px; }
   .card { padding:12px; }
 }
 </style>
-<style>
-/* TEMAS: CLARO Y OSCURO */
-body.theme-claro {
-    --bg-dark: #f8fafc;
-    --bg-panel: #ffffff;
-    --bg-card: #f1f5f9;
-    --border-color: #cbd5e1;
-    --text-primary: #0f172a;
-    --text-secondary: #475569;
-    --editor-bg: #ffffff;
-    --header-bg: #f1f5f9;
-    color: #0f172a;
-}
-body.theme-claro .workspace, 
-body.theme-claro .code-panel, 
-body.theme-claro .preview-panel, 
-body.theme-claro .panel-header, 
-body.theme-claro .miwy-gallery {
-    background: #f8fafc;
-    color: #0f172a;
-}
-body.theme-claro .file-tree, body.theme-claro .editor-container {
-    background: #ffffff;
-    color: #0f172a;
-}
-
-</style><style>
-/* TEMAS: CLARO Y OSCURO */
-body.theme-claro {
-    --bg-dark: #f8fafc;
-    --bg-panel: #ffffff;
-    --bg-card: #f1f5f9;
-    --border-color: #cbd5e1;
-    --text-primary: #0f172a;
-    --text-secondary: #475569;
-    --editor-bg: #ffffff;
-    --header-bg: #f1f5f9;
-    color: #0f172a;
-}
-body.theme-claro .workspace, 
-body.theme-claro .code-panel, 
-body.theme-claro .preview-panel, 
-body.theme-claro .panel-header, 
-body.theme-claro .miwy-gallery {
-    background: #f8fafc;
-    color: #0f172a;
-}
-body.theme-claro .file-tree, body.theme-claro .editor-container {
-    background: #ffffff;
-    color: #0f172a;
-}
-
-</style></head>
+</head>
 <body>
 <header style="border-radius: 18px;">
-  <div class="logo">FRA<span>MEN</span></div>
+  <div class="logo" onclick="home()">FRA<span>MEN</span></div>
   <nav>
     <button title="Atrás" onclick="back()">←</button>
     <button title="Adelante" onclick="forward()">→</button>
     <button title="Inicio" onclick="home()">⌂</button>
   </nav>
   <div class="address">
-    <input id="url" placeholder="Buscar en Internet o escribir una dirección" autocomplete="url" onkeydown="if(event.key==='Enter')navigate()">
+    <input id="url" placeholder="Buscar comandos, ejemplos RC o escribir código .rc" autocomplete="off" onkeydown="if(event.key==='Enter')navigate()">
     <button id="go" onclick="navigate()" style="position: relative; left: 1px; top: 0px; width: 43px; height: 40px;">&nbsp;↗</button>
   </div>
 </header>
-<div id="status">Listo · Framen Browser</div>
+<div id="status">Listo · Framen RC</div>
 <main>
   <section id="welcome">
     <div class="hero">
       <h1>Fra<span>men</span></h1>
-      <p>Tu espacio para explorar Internet y experimentar con el lenguaje RC.</p>
+      <p>Tu espacio original para explorar, aprender y crear aplicaciones con el lenguaje RC.</p>
       <div class="search">
-        <input id="query" placeholder="¿Qué quieres encontrar?" onkeydown="if(event.key==='Enter')search()" style="border-radius: 22px;">
+        <input id="query" placeholder="¿Qué quieres buscar o programar en RC?" onkeydown="if(event.key==='Enter')search()" style="border-radius: 22px;">
         <button id="go" onclick="search()">Buscar</button>
       </div>
       <div class="cards">
-        <div class="card" onclick="quickSearch('documentación de programación')">
-          <b>⌘ Explorar</b><small>Buscar en Internet</small>
+        <div class="card" onclick="quickSearch('diccionario')">
+          <b>⌘ Diccionario</b><small>Explorar comandos RC</small>
         </div>
         <div class="card" onclick="openRC()">
           <b>‹/› Lenguaje RC</b><small>Abrir un archivo .rc</small>
         </div>
-        <div class="card" onclick="quickSearch('noticias de tecnología')">
-          <b>◈ Tecnología</b><small>Descubrir novedades</small>
+        <div class="card" onclick="quickSearch('ejemplos')">
+          <b>◈ Ejemplos</b><small>Probar plantillas y demos</small>
         </div>
       </div>
       <input type="file" id="rcFile" accept=".rc,.txt" hidden="" onchange="loadRC(event)">
     </div>
   </section>
-  <iframe id="web" hidden="" sandbox="allow-forms allow-scripts allow-same-origin allow-popups" referrerpolicy="no-referrer"></iframe>
   <section id="rcOutput"></section>
 </main>
-<footer>Framen · Prototipo experimental · Motor RC integrado en desarrollo</footer>
+<footer>Framen · Entorno oficial del lenguaje RC (Rapid Code)</footer>
 
 <script>
 const $ = id => document.getElementById(id);
@@ -185,44 +166,192 @@ let historyList = [], historyIndex = -1;
 function setStatus(text) { $('status').textContent = text; }
 
 function home() {
-  $('web').hidden = true;
   $('rcOutput').style.display = 'none';
   $('welcome').style.display = 'flex';
   $('url').value = '';
-  setStatus('Inicio · Framen Browser');
+  setStatus('Inicio · Framen RC');
 }
 
-function normalizeAddress(value) {
-  value = value.trim();
-  if (!value) return '';
-  if (/^[a-z][a-z0-9+.-]*:/i.test(value)) return value;
-  if (/^(localhost|[\w-]+\.[a-z]{2,})(:\d+)?(\/.*)?$/i.test(value))
-    return 'https://' + value;
-  return 'https://www.google.com/search?q=' + encodeURIComponent(value);
-}
+/*
+  Diccionario completo del Lenguaje RC (Rapid Code)
+  100% minúsculas, números, paréntesis () y comentarios //
+*/
+const RC_DICTIONARY = [
+  { cmd: 'incluir(archivo.rc)', cat: 'Estructura y Módulos', desc: 'Conecta e incluye otro archivo .rc', eg: 'incluir(mimodulo.rc)' },
+  { cmd: 'titulo(texto)', cat: 'Estructura y Módulos', desc: 'Define el título de la ventana o aplicación', eg: 'titulo(mi aplicacion)' },
+  { cmd: 'seccion(nombre)', cat: 'Estructura y Módulos', desc: 'Crea un bloque o sección visual', eg: 'seccion(principal)' },
+  { cmd: 'contenedor(id)', cat: 'Estructura y Módulos', desc: 'Contenedor principal para agrupar elementos', eg: 'contenedor(mi_caja)' },
+  { cmd: 'rejilla(columnas)', cat: 'Estructura y Módulos', desc: 'Crea una cuadrícula de N columnas', eg: 'rejilla(2)' },
+  { cmd: 'linea', cat: 'Estructura y Módulos', desc: 'Divisor o separador horizontal', eg: 'linea' },
+
+  { cmd: 'texto(mensaje)', cat: 'Texto y Contenido', desc: 'Párrafo de texto estándar', eg: 'texto(hola mundo)' },
+  { cmd: 'encabezado(nivel)(msg)', cat: 'Texto y Contenido', desc: 'Título visual (niveles del 1 al 6)', eg: 'encabezado(1)(bienvenido a rc)' },
+  { cmd: 'parrafo(mensaje)', cat: 'Texto y Contenido', desc: 'Párrafo de contenido', eg: 'parrafo(este es un parrafo de ejemplo)' },
+  { cmd: 'negrita(texto)', cat: 'Texto y Contenido', desc: 'Texto resaltado en negrita', eg: 'negrita(texto importante)' },
+  { cmd: 'cursiva(texto)', cat: 'Texto y Contenido', desc: 'Texto en cursiva', eg: 'cursiva(texto en cursiva)' },
+  { cmd: 'subrayado(texto)', cat: 'Texto y Contenido', desc: 'Texto subrayado', eg: 'subrayado(texto subrayado)' },
+  { cmd: 'etiqueta(id)(texto)', cat: 'Texto y Contenido', desc: 'Texto dinámico identificable por ID', eg: 'etiqueta(lblresultado)(esperando operacion)' },
+  { cmd: 'bloque(texto)', cat: 'Texto y Contenido', desc: 'Bloque simple de texto destacado', eg: 'bloque(bloque destacado)' },
+  { cmd: 'cita(texto)', cat: 'Texto y Contenido', desc: 'Bloque de cita destacada', eg: 'cita(el codigo debe ser simple)' },
+  { cmd: 'codigo(texto)', cat: 'Texto y Contenido', desc: 'Bloque de código o texto monospaciado', eg: 'codigo(sumar(btn1)(in1)(in2)(lbl1))' },
+  { cmd: 'enlace(url)(texto)', cat: 'Texto y Contenido', desc: 'Enlace web externo o archivo interno', eg: 'enlace(calculadora.rc)(abrir calculadora)' },
+  { cmd: 'imagen(url)', cat: 'Texto y Contenido', desc: 'Muestra una imagen desde una URL', eg: 'imagen(https://via.placeholder.com/300x150)' },
+
+  { cmd: 'listadesordenada', cat: 'Listas y Tablas', desc: 'Inicia una lista con viñetas', eg: 'listadesordenada' },
+  { cmd: 'listaordenada', cat: 'Listas y Tablas', desc: 'Inicia una lista numerada', eg: 'listaordenada' },
+  { cmd: 'elementolista(texto)', cat: 'Listas y Tablas', desc: 'Elemento individual de lista', eg: 'elementolista(primer elemento)' },
+  { cmd: 'tabla', cat: 'Listas y Tablas', desc: 'Inicia una estructura de tabla', eg: 'tabla' },
+  { cmd: 'filatabla', cat: 'Listas y Tablas', desc: 'Crea una fila dentro de la tabla', eg: 'filatabla' },
+  { cmd: 'encabezadotabla(texto)', cat: 'Listas y Tablas', desc: 'Celda de encabezado de tabla', eg: 'encabezadotabla(nombre)' },
+  { cmd: 'celdatabla(texto)', cat: 'Listas y Tablas', desc: 'Celda con contenido de tabla', eg: 'celdatabla(juan)' },
+
+  { cmd: 'boton(id)(texto)', cat: 'Componentes de Interfaz', desc: 'Botón interactivo', eg: 'boton(mi_boton)(hacer clic)' },
+  { cmd: 'etiquetacampo(texto)', cat: 'Componentes de Interfaz', desc: 'Texto descriptivo superior para campos', eg: 'etiquetacampo(ingrese su nombre)' },
+  { cmd: 'cargando', cat: 'Componentes de Interfaz', desc: 'Indicador visual de estado de carga', eg: 'cargando' },
+  { cmd: 'lienzo(id)', cat: 'Componentes de Interfaz', desc: 'Área o pizarra interactiva para dibujo táctil/mouse', eg: 'lienzo(pizarra)' },
+
+  { cmd: 'fondo(color)', cat: 'Diseño y Estilos Visuales', desc: 'Color de fondo en hexadecimal o nombre', eg: 'fondo(101012)' },
+  { cmd: 'color(color)', cat: 'Diseño y Estilos Visuales', desc: 'Color principal del texto', eg: 'color(f4f4f5)' },
+  { cmd: 'letra(fuente)', cat: 'Diseño y Estilos Visuales', desc: 'Fuente o tipografía', eg: 'letra(arial)' },
+  { cmd: 'tamano(px)', cat: 'Diseño y Estilos Visuales', desc: 'Tamaño base del texto en píxeles', eg: 'tamano(16)' },
+  { cmd: 'ancho(px)', cat: 'Diseño y Estilos Visuales', desc: 'Ancho fijo del elemento o contenedor', eg: 'ancho(400)' },
+  { cmd: 'alto(px)', cat: 'Diseño y Estilos Visuales', desc: 'Alto fijo del elemento o contenedor', eg: 'alto(250)' },
+  { cmd: 'centrar', cat: 'Diseño y Estilos Visuales', desc: 'Centra el contenedor o los elementos en pantalla', eg: 'centrar' },
+  { cmd: 'gap(px)', cat: 'Diseño y Estilos Visuales', desc: 'Espaciado interno entre elementos de rejilla', eg: 'gap(16)' },
+  { cmd: 'radio(px)', cat: 'Diseño y Estilos Visuales', desc: 'Grado de redondeo para los bordes', eg: 'radio(12)' },
+  { cmd: 'ocultar(id)', cat: 'Diseño y Estilos Visuales', desc: 'Oculta un elemento según su ID', eg: 'ocultar(mi_caja)' },
+  { cmd: 'mostrar(id)', cat: 'Diseño y Estilos Visuales', desc: 'Muestra un elemento oculto según su ID', eg: 'mostrar(mi_caja)' },
+
+  { cmd: 'entrada(id)(valor)', cat: 'Formularios y Campos', desc: 'Campo de texto general', eg: 'entrada(txt_nombre)(juan)' },
+  { cmd: 'camponumero(id)(val)', cat: 'Formularios y Campos', desc: 'Campo exclusivo para valores numéricos', eg: 'camponumero(num1)(10)' },
+  { cmd: 'campocorreo(id)(val)', cat: 'Formularios y Campos', desc: 'Campo de correo electrónico', eg: 'campocorreo(email)(usuario@ejemplo.com)' },
+  { cmd: 'campocontrasena(id)', cat: 'Formularios y Campos', desc: 'Campo para contraseñas ocultas', eg: 'campocontrasena(clave)' },
+  { cmd: 'areatexto(id)(texto)', cat: 'Formularios y Campos', desc: 'Área de entrada para texto multilínea', eg: 'areatexto(notas)(escriba sus comentarios aqui)' },
+  { cmd: 'limpiar(idbtn)(idin)', cat: 'Formularios y Campos', desc: 'Borra el texto de una entrada al presionar un botón', eg: 'limpiar(btn_borrar)(txt_nombre)' },
+
+  { cmd: 'avisar(idbtn)(msg)', cat: 'Eventos e Interacción', desc: 'Muestra una alerta o aviso al hacer clic en un botón', eg: 'avisar(btn_hola)(hola bienvenido a rc)' },
+  { cmd: 'ira(idbtn)(url)', cat: 'Eventos e Interacción', desc: 'Abre un enlace web o módulo .rc al presionar un botón', eg: 'ira(btn_ir)(calculadora.rc)' },
+  { cmd: 'ocultarboton(idbtn)(id)', cat: 'Eventos e Interacción', desc: 'Oculta un elemento al hacer clic en el botón', eg: 'ocultarboton(btn_ocultar)(seccion1)' },
+  { cmd: 'mostrarboton(idbtn)(id)', cat: 'Eventos e Interacción', desc: 'Muestra un elemento oculto al hacer clic en el botón', eg: 'mostrarboton(btn_mostrar)(seccion1)' },
+  { cmd: 'alternar(idbtn)(id)', cat: 'Eventos e Interacción', desc: 'Intercala entre mostrar u ocultar un elemento al presionar', eg: 'alternar(btn_toggle)(seccion1)' },
+  { cmd: 'limpiarlienzo(idbtn)(idlienzo)', cat: 'Eventos e Interacción', desc: 'Borra todo el dibujo del lienzo especificado', eg: 'limpiarlienzo(btn_limp)(pizarra)' },
+
+  { cmd: 'sumar(idbtn)(in1)(in2)(lbl)', cat: 'Lógica y Operaciones', desc: 'Suma dos campos y muestra el resultado en la etiqueta', eg: 'sumar(btn_sum)(n1)(n2)(resultado)' },
+  { cmd: 'restar(idbtn)(in1)(in2)(lbl)', cat: 'Lógica y Operaciones', desc: 'Resta dos campos y muestra el resultado en la etiqueta', eg: 'restar(btn_res)(n1)(n2)(resultado)' },
+  { cmd: 'multiplicar(idbtn)(in1)(in2)(lbl)', cat: 'Lógica y Operaciones', desc: 'Multiplica dos campos y muestra el resultado en la etiqueta', eg: 'multiplicar(btn_mul)(n1)(n2)(resultado)' },
+  { cmd: 'dividir(idbtn)(in1)(in2)(lbl)', cat: 'Lógica y Operaciones', desc: 'Divide dos campos y muestra el resultado en la etiqueta', eg: 'dividir(btn_div)(n1)(n2)(resultado)' }
+];
+
+/*
+  Ejemplos y Módulos .rc Pre-cargados
+*/
+const PRELOADED_RC = {
+  'calculadora.rc': `// Calculadora basica en RC
+titulo(calculadora matematica)
+fondo(f8f9fa)
+color(101012)
+encabezado(1)(calculadora rc)
+texto(ingrese dos numeros para realizar operaciones)
+seccion(entradas)
+etiquetacampo(primer numero)
+camponumero(num1)(10)
+etiquetacampo(segundo numero)
+camponumero(num2)(5)
+linea
+encabezado(2)(operaciones)
+rejilla(4)
+boton(btnsumar)(sumar)
+boton(btnrestar)(restar)
+boton(btnmult)(multiplicar)
+boton(btndiv)(dividir)
+seccion(resultado_sec)
+etiquetacampo(resultado)
+etiqueta(lblresultado)(presione un boton para calcular)
+sumar(btnsumar)(num1)(num2)(lblresultado)
+restar(btnrestar)(num1)(num2)(lblresultado)
+multiplicar(btnmult)(num1)(num2)(lblresultado)
+dividir(btndiv)(num1)(num2)(lblresultado)`,
+
+  'pizarra.rc': `// Pizarra interactiva para dibujo en RC
+titulo(pizarra de dibujo)
+fondo(101012)
+color(ffffff)
+encabezado(1)(pizarra interactiva)
+texto(dibuja en la pizarra con el raton o pantalla tactil)
+seccion(zona_dibujo)
+lienzo(micanvas)
+linea
+boton(btnlimp)(limpiar pizarra)
+limpiarlienzo(btnlimp)(micanvas)`,
+
+  'formulario.rc': `// Formulario de registro en RC
+titulo(registro de usuario)
+fondo(ffffff)
+color(222222)
+encabezado(2)(formulario de registro)
+etiquetacampo(nombre completo)
+entrada(txtnombre)(juan perez)
+etiquetacampo(correo electronico)
+campocorreo(txtcorreo)(juan@ejemplo.com)
+etiquetacampo(contrasena)
+campocontrasena(txtpass)
+etiquetacampo(comentarios)
+areatexto(txtnotas)(hola este es un mensaje)
+linea
+rejilla(2)
+boton(btnenviar)(enviar datos)
+boton(btnlimpiar)(limpiar campos)
+limpiar(btnlimpiar)(txtnombre)
+limpiar(btnlimpiar)(txtcorreo)
+limpiar(btnlimpiar)(txtnotes)
+avisar(btnenviar)(datos enviados correctamente)`,
+
+  'tabla.rc': `// Tabla de datos en RC
+titulo(tabla de productos)
+encabezado(1)(inventario)
+tabla
+filatabla
+encabezadotabla(producto)
+encabezadotabla(cantidad)
+encabezadotabla(precio)
+filatabla
+celdatabla(teclado)
+celdatabla(15)
+celdatabla(25)
+filatabla
+celdatabla(raton)
+celdatabla(30)
+celdatabla(15)
+filatabla
+celdatabla(monitor)
+celdatabla(8)
+celdatabla(180)`
+};
 
 function navigate(addHistory = true) {
-  const target = normalizeAddress($('url').value);
-  if (!target) return;
-  if (target.toLowerCase().endsWith('.rc')) {
-    setStatus('Los archivos RC locales se abren mediante «Lenguaje RC».');
-    return;
-  }
-  if (!/^https?:\/\//i.test(target)) {
-    setStatus('Por seguridad, solo se admiten direcciones HTTP o HTTPS.');
-    return;
-  }
-  $('welcome').style.display = 'none';
-  $('rcOutput').style.display = 'none';
-  $('web').hidden = false;
-  $('url').value = target;
-  $('web').src = target;
-  setStatus('Intentando abrir: ' + target);
+  const query = $('url').value.trim();
+  if (!query) return;
+
   if (addHistory) {
     historyList = historyList.slice(0, historyIndex + 1);
-    historyList.push(target);
+    historyList.push(query);
     historyIndex = historyList.length - 1;
   }
+
+  // Si la búsqueda coincide con un módulo precargado (e.g. calculadora.rc)
+  if (PRELOADED_RC[query.toLowerCase()]) {
+    renderRC(PRELOADED_RC[query.toLowerCase()], query);
+    return;
+  }
+
+  // Si contiene instrucciones con paréntesis (), lo interpretamos como código RC directo
+  if (query.includes('(') && query.includes(')')) {
+    renderRC(query, 'Código RC personalizado');
+    return;
+  }
+
+  // De lo contrario, realizamos una búsqueda en la documentación RC y ejemplos
+  performSearch(query);
 }
 
 function search() {
@@ -231,10 +360,12 @@ function search() {
   $('url').value = value;
   navigate();
 }
+
 function quickSearch(value) {
   $('url').value = value;
   navigate();
 }
+
 function back() {
   if (historyIndex > 0) {
     historyIndex--;
@@ -242,6 +373,7 @@ function back() {
     navigate(false);
   }
 }
+
 function forward() {
   if (historyIndex < historyList.length - 1) {
     historyIndex++;
@@ -249,119 +381,739 @@ function forward() {
     navigate(false);
   }
 }
+
 function openRC() { $('rcFile').click(); }
 
 function loadRC(event) {
   const file = event.target.files[0];
   if (!file) return;
   const reader = new FileReader();
-  reader.onload = () => renderRC(String(reader.result));
+  reader.onload = () => {
+    const code = String(reader.result);
+    renderRC(code, file.name);
+  };
   reader.readAsText(file);
   event.target.value = '';
 }
 
+function performSearch(term) {
+  const out = $('rcOutput');
+  out.replaceChildren();
+  out.style.display = 'block';
+  $('welcome').style.display = 'none';
+
+  const cleanTerm = term.toLowerCase().trim();
+  setStatus('Resultados de búsqueda: ' + term);
+
+  const container = document.createElement('div');
+  container.className = 'rc-container';
+
+  const header = document.createElement('div');
+  header.className = 'rc-toolbar';
+  header.innerHTML = `<h2 style="margin:0; flex:1;">Búsqueda en RC: <i>${escapeHtml(term)}</i></h2><button class="rc-boton" onclick="home()">← Volver al inicio</button>`;
+  container.appendChild(header);
+
+  // Buscar en ejemplos precargados
+  const matchingExamples = Object.keys(PRELOADED_RC).filter(key => key.includes(cleanTerm) || cleanTerm === 'ejemplos' || cleanTerm === 'ejemplo' || cleanTerm === 'todos');
+  if (matchingExamples.length > 0) {
+    const exSec = document.createElement('div');
+    exSec.innerHTML = `<h3 class="rc-encabezado">Ejemplos y Módulos .rc Coincidentes</h3>`;
+    matchingExamples.forEach(key => {
+      const card = document.createElement('div');
+      card.className = 'rc-doc-card';
+      card.style.display = 'flex';
+      card.style.justifyContent = 'space-between';
+      card.style.alignItems = 'center';
+      card.innerHTML = `<div><b>${key}</b><div style="font-size:12px; opacity:0.7;">Plantilla lista para ejecutar</div></div>
+        <button class="rc-boton" onclick="runPreloaded('${key}')">Ejecutar ${key}</button>`;
+      exSec.appendChild(card);
+    });
+    container.appendChild(exSec);
+  }
+
+  // Buscar en el diccionario de comandos
+  const matchingCmds = RC_DICTIONARY.filter(item =>
+    cleanTerm === 'diccionario' || cleanTerm === 'todos' ||
+    item.cmd.toLowerCase().includes(cleanTerm) ||
+    item.cat.toLowerCase().includes(cleanTerm) ||
+    item.desc.toLowerCase().includes(cleanTerm)
+  );
+
+  const cmdSec = document.createElement('div');
+  cmdSec.innerHTML = `<h3 class="rc-encabezado">Comandos del Diccionario RC (${matchingCmds.length})</h3>`;
+
+  if (matchingCmds.length === 0 && matchingExamples.length === 0) {
+    cmdSec.innerHTML += `<p class="rc-texto">No se encontraron comandos específicos para "<b>${escapeHtml(term)}</b>".</p>
+      <p class="rc-texto">Prueba buscando conceptos como <i>boton</i>, <i>sumar</i>, <i>lienzo</i>, <i>tabla</i>, <i>fondo</i> o <i>diccionario</i>.</p>`;
+  } else {
+    matchingCmds.forEach(item => {
+      const card = document.createElement('div');
+      card.className = 'rc-doc-card';
+      card.innerHTML = `<div style="display:flex; justify-content:space-between; margin-bottom:4px;">
+          <span class="rc-doc-code">${escapeHtml(item.cmd)}</span>
+          <small style="opacity:0.6;">${escapeHtml(item.cat)}</small>
+        </div>
+        <div style="font-size:13px; margin-bottom:8px;">${escapeHtml(item.desc)}</div>
+        <div style="display:flex; gap:8px; align-items:center;">
+          <small style="opacity:0.7;">Ejemplo:</small>
+          <code style="background:rgba(0,0,0,0.06); padding:2px 6px; border-radius:4px; font-size:12px;">${escapeHtml(item.eg)}</code>
+          <button class="rc-boton" style="padding:2px 8px; font-size:11px; margin-left:auto;" onclick="runSnippet('${escapeJs(item.eg)}')">Probar comando</button>
+        </div>`;
+      cmdSec.appendChild(card);
+    });
+  }
+
+  container.appendChild(cmdSec);
+  out.appendChild(container);
+}
+
+function runPreloaded(key) {
+  $('url').value = key;
+  renderRC(PRELOADED_RC[key], key);
+}
+
+function runSnippet(code) {
+  $('url').value = code;
+  renderRC(code, 'Ejemplo RC');
+}
+
 /*
-  Intérprete RC experimental.
-  Este ejemplo solo implementa los comandos declarados abajo.
-  Para reconocer toda la sintaxis oficial de tu lenguaje, conecta
-  aquí la gramática y el intérprete reales de RC.
+  Intérprete Oficial del Lenguaje RC (Rapid Code)
 */
-function renderRC(source) {
+function renderRC(source, sourceTitle = 'Aplicación RC') {
   const out = $('rcOutput');
   out.replaceChildren();
   out.style.display = 'block';
   $('welcome').style.display = 'none';
-  $('web').hidden = true;
 
-  let background = '#ffffff';
-  let color = '#171717';
-  let title = 'Página RC';
-  const elements = [];
+  // Opciones de renderizado y contenedor principal
+  const rootContainer = document.createElement('div');
+  rootContainer.className = 'rc-container';
 
-  function parseColor(value) {
-    const colors = {
-      NEGRO:'#000000', BLANCO:'#ffffff', ROJO:'#ff0000',
-      AZUL:'#0000ff', VERDE:'#008000', AMARILLO:'#ffff00',
-      NARANJA:'#ff8800', MORADO:'#800080'
-    };
-    return colors[value.toUpperCase()] || value;
-  }
+  // Barra de herramientas superior para volver al inicio o ver código fuente
+  const toolbar = document.createElement('div');
+  toolbar.className = 'rc-toolbar';
 
-  for (const [index, raw] of source.split(/\r?\n/).entries()) {
-    const line = raw.trim();
-    if (!line || line.startsWith('//') || line.startsWith('#')) continue;
+  const titleEl = document.createElement('h3');
+  titleEl.style.margin = '0';
+  titleEl.style.flex = '1';
+  titleEl.textContent = sourceTitle;
 
-    let match;
-    if ((match = line.match(/^VENTANA\s+["'](.*?)["']$/i))) {
-      title = match[1];
-    } else if ((match = line.match(/^FONDO\s+(\S+)$/i))) {
-      background = parseColor(match[1]);
-    } else if ((match = line.match(/^COLOR\s+(\S+)$/i))) {
-      color = parseColor(match[1]);
-    } else if ((match = line.match(/^TEXTO\s+["'](.*?)["']$/i))) {
-      elements.push({type:'text', value:match[1]});
-    } else if ((match = line.match(/^BOTON\s+["'](.*?)["']$/i))) {
-      elements.push({type:'button', value:match[1]});
-    } else if ((match = line.match(/^BRILLO\s+(\d+)$/i))) {
-      const amount = Number(match[1]);
-      if (amount > 100) {
-        showError(`Línea ${index+1}: BRILLO admite valores de 0 a 100.`);
-        return;
+  const btnHome = document.createElement('button');
+  btnHome.className = 'rc-boton';
+  btnHome.textContent = '← Inicio';
+  btnHome.onclick = home;
+
+  toolbar.appendChild(titleEl);
+  toolbar.appendChild(btnHome);
+  rootContainer.appendChild(toolbar);
+
+  let currentContainer = rootContainer;
+  let activeList = null;
+  let activeTable = null;
+  let activeRow = null;
+
+  // Manejadores de eventos declarados en el script RC
+  const eventListeners = [];
+
+  // Parsear línea por línea
+  const lines = source.split(/\r?\n/);
+  for (let index = 0; index < lines.length; index++) {
+    let raw = lines[index].trim();
+    if (!raw) continue;
+
+    // Ignorar comentarios //
+    if (raw.startsWith('//')) continue;
+    if (raw.includes('//')) {
+      raw = raw.split('//')[0].trim();
+    }
+    if (!raw) continue;
+
+    // Regla estricta: todo en minúsculas
+    const line = raw.toLowerCase();
+
+    // Extraer comando y argumentos usando parentesis ()
+    const cmdMatch = line.match(/^([a-z0-9]+)/);
+    if (!cmdMatch) continue;
+
+    const cmd = cmdMatch[1];
+    const args = [];
+    const argRegex = /\(([^)]*)\)/g;
+    let m;
+    while ((m = argRegex.exec(line)) !== null) {
+      args.push(m[1]);
+    }
+
+    // Ejecutar instrucción RC
+    switch (cmd) {
+      // 1. ESTRUCTURA Y MÓDULOS
+      case 'incluir': {
+        const modName = args[0];
+        if (modName && PRELOADED_RC[modName]) {
+          // Incluir módulo recursivamente
+          const modLines = PRELOADED_RC[modName].split(/\r?\n/);
+          lines.splice(index + 1, 0, ...modLines);
+        }
+        break;
       }
-      elements.push({type:'brightness', value:amount});
-    } else {
-      showError(`Línea ${index+1}: comando no reconocido por este prototipo: ${line}`);
-      return;
+      case 'titulo': {
+        if (args[0]) {
+          titleEl.textContent = args[0];
+          document.title = args[0] + ' - Framen RC';
+        }
+        break;
+      }
+      case 'seccion': {
+        const sec = document.createElement('section');
+        sec.className = 'rc-seccion';
+        if (args[0]) sec.id = args[0];
+        rootContainer.appendChild(sec);
+        currentContainer = sec;
+        break;
+      }
+      case 'contenedor': {
+        const div = document.createElement('div');
+        div.className = 'rc-contenedor';
+        if (args[0]) div.id = args[0];
+        currentContainer.appendChild(div);
+        currentContainer = div;
+        break;
+      }
+      case 'rejilla': {
+        const cols = args[0] || '2';
+        currentContainer.classList.add('rc-rejilla');
+        currentContainer.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
+        break;
+      }
+      case 'linea': {
+        const hr = document.createElement('hr');
+        hr.className = 'rc-linea';
+        currentContainer.appendChild(hr);
+        break;
+      }
+
+      // 2. TEXTO Y CONTENIDO
+      case 'texto': {
+        const p = document.createElement('p');
+        p.className = 'rc-texto';
+        p.textContent = args[0] || '';
+        currentContainer.appendChild(p);
+        break;
+      }
+      case 'encabezado': {
+        const level = Math.min(6, Math.max(1, parseInt(args[0]) || 1));
+        const h = document.createElement('h' + level);
+        h.className = 'rc-encabezado';
+        h.textContent = args[1] !== undefined ? args[1] : (args[0] || '');
+        currentContainer.appendChild(h);
+        break;
+      }
+      case 'parrafo': {
+        const p = document.createElement('p');
+        p.className = 'rc-parrafo';
+        p.textContent = args[0] || '';
+        currentContainer.appendChild(p);
+        break;
+      }
+      case 'negrita': {
+        const b = document.createElement('b');
+        b.className = 'rc-negrita';
+        b.textContent = args[0] || '';
+        currentContainer.appendChild(b);
+        break;
+      }
+      case 'cursiva': {
+        const i = document.createElement('i');
+        i.className = 'rc-cursiva';
+        i.textContent = args[0] || '';
+        currentContainer.appendChild(i);
+        break;
+      }
+      case 'subrayado': {
+        const u = document.createElement('u');
+        u.className = 'rc-subrayado';
+        u.textContent = args[0] || '';
+        currentContainer.appendChild(u);
+        break;
+      }
+      case 'etiqueta': {
+        const span = document.createElement('span');
+        span.className = 'rc-etiqueta';
+        if (args[0]) span.id = args[0];
+        span.textContent = args[1] !== undefined ? args[1] : '';
+        currentContainer.appendChild(span);
+        break;
+      }
+      case 'bloque': {
+        const div = document.createElement('div');
+        div.className = 'rc-bloque';
+        div.textContent = args[0] || '';
+        currentContainer.appendChild(div);
+        break;
+      }
+      case 'cita': {
+        const q = document.createElement('blockquote');
+        q.className = 'rc-cita';
+        q.textContent = args[0] || '';
+        currentContainer.appendChild(q);
+        break;
+      }
+      case 'codigo': {
+        const pre = document.createElement('pre');
+        pre.className = 'rc-codigo';
+        const code = document.createElement('code');
+        code.textContent = args[0] || '';
+        pre.appendChild(code);
+        currentContainer.appendChild(pre);
+        break;
+      }
+      case 'enlace': {
+        const a = document.createElement('a');
+        a.className = 'rc-enlace';
+        const url = args[0] || '#';
+        a.textContent = args[1] || url;
+        a.onclick = (e) => {
+          e.preventDefault();
+          if (url.endsWith('.rc') || PRELOADED_RC[url]) {
+            runPreloaded(url);
+          } else {
+            alert('Enlace RC: ' + url);
+          }
+        };
+        currentContainer.appendChild(a);
+        break;
+      }
+      case 'imagen': {
+        const img = document.createElement('img');
+        img.className = 'rc-imagen';
+        img.src = args[0] || '';
+        img.alt = 'Imagen RC';
+        currentContainer.appendChild(img);
+        break;
+      }
+
+      // 3. LISTAS Y TABLAS
+      case 'listadesordenada': {
+        activeList = document.createElement('ul');
+        currentContainer.appendChild(activeList);
+        break;
+      }
+      case 'listaordenada': {
+        activeList = document.createElement('ol');
+        currentContainer.appendChild(activeList);
+        break;
+      }
+      case 'elementolista': {
+        if (!activeList) {
+          activeList = document.createElement('ul');
+          currentContainer.appendChild(activeList);
+        }
+        const li = document.createElement('li');
+        li.textContent = args[0] || '';
+        activeList.appendChild(li);
+        break;
+      }
+      case 'tabla': {
+        activeTable = document.createElement('table');
+        activeTable.className = 'rc-tabla';
+        currentContainer.appendChild(activeTable);
+        activeRow = null;
+        break;
+      }
+      case 'filatabla': {
+        if (!activeTable) {
+          activeTable = document.createElement('table');
+          activeTable.className = 'rc-tabla';
+          currentContainer.appendChild(activeTable);
+        }
+        activeRow = document.createElement('tr');
+        activeTable.appendChild(activeRow);
+        break;
+      }
+      case 'encabezadotabla': {
+        if (!activeRow) {
+          if (!activeTable) {
+            activeTable = document.createElement('table');
+            activeTable.className = 'rc-tabla';
+            currentContainer.appendChild(activeTable);
+          }
+          activeRow = document.createElement('tr');
+          activeTable.appendChild(activeRow);
+        }
+        const th = document.createElement('th');
+        th.textContent = args[0] || '';
+        activeRow.appendChild(th);
+        break;
+      }
+      case 'celdatabla': {
+        if (!activeRow) {
+          if (!activeTable) {
+            activeTable = document.createElement('table');
+            activeTable.className = 'rc-tabla';
+            currentContainer.appendChild(activeTable);
+          }
+          activeRow = document.createElement('tr');
+          activeTable.appendChild(activeRow);
+        }
+        const td = document.createElement('td');
+        td.textContent = args[0] || '';
+        activeRow.appendChild(td);
+        break;
+      }
+
+      // 4. COMPONENTES DE INTERFAZ
+      case 'boton': {
+        const btn = document.createElement('button');
+        btn.className = 'rc-boton';
+        if (args[0]) btn.id = args[0];
+        btn.textContent = args[1] !== undefined ? args[1] : (args[0] || 'Botón');
+        currentContainer.appendChild(btn);
+        break;
+      }
+      case 'etiquetacampo': {
+        const lbl = document.createElement('label');
+        lbl.className = 'rc-etiquetacampo';
+        lbl.textContent = args[0] || '';
+        currentContainer.appendChild(lbl);
+        break;
+      }
+      case 'cargando': {
+        const loader = document.createElement('div');
+        loader.className = 'rc-cargando';
+        loader.textContent = args[0] || 'Cargando...';
+        currentContainer.appendChild(loader);
+        break;
+      }
+      case 'lienzo': {
+        const canvas = document.createElement('canvas');
+        canvas.className = 'rc-lienzo';
+        if (args[0]) canvas.id = args[0];
+        canvas.width = 500;
+        canvas.height = 300;
+        currentContainer.appendChild(canvas);
+
+        // Inicializar interactividad de dibujo táctil / mouse
+        setupCanvasDrawing(canvas);
+        break;
+      }
+
+      // 5. DISEÑO Y ESTILOS VISUALES
+      case 'fondo': {
+        const colorVal = parseColor(args[0]);
+        out.style.background = colorVal;
+        break;
+      }
+      case 'color': {
+        const colorVal = parseColor(args[0]);
+        out.style.color = colorVal;
+        break;
+      }
+      case 'letra': {
+        out.style.fontFamily = (args[0] || 'sans-serif') + ', sans-serif';
+        break;
+      }
+      case 'tamano': {
+        out.style.fontSize = (args[0] || '14') + 'px';
+        break;
+      }
+      case 'ancho': {
+        const val = args[0] || '100%';
+        if (currentContainer.lastElementChild) {
+          currentContainer.lastElementChild.style.width = isNaN(val) ? val : (val + 'px');
+        } else {
+          currentContainer.style.width = isNaN(val) ? val : (val + 'px');
+        }
+        break;
+      }
+      case 'alto': {
+        const val = args[0] || 'auto';
+        if (currentContainer.lastElementChild) {
+          currentContainer.lastElementChild.style.height = isNaN(val) ? val : (val + 'px');
+        } else {
+          currentContainer.style.height = isNaN(val) ? val : (val + 'px');
+        }
+        break;
+      }
+      case 'centrar': {
+        currentContainer.style.textAlign = 'center';
+        currentContainer.style.alignItems = 'center';
+        currentContainer.style.justifyContent = 'center';
+        break;
+      }
+      case 'gap': {
+        currentContainer.style.gap = (args[0] || '12') + 'px';
+        break;
+      }
+      case 'radio': {
+        if (currentContainer.lastElementChild) {
+          currentContainer.lastElementChild.style.borderRadius = (args[0] || '8') + 'px';
+        }
+        break;
+      }
+      case 'ocultar': {
+        if (args[0]) {
+          eventListeners.push(() => {
+            const el = $(args[0]);
+            if (el) el.style.display = 'none';
+          });
+        }
+        break;
+      }
+      case 'mostrar': {
+        if (args[0]) {
+          eventListeners.push(() => {
+            const el = $(args[0]);
+            if (el) el.style.display = '';
+          });
+        }
+        break;
+      }
+
+      // 6. FORMULARIOS Y CAMPOS
+      case 'entrada': {
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.className = 'rc-entrada';
+        if (args[0]) input.id = args[0];
+        if (args[1] !== undefined) input.value = args[1];
+        currentContainer.appendChild(input);
+        break;
+      }
+      case 'camponumero': {
+        const input = document.createElement('input');
+        input.type = 'number';
+        input.className = 'rc-camponumero';
+        if (args[0]) input.id = args[0];
+        if (args[1] !== undefined) input.value = args[1];
+        currentContainer.appendChild(input);
+        break;
+      }
+      case 'campocorreo': {
+        const input = document.createElement('input');
+        input.type = 'email';
+        input.className = 'rc-campocorreo';
+        if (args[0]) input.id = args[0];
+        if (args[1] !== undefined) input.value = args[1];
+        currentContainer.appendChild(input);
+        break;
+      }
+      case 'campocontrasena': {
+        const input = document.createElement('input');
+        input.type = 'password';
+        input.className = 'rc-campocontrasena';
+        if (args[0]) input.id = args[0];
+        currentContainer.appendChild(input);
+        break;
+      }
+      case 'areatexto': {
+        const txt = document.createElement('textarea');
+        txt.className = 'rc-areatexto';
+        if (args[0]) txt.id = args[0];
+        if (args[1] !== undefined) txt.value = args[1];
+        currentContainer.appendChild(txt);
+        break;
+      }
+      case 'limpiar': {
+        const btnId = args[0], targetId = args[1];
+        if (btnId && targetId) {
+          eventListeners.push(() => {
+            const btn = $(btnId), target = $(targetId);
+            if (btn && target) {
+              btn.addEventListener('click', () => { target.value = ''; });
+            }
+          });
+        }
+        break;
+      }
+
+      // 7. EVENTOS E INTERACCIÓN
+      case 'avisar': {
+        const btnId = args[0], msg = args[1] || '';
+        if (btnId) {
+          eventListeners.push(() => {
+            const btn = $(btnId);
+            if (btn) btn.addEventListener('click', () => alert(msg));
+          });
+        }
+        break;
+      }
+      case 'ira': {
+        const btnId = args[0], url = args[1] || '#';
+        if (btnId) {
+          eventListeners.push(() => {
+            const btn = $(btnId);
+            if (btn) btn.addEventListener('click', () => {
+              if (url.endsWith('.rc') || PRELOADED_RC[url]) {
+                runPreloaded(url);
+              } else {
+                alert('Navegar a: ' + url);
+              }
+            });
+          });
+        }
+        break;
+      }
+      case 'ocultarboton': {
+        const btnId = args[0], targetId = args[1];
+        if (btnId && targetId) {
+          eventListeners.push(() => {
+            const btn = $(btnId), target = $(targetId);
+            if (btn && target) {
+              btn.addEventListener('click', () => { target.style.display = 'none'; });
+            }
+          });
+        }
+        break;
+      }
+      case 'mostrarboton': {
+        const btnId = args[0], targetId = args[1];
+        if (btnId && targetId) {
+          eventListeners.push(() => {
+            const btn = $(btnId), target = $(targetId);
+            if (btn && target) {
+              btn.addEventListener('click', () => { target.style.display = ''; });
+            }
+          });
+        }
+        break;
+      }
+      case 'alternar': {
+        const btnId = args[0], targetId = args[1];
+        if (btnId && targetId) {
+          eventListeners.push(() => {
+            const btn = $(btnId), target = $(targetId);
+            if (btn && target) {
+              btn.addEventListener('click', () => {
+                target.style.display = (target.style.display === 'none') ? '' : 'none';
+              });
+            }
+          });
+        }
+        break;
+      }
+      case 'limpiarlienzo': {
+        const btnId = args[0], canvasId = args[1];
+        if (btnId && canvasId) {
+          eventListeners.push(() => {
+            const btn = $(btnId), canvas = $(canvasId);
+            if (btn && canvas && canvas.getContext) {
+              btn.addEventListener('click', () => {
+                const ctx = canvas.getContext('2d');
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+              });
+            }
+          });
+        }
+        break;
+      }
+
+      // 8. LÓGICA Y OPERACIONES
+      case 'sumar':
+      case 'restar':
+      case 'multiplicar':
+      case 'dividir': {
+        const btnId = args[0], in1Id = args[1], in2Id = args[2], lblId = args[3];
+        if (btnId && in1Id && in2Id && lblId) {
+          eventListeners.push(() => {
+            const btn = $(btnId), in1 = $(in1Id), in2 = $(in2Id), lbl = $(lblId);
+            if (btn && in1 && in2 && lbl) {
+              btn.addEventListener('click', () => {
+                const v1 = parseFloat(in1.value) || 0;
+                const v2 = parseFloat(in2.value) || 0;
+                let res = 0;
+                if (cmd === 'sumar') res = v1 + v2;
+                else if (cmd === 'restar') res = v1 - v2;
+                else if (cmd === 'multiplicar') res = v1 * v2;
+                else if (cmd === 'dividir') res = (v2 !== 0) ? (v1 / v2) : 'error division por cero';
+                lbl.textContent = res;
+              });
+            }
+          });
+        }
+        break;
+      }
     }
   }
 
-  out.style.background = background;
-  out.style.color = color;
-  out.style.filter = '';
-  const heading = document.createElement('h1');
-  heading.textContent = title;
-  out.appendChild(heading);
+  out.appendChild(rootContainer);
 
-  for (const el of elements) {
-    if (el.type === 'text') {
-      const p = document.createElement('p');
-      p.textContent = el.value;
-      out.appendChild(p);
-    } else if (el.type === 'button') {
-      const button = document.createElement('button');
-      button.textContent = el.value;
-      button.onclick = () => alert(el.value);
-      out.appendChild(button);
-    } else if (el.type === 'brightness') {
-      out.style.filter = `brightness(${el.value}%)`;
-    }
+  // Vincular manejadores de eventos tras agregar elementos al DOM
+  setTimeout(() => {
+    eventListeners.forEach(fn => fn());
+  }, 0);
+
+  setStatus('Aplicación RC cargada · ' + sourceTitle);
+}
+
+function parseColor(val) {
+  if (!val) return '#ffffff';
+  const colors = {
+    negro:'#000000', blanco:'#ffffff', rojo:'#ff0000',
+    azul:'#0000ff', verde:'#008000', amarillo:'#ffff00',
+    naranja:'#ff8800', morado:'#800080'
+  };
+  if (colors[val]) return colors[val];
+  if (/^[0-9a-fA-F]{3,6}$/.test(val)) return '#' + val;
+  return val;
+}
+
+function setupCanvasDrawing(canvas) {
+  const ctx = canvas.getContext('2d');
+  let isDrawing = false;
+  let lastX = 0, lastY = 0;
+
+  ctx.strokeStyle = '#ff6538';
+  ctx.lineWidth = 3;
+  ctx.lineCap = 'round';
+
+  function getPos(e) {
+    const rect = canvas.getBoundingClientRect();
+    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+    return {
+      x: clientX - rect.left,
+      y: clientY - rect.top
+    };
   }
-  setStatus('Archivo RC cargado · ' + title);
+
+  function startDraw(e) {
+    isDrawing = true;
+    const pos = getPos(e);
+    lastX = pos.x; lastY = pos.y;
+  }
+
+  function draw(e) {
+    if (!isDrawing) return;
+    e.preventDefault();
+    const pos = getPos(e);
+    ctx.beginPath();
+    ctx.moveTo(lastX, lastY);
+    ctx.lineTo(pos.x, pos.y);
+    ctx.stroke();
+    lastX = pos.x; lastY = pos.y;
+  }
+
+  function stopDraw() { isDrawing = false; }
+
+  canvas.addEventListener('mousedown', startDraw);
+  canvas.addEventListener('mousemove', draw);
+  canvas.addEventListener('mouseup', stopDraw);
+  canvas.addEventListener('mouseleave', stopDraw);
+
+  canvas.addEventListener('touchstart', startDraw);
+  canvas.addEventListener('touchmove', draw);
+  canvas.addEventListener('touchend', stopDraw);
 }
 
-function showError(message) {
-  const out = $('rcOutput');
-  out.replaceChildren();
-  out.style.display = 'block';
-  $('welcome').style.display = 'none';
-  $('web').hidden = true;
-  const error = document.createElement('pre');
-  error.style.color = '#c62828';
-  error.textContent = message;
-  out.appendChild(error);
-  setStatus('Error al interpretar RC');
+function escapeHtml(str) {
+  if (!str) return '';
+  return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
 
-$('web').addEventListener('load', () => {
-  setStatus('Página cargada o intento de carga finalizado. Algunos sitios bloquean la inserción en marcos.');
-});
-</script>
-<script>
-
-</script>
-
-<script>
-
+function escapeJs(str) {
+  if (!str) return '';
+  return str.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+}
 </script>
 </body>
 </html>
