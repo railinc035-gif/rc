@@ -911,9 +911,20 @@ ${bodyChildren}${scriptBlock}
 
         case 'div':
           const cls = node.getAttribute('class') || '';
-          if (cls.includes('rejilla') || styleAttr.includes('grid-template-columns')) {
-            const match = styleAttr.match(/repeat\((\d+)/);
-            const cols = match ? match[1] : '2';
+          if (cls.includes('rejilla') || styleAttr.includes('grid-template-columns') || styleAttr.includes('display: grid') || styleAttr.includes('display:grid')) {
+            let cols = '2';
+            const repMatch = styleAttr.match(/grid-template-columns\s*:\s*repeat\((\d+)/i);
+            if (repMatch) {
+              cols = repMatch[1];
+            } else {
+              const gtcMatch = styleAttr.match(/grid-template-columns\s*:\s*([^;]+)/i);
+              if (gtcMatch) {
+                const parts = gtcMatch[1].trim().split(/\s+/);
+                if (parts.length > 0) cols = String(parts.length);
+              } else if (node.children && node.children.length >= 4) {
+                cols = '4';
+              }
+            }
             rcLines.push(`rejilla(${cols})`);
             parseStyleString(styleAttr, rcLines);
             node.childNodes.forEach(traverse);
