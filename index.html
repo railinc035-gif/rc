@@ -835,6 +835,26 @@ ${bodyChildren}${scriptBlock}
       rcLines.push(`titulo(${cleanParam(titleEl.textContent)})`);
     }
 
+    // Parse internal <style> blocks and apply CSS rules to element inline styles
+    doc.querySelectorAll('style').forEach(styleEl => {
+      const cssText = styleEl.textContent || '';
+      const ruleRegex = /([^{]+)\{([^}]+)\}/g;
+      let match;
+      while ((match = ruleRegex.exec(cssText)) !== null) {
+        const selector = match[1].trim();
+        const decls = match[2].trim();
+        if (!selector || !decls || selector.startsWith('@')) continue;
+        try {
+          doc.querySelectorAll(selector).forEach(el => {
+            const existingStyle = el.getAttribute('style') || '';
+            el.setAttribute('style', existingStyle ? `${existingStyle}; ${decls}` : decls);
+          });
+        } catch (e) {
+          // Ignore invalid selectors
+        }
+      }
+    });
+
     const body = doc.body;
     if (body) {
       parseStyleString(body.getAttribute('style') || '', rcLines);
