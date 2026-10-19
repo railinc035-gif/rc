@@ -82,11 +82,29 @@
 <script>
 (() => {
   function cleanParam(val) {
-    if (!val) return '';
-    return val.toLowerCase()
-      .replace(/["';,#$%&*<>{}=]/g, '')
+    if (val === null || val === undefined) return '';
+    return String(val)
+      .replace(/[\r\n]+/g, ' ')
       .replace(/\s+/g, ' ')
       .trim();
+  }
+
+  function formatColor(val) {
+    if (!val) return '';
+    val = val.trim();
+    if (/^[0-9a-fA-F]{3}$|^[0-9a-fA-F]{6}$|^[0-9a-fA-F]{8}$/.test(val)) {
+      return '#' + val.toLowerCase();
+    }
+    return val;
+  }
+
+  function formatBorder(val) {
+    if (!val) return '1px solid #ccc';
+    val = val.trim();
+    if (/\b(solid|dashed|dotted|double|groove|ridge|inset|outset|none)\b/i.test(val) || /^\d+px/i.test(val)) {
+      return val;
+    }
+    return `1px solid ${formatColor(val)}`;
   }
 
   function parseRcLine(line) {
@@ -170,6 +188,26 @@
       const a4 = args[3] || '';
 
       const indent = ' '.repeat(openStack.length * 2 + 2);
+
+      // Auto-close open lists or tables if the current command belongs outside them
+      const listCmds = ['elementolista'];
+      const tableCmds = ['filatabla', 'encabezadotabla', 'celdatabla'];
+
+      if (openStack.length > 0) {
+        const top = openStack[openStack.length - 1];
+        if ((top === 'ul' || top === 'ol') && !listCmds.includes(cmd)) {
+          bodyHtml.push(' '.repeat(openStack.length * 2) + `</${openStack.pop()}>`);
+        } else if (top === 'tr' && cmd === 'filatabla') {
+          bodyHtml.push(' '.repeat(openStack.length * 2) + `</${openStack.pop()}>`);
+        } else if (top === 'tr' && !tableCmds.includes(cmd)) {
+          bodyHtml.push(' '.repeat(openStack.length * 2) + `</${openStack.pop()}>`);
+          if (openStack.length > 0 && openStack[openStack.length - 1] === 'table') {
+            bodyHtml.push(' '.repeat(openStack.length * 2) + `</${openStack.pop()}>`);
+          }
+        } else if (top === 'table' && !tableCmds.includes(cmd)) {
+          bodyHtml.push(' '.repeat(openStack.length * 2) + `</${openStack.pop()}>`);
+        }
+      }
 
       switch (cmd) {
         case 'incluir':
@@ -271,13 +309,13 @@
           bodyHtml.push(`${indent}<textarea id="${a1}">${a2}</textarea>`);
           break;
         case 'fondo':
-          bodyStyles.push(`background-color: ${a1};`);
+          bodyStyles.push(`background-color: ${formatColor(a1)};`);
           break;
         case 'color':
-          bodyStyles.push(`color: ${a1};`);
+          bodyStyles.push(`color: ${formatColor(a1)};`);
           break;
         case 'letra':
-          bodyStyles.push(`font-family: ${a1}, sans-serif;`);
+          bodyStyles.push(`font-family: ${a1.includes(',') ? a1 : a1 + ', sans-serif'};`);
           break;
         case 'tamano':
           bodyStyles.push(`font-size: ${a1.endsWith('px') ? a1 : a1 + 'px'};`);
@@ -310,7 +348,7 @@
           bodyStyles.push(`text-align: right;`);
           break;
         case 'borde':
-          bodyStyles.push(`border: 1px solid ${a1};`);
+          bodyStyles.push(`border: ${formatBorder(a1)};`);
           break;
         case 'sombra':
           const shadowLvl = parseInt(a1, 10) || 1;
@@ -474,7 +512,14 @@ ${bodyHtml.join('\n')}${scriptBlock}
         else if (val === 'right') rcLines.push('alinearderecha');
       }
       else if (prop === 'border') rcLines.push(`borde(${val})`);
-      else if (prop === 'box-shadow') rcLines.push('sombra(2)');
+      else if (prop === 'box-shadow') {
+        const shadowMatch = val.match(/0\s+(\d+)px\s+(\d+)px/);
+        let lvl = 2;
+        if (shadowMatch) {
+          lvl = Math.max(1, Math.round(parseInt(shadowMatch[1], 10) / 2) || Math.round(parseInt(shadowMatch[2], 10) / 4) || 2);
+        }
+        rcLines.push(`sombra(${lvl})`);
+      }
       else if (prop === 'opacity') {
         const num = Math.round(parseFloat(val) * 10) || 10;
         rcLines.push(`transparencia(${num})`);
@@ -487,72 +532,72 @@ ${bodyHtml.join('\n')}${scriptBlock}
   function parseScriptContent(scriptText, rcLines) {
     if (!scriptText) return;
 
-    let m = scriptText.match(/getElementById\('([^']+)'\)\?\.addEventListener\('click',\s*\(\)\s*=>\s*alert\('([^']+)'\)\)/g);
-    if (m) {
-      m.forEach(str => {
-        const parts = str.match(/getElementById\('([^']+)'\)\?\.addEventListener\('click',\s*\(\)\s*=>\s*alert\('([^']+)'\)\)/);
-        if (parts) rcLines.push(`avisar(${cleanParam(parts[1])})(${cleanParam(parts[2])})`);
-      });
-    }
+    // Split scriptText into individual statements by line
+    const blocks = scriptText.split(/\n+/);
 
-    m = scriptText.match(/getElementById\('([^']+)'\)\?\.addEventListener\('click',\s*\(\)\s*=>\s*window\.location\.href\s*=\s*'([^']+)'\)/g);
-    if (m) {
-      m.forEach(str => {
-        const parts = str.match(/getElementById\('([^']+)'\)\?\.addEventListener\('click',\s*\(\)\s*=>\s*window\.location\.href\s*=\s*'([^']+)'\)/);
-        if (parts) rcLines.push(`ira(${cleanParam(parts[1])})(${cleanParam(parts[2])})`);
-      });
-    }
+    blocks.forEach(block => {
+      block = block.trim();
+      if (!block) return;
 
-    m = scriptText.match(/getElementById\('([^']+)'\)\?\.addEventListener\('click',\s*\(\)\s*=>\s*\{\s*const\s+el\s*=\s*document\.getElementById\('([^']+)'\);\s*if\(el\)\s*el\.style\.display\s*=\s*'none';\s*\}\)/g);
-    if (m) {
-      m.forEach(str => {
-        const parts = str.match(/getElementById\('([^']+)'\)\?\.addEventListener\('click',\s*\(\)\s*=>\s*\{\s*const\s+el\s*=\s*document\.getElementById\('([^']+)'\);\s*if\(el\)\s*el\.style\.display\s*=\s*'none';\s*\}\)/);
-        if (parts) rcLines.push(`ocultarboton(${cleanParam(parts[1])})(${cleanParam(parts[2])})`);
-      });
-    }
-
-    m = scriptText.match(/getElementById\('([^']+)'\)\?\.addEventListener\('click',\s*\(\)\s*=>\s*\{\s*const\s+el\s*=\s*document\.getElementById\('([^']+)'\);\s*if\(el\)\s*el\.style\.display\s*=\s*'block';\s*\}\)/g);
-    if (m) {
-      m.forEach(str => {
-        const parts = str.match(/getElementById\('([^']+)'\)\?\.addEventListener\('click',\s*\(\)\s*=>\s*\{\s*const\s+el\s*=\s*document\.getElementById\('([^']+)'\);\s*if\(el\)\s*el\.style\.display\s*=\s*'block';\s*\}\)/);
-        if (parts) rcLines.push(`mostrarboton(${cleanParam(parts[1])})(${cleanParam(parts[2])})`);
-      });
-    }
-
-    m = scriptText.match(/getElementById\('([^']+)'\)\?\.addEventListener\('click',\s*\(\)\s*=>\s*\{\s*const\s+el\s*=\s*document\.getElementById\('([^']+)'\);\s*if\(el\)\s*el\.style\.display\s*=\s*\(el\.style\.display\s*===\s*'none'\s*\?\s*'block'\s*:\s*'none'\);\s*\}\)/g);
-    if (m) {
-      m.forEach(str => {
-        const parts = str.match(/getElementById\('([^']+)'\)\?\.addEventListener\('click',\s*\(\)\s*=>\s*\{\s*const\s+el\s*=\s*document\.getElementById\('([^']+)'\);\s*if\(el\)\s*el\.style\.display\s*=\s*\(el\.style\.display\s*===\s*'none'\s*\?\s*'block'\s*:\s*'none'\);\s*\}\)/);
-        if (parts) rcLines.push(`alternar(${cleanParam(parts[1])})(${cleanParam(parts[2])})`);
-      });
-    }
-
-    m = scriptText.match(/getElementById\('([^']+)'\)\?\.addEventListener\('click',\s*\(\)\s*=>\s*\{\s*const\s+el\s*=\s*document\.getElementById\('([^']+)'\);\s*if\(el\)\s*el\.value\s*=\s*'';\s*\}\)/g);
-    if (m) {
-      m.forEach(str => {
-        const parts = str.match(/getElementById\('([^']+)'\)\?\.addEventListener\('click',\s*\(\)\s*=>\s*\{\s*const\s+el\s*=\s*document\.getElementById\('([^']+)'\);\s*if\(el\)\s*el\.value\s*=\s*'';\s*\}\)/);
-        if (parts) rcLines.push(`limpiar(${cleanParam(parts[1])})(${cleanParam(parts[2])})`);
-      });
-    }
-
-    const mathRegex = /getElementById\('([^']+)'\)\?\.addEventListener\('click',\s*\(\)\s*=>\s*\{\s*const\s+v1\s*=\s*parseFloat\(document\.getElementById\('([^']+)'\)\?\.value\)\|\|0;\s*const\s+v2\s*=\s*parseFloat\(document\.getElementById\('([^']+)'\)\?\.value\)\|\|0;\s*const\s+lbl\s*=\s*document\.getElementById\('([^']+)'\);\s*if\(lbl\)\s*lbl\.innerText\s*=\s*\(v1\s*([+\-*\/])\s*v2\)\.toString\(\);?\s*\}\)/g;
-    let mm;
-    while ((mm = mathRegex.exec(scriptText)) !== null) {
-      const btn = cleanParam(mm[1]), in1 = cleanParam(mm[2]), in2 = cleanParam(mm[3]), lbl = cleanParam(mm[4]), op = mm[5];
-      let cmd = 'sumar';
-      if (op === '-') cmd = 'restar';
-      else if (op === '*') cmd = 'multiplicar';
-      else if (op === '/') cmd = 'dividir';
-      rcLines.push(`${cmd}(${btn})(${in1})(${in2})(${lbl})`);
-    }
-
-    m = scriptText.match(/localStorage\.setItem\('([^']+)',\s*el\.value\)/g);
-    if (m) {
-      m.forEach(str => {
-        const parts = str.match(/localStorage\.setItem\('([^']+)',\s*el\.value\)/);
-        if (parts) rcLines.push(`guardarlocal(btn1)(${cleanParam(parts[1])})(inp1)`);
-      });
-    }
+      let m;
+      if ((m = block.match(/getElementById\(['"]([^'"]+)['"]\)(?:\?)?\.addEventListener\(['"]click['"]\s*,\s*(?:\(\)\s*=>|function\s*\(\)\s*\{)\s*alert\(['"]([^'"]+)['"]\)/))) {
+        rcLines.push(`avisar(${cleanParam(m[1])})(${cleanParam(m[2])})`);
+      } else if ((m = block.match(/getElementById\(['"]([^'"]+)['"]\)(?:\?)?\.addEventListener\(['"]click['"]\s*,\s*(?:\(\)\s*=>|function\s*\(\)\s*\{)\s*window\.location\.href\s*=\s*['"]([^'"]+)['"]/))) {
+        rcLines.push(`ira(${cleanParam(m[1])})(${cleanParam(m[2])})`);
+      } else if (block.includes("style.display") && block.includes("=== 'none'")) {
+        m = block.match(/getElementById\(['"]([^'"]+)['"]\)(?:[\s\S]*?)document\.getElementById\(['"]([^'"]+)['"]\)/);
+        if (m) rcLines.push(`alternar(${cleanParam(m[1])})(${cleanParam(m[2])})`);
+      } else if (block.includes("style.display") && block.includes("'none'")) {
+        m = block.match(/getElementById\(['"]([^'"]+)['"]\)(?:[\s\S]*?)document\.getElementById\(['"]([^'"]+)['"]\)/);
+        if (m) rcLines.push(`ocultarboton(${cleanParam(m[1])})(${cleanParam(m[2])})`);
+      } else if (block.includes("style.display") && block.includes("'block'")) {
+        m = block.match(/getElementById\(['"]([^'"]+)['"]\)(?:[\s\S]*?)document\.getElementById\(['"]([^'"]+)['"]\)/);
+        if (m) rcLines.push(`mostrarboton(${cleanParam(m[1])})(${cleanParam(m[2])})`);
+      } else if (block.includes(".value = ''")) {
+        m = block.match(/getElementById\(['"]([^'"]+)['"]\)(?:[\s\S]*?)document\.getElementById\(['"]([^'"]+)['"]\)/);
+        if (m) rcLines.push(`limpiar(${cleanParam(m[1])})(${cleanParam(m[2])})`);
+      } else if (block.includes("setAttribute('disabled'")) {
+        m = block.match(/getElementById\(['"]([^'"]+)['"]\)/);
+        if (m) rcLines.push(`deshabilitar(${cleanParam(m[1])})`);
+      } else if (block.includes("removeAttribute('disabled'")) {
+        m = block.match(/getElementById\(['"]([^'"]+)['"]\)/);
+        if (m) rcLines.push(`habilitar(${cleanParam(m[1])})`);
+      } else if (block.includes("clearRect")) {
+        m = block.match(/getElementById\(['"]([^'"]+)['"]\)[\s\S]*?getElementById\(['"]([^'"]+)['"]\)/);
+        if (m) rcLines.push(`limpiarlienzo(${cleanParam(m[1])})(${cleanParam(m[2])})`);
+      } else if (block.includes("clipboard.writeText")) {
+        m = block.match(/getElementById\(['"]([^'"]+)['"]\)[\s\S]*?getElementById\(['"]([^'"]+)['"]\)/);
+        if (m) rcLines.push(`copiartexto(${cleanParam(m[1])})(${cleanParam(m[2])})`);
+      } else if (block.includes("+") && block.includes("parseFloat") && !block.includes("v1")) {
+        m = block.match(/getElementById\(['"]([^'"]+)['"]\)[\s\S]*?getElementById\(['"]([^'"]+)['"]\)/);
+        if (m) rcLines.push(`incrementar(${cleanParam(m[1])})(${cleanParam(m[2])})(1)`);
+      } else if (block.includes("-") && block.includes("parseFloat") && !block.includes("v1")) {
+        m = block.match(/getElementById\(['"]([^'"]+)['"]\)[\s\S]*?getElementById\(['"]([^'"]+)['"]\)/);
+        if (m) rcLines.push(`decrementar(${cleanParam(m[1])})(${cleanParam(m[2])})(1)`);
+      } else if (block.includes("localStorage.setItem")) {
+        m = block.match(/getElementById\(['"]([^'"]+)['"]\)[\s\S]*?localStorage\.setItem\(['"]([^'"]+)['"]\s*,\s*(?:el\.value|document\.getElementById\(['"]([^'"]+)['"]\)\.value)/);
+        if (m) rcLines.push(`guardarlocal(${cleanParam(m[1])})(${cleanParam(m[2])})(${cleanParam(m[3] || 'inp1')})`);
+      } else if (block.includes("localStorage.getItem")) {
+        m = block.match(/localStorage\.getItem\(['"]([^'"]+)['"]\)[\s\S]*?getElementById\(['"]([^'"]+)['"]\)/);
+        if (m) rcLines.push(`cargarlocal(${cleanParam(m[1])})(${cleanParam(m[2])})`);
+      } else if (block.includes("style.setProperty('display', 'none')")) {
+        m = block.match(/getElementById\(['"]([^'"]+)['"]\)/);
+        if (m) rcLines.push(`ocultar(${cleanParam(m[1])})`);
+      } else if (block.includes("style.setProperty('display', 'block')")) {
+        m = block.match(/getElementById\(['"]([^'"]+)['"]\)/);
+        if (m) rcLines.push(`mostrar(${cleanParam(m[1])})`);
+      } else if (block.includes("v1") && block.includes("v2")) {
+        m = block.match(/getElementById\(['"]([^'"]+)['"]\)[\s\S]*?getElementById\(['"]([^'"]+)['"]\)[\s\S]*?getElementById\(['"]([^'"]+)['"]\)[\s\S]*?getElementById\(['"]([^'"]+)['"]\)[\s\S]*?v1\s*([+\-*\/])\s*v2/);
+        if (m) {
+          const btn = cleanParam(m[1]), in1 = cleanParam(m[2]), in2 = cleanParam(m[3]), lbl = cleanParam(m[4]), op = m[5];
+          let cmd = 'sumar';
+          if (op === '-') cmd = 'restar';
+          else if (op === '*') cmd = 'multiplicar';
+          else if (op === '/') cmd = 'dividir';
+          rcLines.push(`${cmd}(${btn})(${in1})(${in2})(${lbl})`);
+        }
+      }
+    });
   }
 
   function htmlToRc(htmlCode) {
@@ -592,9 +637,34 @@ ${bodyHtml.join('\n')}${scriptBlock}
       const id = cleanParam(node.getAttribute('id') || '');
       const styleAttr = node.getAttribute('style') || '';
 
+      const onclick = node.getAttribute('onclick');
+      if (onclick && id) {
+        let m = onclick.match(/alert\(['"]([^'"]+)['"]\)/);
+        if (m) rcLines.push(`avisar(${id})(${cleanParam(m[1])})`);
+
+        m = onclick.match(/location\.href\s*=\s*['"]([^'"]+)['"]/);
+        if (m) rcLines.push(`ira(${id})(${cleanParam(m[1])})`);
+
+        m = onclick.match(/document\.getElementById\(['"]([^'"]+)['"]\)\.style\.display\s*=\s*['"]none['"]/);
+        if (m) rcLines.push(`ocultarboton(${id})(${cleanParam(m[1])})`);
+
+        m = onclick.match(/document\.getElementById\(['"]([^'"]+)['"]\)\.style\.display\s*=\s*['"]block['"]/);
+        if (m) rcLines.push(`mostrarboton(${id})(${cleanParam(m[1])})`);
+      }
+
       switch (tag) {
         case 'section':
-          rcLines.push(`seccion(${id || 'seccion1'})`);
+        case 'form':
+        case 'main':
+        case 'article':
+        case 'header':
+        case 'footer':
+        case 'nav':
+          if (tag === 'section') {
+            rcLines.push(`seccion(${id || 'seccion1'})`);
+          } else if (id) {
+            rcLines.push(`contenedor(${id})`);
+          }
           parseStyleString(styleAttr, rcLines);
           node.childNodes.forEach(traverse);
           break;
@@ -605,17 +675,21 @@ ${bodyHtml.join('\n')}${scriptBlock}
             const match = styleAttr.match(/repeat\((\d+)/);
             const cols = match ? match[1] : '2';
             rcLines.push(`rejilla(${cols})`);
+            parseStyleString(styleAttr, rcLines);
+            node.childNodes.forEach(traverse);
           } else if (cls.includes('cargando')) {
             rcLines.push('cargando');
-            return;
           } else if (id) {
             rcLines.push(`contenedor(${id})`);
+            parseStyleString(styleAttr, rcLines);
+            node.childNodes.forEach(traverse);
+          } else if (node.children.length > 0) {
+            parseStyleString(styleAttr, rcLines);
+            node.childNodes.forEach(traverse);
           } else {
-            rcLines.push(`bloque(${cleanParam(node.textContent)})`);
-            return;
+            const txt = cleanParam(node.textContent);
+            if (txt) rcLines.push(`bloque(${txt})`);
           }
-          parseStyleString(styleAttr, rcLines);
-          node.childNodes.forEach(traverse);
           break;
 
         case 'hr':
