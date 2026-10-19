@@ -108,10 +108,11 @@
   function formatColor(val) {
     if (!val) return '';
     val = val.trim();
+    if (val.startsWith('#')) return val.toLowerCase();
     if (/^[0-9a-fA-F]{3}$|^[0-9a-fA-F]{6}$|^[0-9a-fA-F]{8}$/.test(val)) {
       return '#' + val.toLowerCase();
     }
-    return val;
+    return val.toLowerCase();
   }
 
   function formatBorder(val) {
@@ -682,6 +683,10 @@
 <head>
   <meta charset="UTF-8">
   <title>${title}</title>
+  <style>
+    body { font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; margin: 16px; box-sizing: border-box; }
+    *, *:before, *:after { box-sizing: inherit; }
+  </style>
 </head>
 <body${bodyStyleAttr}>
 ${bodyChildren}${scriptBlock}
@@ -700,8 +705,8 @@ ${bodyChildren}${scriptBlock}
       const prop = parts[0].trim().toLowerCase();
       const val = cleanParam(parts[1].trim());
 
-      if (prop === 'background-color' || prop === 'background') rcLines.push(`fondo(${val})`);
-      else if (prop === 'color') rcLines.push(`color(${val})`);
+      if (prop === 'background-color' || prop === 'background') rcLines.push(`fondo(${formatColor(val)})`);
+      else if (prop === 'color') rcLines.push(`color(${formatColor(val)})`);
       else if (prop === 'font-family') rcLines.push(`letra(${val.split(',')[0].trim()})`);
       else if (prop === 'font-size') rcLines.push(`tamano(${val})`);
       else if (prop === 'width') rcLines.push(`ancho(${val})`);
@@ -711,11 +716,12 @@ ${bodyChildren}${scriptBlock}
       else if (prop === 'padding') rcLines.push(`relleno(${val})`);
       else if (prop === 'border-radius') rcLines.push(`radio(${val})`);
       else if (prop === 'text-align') {
-        if (val === 'center') rcLines.push('centrar');
-        else if (val === 'left') rcLines.push('alinearizquierda');
-        else if (val === 'right') rcLines.push('alinearderecha');
+        const valLower = val.toLowerCase();
+        if (valLower === 'center') rcLines.push('centrar');
+        else if (valLower === 'left') rcLines.push('alinearizquierda');
+        else if (valLower === 'right') rcLines.push('alinearderecha');
       }
-      else if (prop === 'border') rcLines.push(`borde(${val})`);
+      else if (prop === 'border') rcLines.push(`borde(${formatBorder(val)})`);
       else if (prop === 'box-shadow') {
         const shadowMatch = val.match(/0\s+(\d+)px\s+(\d+)px/);
         let lvl = 2;
@@ -728,15 +734,14 @@ ${bodyChildren}${scriptBlock}
         const num = Math.round(parseFloat(val) * 10) || 10;
         rcLines.push(`transparencia(${num})`);
       }
-      else if (prop === 'position') rcLines.push(`flotante(${val})`);
-      else if (prop === 'overflow' && val === 'auto') rcLines.push('desplazamiento');
+      else if (prop === 'position') rcLines.push(`flotante(${val.toLowerCase()})`);
+      else if (prop === 'overflow' && val.toLowerCase() === 'auto') rcLines.push('desplazamiento');
     });
   }
 
   function parseScriptContent(scriptText, rcLines) {
     if (!scriptText) return;
 
-    // Split scriptText into individual statements by line
     const blocks = scriptText.split(/\n+/);
 
     blocks.forEach(block => {
@@ -745,55 +750,69 @@ ${bodyChildren}${scriptBlock}
 
       let m;
       if ((m = block.match(/getElementById\(['"]([^'"]+)['"]\)(?:\?)?\.addEventListener\(['"]click['"]\s*,\s*(?:\(\)\s*=>|function\s*\(\)\s*\{)\s*alert\(['"]([^'"]+)['"]\)/))) {
-        rcLines.push(`avisar(${cleanParam(m[1])})(${cleanParam(m[2])})`);
+        rcLines.push(`avisar(${cleanParam(m[1]).toLowerCase()})(${cleanParam(m[2]).toLowerCase()})`);
       } else if ((m = block.match(/getElementById\(['"]([^'"]+)['"]\)(?:\?)?\.addEventListener\(['"]click['"]\s*,\s*(?:\(\)\s*=>|function\s*\(\)\s*\{)\s*window\.location\.href\s*=\s*['"]([^'"]+)['"]/))) {
-        rcLines.push(`ira(${cleanParam(m[1])})(${cleanParam(m[2])})`);
+        rcLines.push(`ira(${cleanParam(m[1]).toLowerCase()})(${cleanParam(m[2])})`);
       } else if (block.includes("style.display") && block.includes("=== 'none'")) {
-        m = block.match(/getElementById\(['"]([^'"]+)['"]\)(?:[\s\S]*?)document\.getElementById\(['"]([^'"]+)['"]\)/);
-        if (m) rcLines.push(`alternar(${cleanParam(m[1])})(${cleanParam(m[2])})`);
+        const ids = [...block.matchAll(/getElementById\(['"]([^'"]+)['"]\)/g)].map(x => cleanParam(x[1]).toLowerCase());
+        if (ids.length >= 2) rcLines.push(`alternar(${ids[0]})(${ids[1]})`);
       } else if (block.includes("style.display") && block.includes("'none'")) {
-        m = block.match(/getElementById\(['"]([^'"]+)['"]\)(?:[\s\S]*?)document\.getElementById\(['"]([^'"]+)['"]\)/);
-        if (m) rcLines.push(`ocultarboton(${cleanParam(m[1])})(${cleanParam(m[2])})`);
+        const ids = [...block.matchAll(/getElementById\(['"]([^'"]+)['"]\)/g)].map(x => cleanParam(x[1]).toLowerCase());
+        if (ids.length >= 2) rcLines.push(`ocultarboton(${ids[0]})(${ids[1]})`);
       } else if (block.includes("style.display") && block.includes("'block'")) {
-        m = block.match(/getElementById\(['"]([^'"]+)['"]\)(?:[\s\S]*?)document\.getElementById\(['"]([^'"]+)['"]\)/);
-        if (m) rcLines.push(`mostrarboton(${cleanParam(m[1])})(${cleanParam(m[2])})`);
-      } else if (block.includes(".value = ''")) {
-        m = block.match(/getElementById\(['"]([^'"]+)['"]\)(?:[\s\S]*?)document\.getElementById\(['"]([^'"]+)['"]\)/);
-        if (m) rcLines.push(`limpiar(${cleanParam(m[1])})(${cleanParam(m[2])})`);
+        const ids = [...block.matchAll(/getElementById\(['"]([^'"]+)['"]\)/g)].map(x => cleanParam(x[1]).toLowerCase());
+        if (ids.length >= 2) rcLines.push(`mostrarboton(${ids[0]})(${ids[1]})`);
+      } else if (block.includes(".value = ''") || block.includes('.value=""')) {
+        const ids = [...block.matchAll(/getElementById\(['"]([^'"]+)['"]\)/g)].map(x => cleanParam(x[1]).toLowerCase());
+        if (ids.length >= 2) rcLines.push(`limpiar(${ids[0]})(${ids[1]})`);
       } else if (block.includes("setAttribute('disabled'")) {
         m = block.match(/getElementById\(['"]([^'"]+)['"]\)/);
-        if (m) rcLines.push(`deshabilitar(${cleanParam(m[1])})`);
+        if (m) rcLines.push(`deshabilitar(${cleanParam(m[1]).toLowerCase()})`);
       } else if (block.includes("removeAttribute('disabled'")) {
         m = block.match(/getElementById\(['"]([^'"]+)['"]\)/);
-        if (m) rcLines.push(`habilitar(${cleanParam(m[1])})`);
+        if (m) rcLines.push(`habilitar(${cleanParam(m[1]).toLowerCase()})`);
       } else if (block.includes("clearRect")) {
-        m = block.match(/getElementById\(['"]([^'"]+)['"]\)[\s\S]*?getElementById\(['"]([^'"]+)['"]\)/);
-        if (m) rcLines.push(`limpiarlienzo(${cleanParam(m[1])})(${cleanParam(m[2])})`);
+        const ids = [...block.matchAll(/getElementById\(['"]([^'"]+)['"]\)/g)].map(x => cleanParam(x[1]).toLowerCase());
+        if (ids.length >= 2) rcLines.push(`limpiarlienzo(${ids[0]})(${ids[1]})`);
       } else if (block.includes("clipboard.writeText")) {
-        m = block.match(/getElementById\(['"]([^'"]+)['"]\)[\s\S]*?getElementById\(['"]([^'"]+)['"]\)/);
-        if (m) rcLines.push(`copiartexto(${cleanParam(m[1])})(${cleanParam(m[2])})`);
+        const ids = [...block.matchAll(/getElementById\(['"]([^'"]+)['"]\)/g)].map(x => cleanParam(x[1]).toLowerCase());
+        if (ids.length >= 2) rcLines.push(`copiartexto(${ids[0]})(${ids[1]})`);
       } else if (block.includes("+") && block.includes("parseFloat") && !block.includes("v1")) {
-        m = block.match(/getElementById\(['"]([^'"]+)['"]\)[\s\S]*?getElementById\(['"]([^'"]+)['"]\)/);
-        if (m) rcLines.push(`incrementar(${cleanParam(m[1])})(${cleanParam(m[2])})(1)`);
+        const ids = [...block.matchAll(/getElementById\(['"]([^'"]+)['"]\)/g)].map(x => cleanParam(x[1]).toLowerCase());
+        const stepM = block.match(/\+\s*(\d+(?:\.\d+)?)/);
+        const step = stepM ? stepM[1] : '1';
+        if (ids.length >= 2) rcLines.push(`incrementar(${ids[0]})(${ids[1]})(${step})`);
       } else if (block.includes("-") && block.includes("parseFloat") && !block.includes("v1")) {
-        m = block.match(/getElementById\(['"]([^'"]+)['"]\)[\s\S]*?getElementById\(['"]([^'"]+)['"]\)/);
-        if (m) rcLines.push(`decrementar(${cleanParam(m[1])})(${cleanParam(m[2])})(1)`);
+        const ids = [...block.matchAll(/getElementById\(['"]([^'"]+)['"]\)/g)].map(x => cleanParam(x[1]).toLowerCase());
+        const stepM = block.match(/-\s*(\d+(?:\.\d+)?)/);
+        const step = stepM ? stepM[1] : '1';
+        if (ids.length >= 2) rcLines.push(`decrementar(${ids[0]})(${ids[1]})(${step})`);
       } else if (block.includes("localStorage.setItem")) {
-        m = block.match(/getElementById\(['"]([^'"]+)['"]\)[\s\S]*?localStorage\.setItem\(['"]([^'"]+)['"]\s*,\s*(?:el\.value|document\.getElementById\(['"]([^'"]+)['"]\)\.value)/);
-        if (m) rcLines.push(`guardarlocal(${cleanParam(m[1])})(${cleanParam(m[2])})(${cleanParam(m[3] || 'inp1')})`);
+        const ids = [...block.matchAll(/getElementById\(['"]([^'"]+)['"]\)/g)].map(x => cleanParam(x[1]).toLowerCase());
+        const keyM = block.match(/localStorage\.setItem\(['"]([^'"]+)['"]/);
+        if (ids.length >= 1 && keyM) {
+          const btn = ids[0];
+          const key = cleanParam(keyM[1]).toLowerCase();
+          const target = ids[1] || 'inp1';
+          rcLines.push(`guardarlocal(${btn})(${key})(${target})`);
+        }
       } else if (block.includes("localStorage.getItem")) {
-        m = block.match(/localStorage\.getItem\(['"]([^'"]+)['"]\)[\s\S]*?getElementById\(['"]([^'"]+)['"]\)/);
-        if (m) rcLines.push(`cargarlocal(${cleanParam(m[1])})(${cleanParam(m[2])})`);
+        const keyM = block.match(/localStorage\.getItem\(['"]([^'"]+)['"]/);
+        const targetM = block.match(/getElementById\(['"]([^'"]+)['"]\)/);
+        if (keyM && targetM) {
+          rcLines.push(`cargarlocal(${cleanParam(keyM[1]).toLowerCase()})(${cleanParam(targetM[1]).toLowerCase()})`);
+        }
       } else if (block.includes("style.setProperty('display', 'none')")) {
         m = block.match(/getElementById\(['"]([^'"]+)['"]\)/);
-        if (m) rcLines.push(`ocultar(${cleanParam(m[1])})`);
+        if (m) rcLines.push(`ocultar(${cleanParam(m[1]).toLowerCase()})`);
       } else if (block.includes("style.setProperty('display', 'block')")) {
         m = block.match(/getElementById\(['"]([^'"]+)['"]\)/);
-        if (m) rcLines.push(`mostrar(${cleanParam(m[1])})`);
+        if (m) rcLines.push(`mostrar(${cleanParam(m[1]).toLowerCase()})`);
       } else if (block.includes("v1") && block.includes("v2")) {
-        m = block.match(/getElementById\(['"]([^'"]+)['"]\)[\s\S]*?getElementById\(['"]([^'"]+)['"]\)[\s\S]*?getElementById\(['"]([^'"]+)['"]\)[\s\S]*?getElementById\(['"]([^'"]+)['"]\)[\s\S]*?v1\s*([+\-*\/])\s*v2/);
-        if (m) {
-          const btn = cleanParam(m[1]), in1 = cleanParam(m[2]), in2 = cleanParam(m[3]), lbl = cleanParam(m[4]), op = m[5];
+        const ids = [...block.matchAll(/getElementById\(['"]([^'"]+)['"]\)/g)].map(x => cleanParam(x[1]).toLowerCase());
+        const opM = block.match(/v1\s*([+\-*\/])\s*v2/);
+        if (ids.length >= 4 && opM) {
+          const btn = ids[0], in1 = ids[1], in2 = ids[2], lbl = ids[3], op = opM[1];
           let cmd = 'sumar';
           if (op === '-') cmd = 'restar';
           else if (op === '*') cmd = 'multiplicar';
@@ -871,6 +890,11 @@ ${bodyChildren}${scriptBlock}
           }
           parseStyleString(styleAttr, rcLines);
           node.childNodes.forEach(traverse);
+          if (tag === 'section') {
+            rcLines.push(`finseccion`);
+          } else if (id) {
+            rcLines.push(`fincontenedor`);
+          }
           break;
 
         case 'div':
@@ -881,12 +905,14 @@ ${bodyChildren}${scriptBlock}
             rcLines.push(`rejilla(${cols})`);
             parseStyleString(styleAttr, rcLines);
             node.childNodes.forEach(traverse);
+            rcLines.push(`finrejilla`);
           } else if (cls.includes('cargando')) {
             rcLines.push('cargando');
           } else if (id) {
             rcLines.push(`contenedor(${id})`);
             parseStyleString(styleAttr, rcLines);
             node.childNodes.forEach(traverse);
+            rcLines.push(`fincontenedor`);
           } else if (node.children.length > 0) {
             parseStyleString(styleAttr, rcLines);
             node.childNodes.forEach(traverse);
@@ -950,11 +976,13 @@ ${bodyChildren}${scriptBlock}
         case 'ul':
           rcLines.push('listadesordenada');
           node.childNodes.forEach(traverse);
+          rcLines.push('finlista');
           break;
 
         case 'ol':
           rcLines.push('listaordenada');
           node.childNodes.forEach(traverse);
+          rcLines.push('finlista');
           break;
 
         case 'li':
@@ -964,11 +992,13 @@ ${bodyChildren}${scriptBlock}
         case 'table':
           rcLines.push('tabla');
           node.childNodes.forEach(traverse);
+          rcLines.push('fintabla');
           break;
 
         case 'tr':
           rcLines.push('filatabla');
           node.childNodes.forEach(traverse);
+          rcLines.push('finfilatabla');
           break;
 
         case 'th':
