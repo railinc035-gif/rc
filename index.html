@@ -78,16 +78,15 @@
     <div class="tabs">
       <button class="tab active" style="pointer-events:none;">Vista Previa ▶</button>
     </div>
-    <div class="editor-body" style="background:#ffffff;">
-      <iframe id="previewFrame" title="Vista Previa App" style="width:100%; height:100%; border:none; background:#ffffff;"></iframe>
+    <div class="editor-body" style="background:#000000;">
+      <iframe id="previewFrame" title="Vista Previa App" style="width:100%; height:100%; border:none; background:#000000;"></iframe>
     </div>
     <div class="status"><span>Ejecución en tiempo real</span></div>
   </section>
   <aside class="explorer" id="explorer">
     <div class="explorer-head"><span>Archivos del proyecto</span><button id="closeExplorer" title="Ocultar explorador">×</button></div>
     <div class="new-actions">
-      <button id="newRc">+ .rc</button>
-      <button id="newHtml">+ HTML</button>
+      <button id="newFile" style="width:100%;">+ Nuevo archivo (.rc, .html, .js, .css)</button>
     </div>
     <div class="file-list" id="fileList"></div>
     <div class="explorer-note">Selecciona un archivo para abrirlo. Usa ✎ para renombrar o × para eliminar.</div>
@@ -258,9 +257,20 @@
 
       switch (cmd) {
         case 'incluir':
-          const incNode = createNode('comment');
-          incNode.rawHtml = `<!-- incluir: ${a1} -->`;
-          currentContainer().children.push(incNode);
+          const incFile = a1.toLowerCase();
+          if (incFile.endsWith('.js')) {
+            const jsNode = createNode('comment');
+            jsNode.rawHtml = `<script src="${a1}"><\/script>`;
+            currentContainer().children.push(jsNode);
+          } else if (incFile.endsWith('.css')) {
+            const cssNode = createNode('comment');
+            cssNode.rawHtml = `<link rel="stylesheet" href="${a1}">`;
+            currentContainer().children.push(cssNode);
+          } else {
+            const incNode = createNode('comment');
+            incNode.rawHtml = `<!-- incluir: ${a1} -->`;
+            currentContainer().children.push(incNode);
+          }
           lastCreatedNode = null;
           break;
 
@@ -684,7 +694,7 @@
   <meta charset="UTF-8">
   <title>${title}</title>
   <style>
-    body { font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; margin: 16px; box-sizing: border-box; }
+    body { background-color: #000000; color: #ffffff; font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; margin: 16px; box-sizing: border-box; }
     *, *:before, *:after { box-sizing: inherit; }
   </style>
 </head>
@@ -1137,8 +1147,8 @@ dividir(btn_div)(inp_a)(inp_b)(lbl_resultado)
 limpiar(btn_clr)(inp_a)`;
 
   const files = new Map([
-    ["main.rc", {type:"rc", content: initialRc}],
-    ["index.html", {type:"html", content: rcToHtml(initialRc)}]
+    ["main.rc", {type:"rc", content: ""}],
+    ["index.html", {type:"html", content: ""}]
   ]);
   const active = {rc:"main.rc", html:"index.html"};
   const editors = {rc:document.getElementById("rcEditor"), html:document.getElementById("htmlEditor")};
@@ -1153,7 +1163,11 @@ limpiar(btn_clr)(inp_a)`;
   function updateLivePreview(htmlContent) {
     const frame = document.getElementById("previewFrame");
     if (frame) {
-      frame.srcdoc = htmlContent;
+      if (!htmlContent || !htmlContent.trim()) {
+        frame.srcdoc = '<!DOCTYPE html><html><head><style>html,body{background:#000000;color:#ffffff;margin:0;height:100%}</style></head><body></body></html>';
+      } else {
+        frame.srcdoc = htmlContent;
+      }
     }
   }
 
@@ -1384,8 +1398,28 @@ limpiar(btn_clr)(inp_a)`;
     });
   }
 
-  document.getElementById("newRc").onclick = () => createFile("rc");
-  document.getElementById("newHtml").onclick = () => createFile("html");
+  function createFilePrompt() {
+    saveCurrentContent("rc"); saveCurrentContent("html");
+    const requested = prompt("Nombre del nuevo archivo (ej: script.js, estilo.css, main.rc, pagina.html):", "script.js");
+    if (requested === null) return;
+    let base = requested.trim().replace(/[\\\\/:*?"<>|]/g, "");
+    if (!base) { notify("Escribe un nombre válido."); return; }
+
+    let type = "rc";
+    if (base.toLowerCase().endsWith(".html") || base.toLowerCase().endsWith(".htm")) type = "html";
+    else if (base.toLowerCase().endsWith(".rc")) type = "rc";
+
+    if (files.has(base)) { notify("Ya existe un archivo con ese nombre."); return; }
+
+    files.set(base, {type, content: ""});
+    active[type] = base;
+    if (panelSel) applyPanelMode(panelSel.value);
+    renderAll();
+    if (editors[type]) editors[type].focus();
+    notify("Archivo creado: " + base);
+  }
+
+  document.getElementById("newFile").onclick = createFilePrompt;
   document.getElementById("toggleExplorer").onclick = () => {
     explorer.classList.toggle("hidden");
     document.getElementById("toggleExplorer").setAttribute("aria-expanded", String(!explorer.classList.contains("hidden")));
