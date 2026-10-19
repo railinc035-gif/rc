@@ -190,7 +190,7 @@
     }
 
     function currentTargetForStyle() {
-      if (lastCreatedNode && !['section', 'body'].includes(lastCreatedNode.tag)) {
+      if (lastCreatedNode && lastCreatedNode.tag !== 'body') {
         return lastCreatedNode;
       }
       return currentContainer();
@@ -284,7 +284,6 @@
           const gridNode = createNode('div', '', 'rejilla', true);
           gridNode.styles.push('display: grid;');
           gridNode.styles.push(`grid-template-columns: repeat(${cols}, 1fr);`);
-          gridNode.styles.push('gap: 10px;');
           addChild(gridNode);
           break;
 
@@ -742,75 +741,21 @@ ${bodyChildren}${scriptBlock}
   function parseScriptContent(scriptText, rcLines) {
     if (!scriptText) return;
 
-    const blocks = scriptText.split(/\n+/);
+    // Normalize script lines
+    const lines = scriptText.split('\n');
 
-    blocks.forEach(block => {
-      block = block.trim();
-      if (!block) return;
+    lines.forEach(rawLine => {
+      const line = rawLine.trim();
+      if (!line) return;
 
       let m;
-      if ((m = block.match(/getElementById\(['"]([^'"]+)['"]\)(?:\?)?\.addEventListener\(['"]click['"]\s*,\s*(?:\(\)\s*=>|function\s*\(\)\s*\{)\s*alert\(['"]([^'"]+)['"]\)/))) {
+      if ((m = line.match(/getElementById\(['"]([^'"]+)['"]\)(?:\?)?\.addEventListener\(['"]click['"]\s*,\s*(?:\(\)\s*=>|function\s*\(\)\s*\{)\s*alert\(['"]([^'"]+)['"]\)/))) {
         rcLines.push(`avisar(${cleanParam(m[1]).toLowerCase()})(${cleanParam(m[2]).toLowerCase()})`);
-      } else if ((m = block.match(/getElementById\(['"]([^'"]+)['"]\)(?:\?)?\.addEventListener\(['"]click['"]\s*,\s*(?:\(\)\s*=>|function\s*\(\)\s*\{)\s*window\.location\.href\s*=\s*['"]([^'"]+)['"]/))) {
+      } else if ((m = line.match(/getElementById\(['"]([^'"]+)['"]\)(?:\?)?\.addEventListener\(['"]click['"]\s*,\s*(?:\(\)\s*=>|function\s*\(\)\s*\{)\s*window\.location\.href\s*=\s*['"]([^'"]+)['"]/))) {
         rcLines.push(`ira(${cleanParam(m[1]).toLowerCase()})(${cleanParam(m[2])})`);
-      } else if (block.includes("style.display") && block.includes("=== 'none'")) {
-        const ids = [...block.matchAll(/getElementById\(['"]([^'"]+)['"]\)/g)].map(x => cleanParam(x[1]).toLowerCase());
-        if (ids.length >= 2) rcLines.push(`alternar(${ids[0]})(${ids[1]})`);
-      } else if (block.includes("style.display") && block.includes("'none'")) {
-        const ids = [...block.matchAll(/getElementById\(['"]([^'"]+)['"]\)/g)].map(x => cleanParam(x[1]).toLowerCase());
-        if (ids.length >= 2) rcLines.push(`ocultarboton(${ids[0]})(${ids[1]})`);
-      } else if (block.includes("style.display") && block.includes("'block'")) {
-        const ids = [...block.matchAll(/getElementById\(['"]([^'"]+)['"]\)/g)].map(x => cleanParam(x[1]).toLowerCase());
-        if (ids.length >= 2) rcLines.push(`mostrarboton(${ids[0]})(${ids[1]})`);
-      } else if (block.includes(".value = ''") || block.includes('.value=""')) {
-        const ids = [...block.matchAll(/getElementById\(['"]([^'"]+)['"]\)/g)].map(x => cleanParam(x[1]).toLowerCase());
-        if (ids.length >= 2) rcLines.push(`limpiar(${ids[0]})(${ids[1]})`);
-      } else if (block.includes("setAttribute('disabled'")) {
-        m = block.match(/getElementById\(['"]([^'"]+)['"]\)/);
-        if (m) rcLines.push(`deshabilitar(${cleanParam(m[1]).toLowerCase()})`);
-      } else if (block.includes("removeAttribute('disabled'")) {
-        m = block.match(/getElementById\(['"]([^'"]+)['"]\)/);
-        if (m) rcLines.push(`habilitar(${cleanParam(m[1]).toLowerCase()})`);
-      } else if (block.includes("clearRect")) {
-        const ids = [...block.matchAll(/getElementById\(['"]([^'"]+)['"]\)/g)].map(x => cleanParam(x[1]).toLowerCase());
-        if (ids.length >= 2) rcLines.push(`limpiarlienzo(${ids[0]})(${ids[1]})`);
-      } else if (block.includes("clipboard.writeText")) {
-        const ids = [...block.matchAll(/getElementById\(['"]([^'"]+)['"]\)/g)].map(x => cleanParam(x[1]).toLowerCase());
-        if (ids.length >= 2) rcLines.push(`copiartexto(${ids[0]})(${ids[1]})`);
-      } else if (block.includes("+") && block.includes("parseFloat") && !block.includes("v1")) {
-        const ids = [...block.matchAll(/getElementById\(['"]([^'"]+)['"]\)/g)].map(x => cleanParam(x[1]).toLowerCase());
-        const stepM = block.match(/\+\s*(\d+(?:\.\d+)?)/);
-        const step = stepM ? stepM[1] : '1';
-        if (ids.length >= 2) rcLines.push(`incrementar(${ids[0]})(${ids[1]})(${step})`);
-      } else if (block.includes("-") && block.includes("parseFloat") && !block.includes("v1")) {
-        const ids = [...block.matchAll(/getElementById\(['"]([^'"]+)['"]\)/g)].map(x => cleanParam(x[1]).toLowerCase());
-        const stepM = block.match(/-\s*(\d+(?:\.\d+)?)/);
-        const step = stepM ? stepM[1] : '1';
-        if (ids.length >= 2) rcLines.push(`decrementar(${ids[0]})(${ids[1]})(${step})`);
-      } else if (block.includes("localStorage.setItem")) {
-        const ids = [...block.matchAll(/getElementById\(['"]([^'"]+)['"]\)/g)].map(x => cleanParam(x[1]).toLowerCase());
-        const keyM = block.match(/localStorage\.setItem\(['"]([^'"]+)['"]/);
-        if (ids.length >= 1 && keyM) {
-          const btn = ids[0];
-          const key = cleanParam(keyM[1]).toLowerCase();
-          const target = ids[1] || 'inp1';
-          rcLines.push(`guardarlocal(${btn})(${key})(${target})`);
-        }
-      } else if (block.includes("localStorage.getItem")) {
-        const keyM = block.match(/localStorage\.getItem\(['"]([^'"]+)['"]/);
-        const targetM = block.match(/getElementById\(['"]([^'"]+)['"]\)/);
-        if (keyM && targetM) {
-          rcLines.push(`cargarlocal(${cleanParam(keyM[1]).toLowerCase()})(${cleanParam(targetM[1]).toLowerCase()})`);
-        }
-      } else if (block.includes("style.setProperty('display', 'none')")) {
-        m = block.match(/getElementById\(['"]([^'"]+)['"]\)/);
-        if (m) rcLines.push(`ocultar(${cleanParam(m[1]).toLowerCase()})`);
-      } else if (block.includes("style.setProperty('display', 'block')")) {
-        m = block.match(/getElementById\(['"]([^'"]+)['"]\)/);
-        if (m) rcLines.push(`mostrar(${cleanParam(m[1]).toLowerCase()})`);
-      } else if (block.includes("v1") && block.includes("v2")) {
-        const ids = [...block.matchAll(/getElementById\(['"]([^'"]+)['"]\)/g)].map(x => cleanParam(x[1]).toLowerCase());
-        const opM = block.match(/v1\s*([+\-*\/])\s*v2/);
+      } else if (line.includes("v1") && line.includes("v2")) {
+        const ids = [...line.matchAll(/getElementById\(['"]([^'"]+)['"]\)/g)].map(x => cleanParam(x[1]).toLowerCase());
+        const opM = line.match(/v1\s*([+\-*\/])\s*v2/);
         if (ids.length >= 4 && opM) {
           const btn = ids[0], in1 = ids[1], in2 = ids[2], lbl = ids[3], op = opM[1];
           let cmd = 'sumar';
@@ -819,6 +764,61 @@ ${bodyChildren}${scriptBlock}
           else if (op === '/') cmd = 'dividir';
           rcLines.push(`${cmd}(${btn})(${in1})(${in2})(${lbl})`);
         }
+      } else if (line.includes("style.display") && line.includes("=== 'none'")) {
+        const ids = [...line.matchAll(/getElementById\(['"]([^'"]+)['"]\)/g)].map(x => cleanParam(x[1]).toLowerCase());
+        if (ids.length >= 2) rcLines.push(`alternar(${ids[0]})(${ids[1]})`);
+      } else if (line.includes("style.display") && line.includes("'none'") && !line.includes("style.setProperty")) {
+        const ids = [...line.matchAll(/getElementById\(['"]([^'"]+)['"]\)/g)].map(x => cleanParam(x[1]).toLowerCase());
+        if (ids.length >= 2) rcLines.push(`ocultarboton(${ids[0]})(${ids[1]})`);
+      } else if (line.includes("style.display") && line.includes("'block'") && !line.includes("style.setProperty")) {
+        const ids = [...line.matchAll(/getElementById\(['"]([^'"]+)['"]\)/g)].map(x => cleanParam(x[1]).toLowerCase());
+        if (ids.length >= 2) rcLines.push(`mostrarboton(${ids[0]})(${ids[1]})`);
+      } else if (line.includes(".value = ''") || line.includes('.value=""')) {
+        const ids = [...line.matchAll(/getElementById\(['"]([^'"]+)['"]\)/g)].map(x => cleanParam(x[1]).toLowerCase());
+        if (ids.length >= 2) rcLines.push(`limpiar(${ids[0]})(${ids[1]})`);
+      } else if (line.includes("setAttribute('disabled'")) {
+        m = line.match(/getElementById\(['"]([^'"]+)['"]\)/);
+        if (m) rcLines.push(`deshabilitar(${cleanParam(m[1]).toLowerCase()})`);
+      } else if (line.includes("removeAttribute('disabled'")) {
+        m = line.match(/getElementById\(['"]([^'"]+)['"]\)/);
+        if (m) rcLines.push(`habilitar(${cleanParam(m[1]).toLowerCase()})`);
+      } else if (line.includes("clearRect")) {
+        const ids = [...line.matchAll(/getElementById\(['"]([^'"]+)['"]\)/g)].map(x => cleanParam(x[1]).toLowerCase());
+        if (ids.length >= 2) rcLines.push(`limpiarlienzo(${ids[0]})(${ids[1]})`);
+      } else if (line.includes("clipboard.writeText")) {
+        const ids = [...line.matchAll(/getElementById\(['"]([^'"]+)['"]\)/g)].map(x => cleanParam(x[1]).toLowerCase());
+        if (ids.length >= 2) rcLines.push(`copiartexto(${ids[0]})(${ids[1]})`);
+      } else if (line.includes("+") && line.includes("parseFloat") && !line.includes("v1")) {
+        const ids = [...line.matchAll(/getElementById\(['"]([^'"]+)['"]\)/g)].map(x => cleanParam(x[1]).toLowerCase());
+        const stepM = line.match(/\+\s*(\d+(?:\.\d+)?)/);
+        const step = stepM ? stepM[1] : '1';
+        if (ids.length >= 2) rcLines.push(`incrementar(${ids[0]})(${ids[1]})(${step})`);
+      } else if (line.includes("-") && line.includes("parseFloat") && !line.includes("v1")) {
+        const ids = [...line.matchAll(/getElementById\(['"]([^'"]+)['"]\)/g)].map(x => cleanParam(x[1]).toLowerCase());
+        const stepM = line.match(/-\s*(\d+(?:\.\d+)?)/);
+        const step = stepM ? stepM[1] : '1';
+        if (ids.length >= 2) rcLines.push(`decrementar(${ids[0]})(${ids[1]})(${step})`);
+      } else if (line.includes("localStorage.setItem")) {
+        const ids = [...line.matchAll(/getElementById\(['"]([^'"]+)['"]\)/g)].map(x => cleanParam(x[1]).toLowerCase());
+        const keyM = line.match(/localStorage\.setItem\(['"]([^'"]+)['"]/);
+        if (ids.length >= 1 && keyM) {
+          const btn = ids[0];
+          const key = cleanParam(keyM[1]).toLowerCase();
+          const target = ids[1] || 'inp1';
+          rcLines.push(`guardarlocal(${btn})(${key})(${target})`);
+        }
+      } else if (line.includes("localStorage.getItem")) {
+        const keyM = line.match(/localStorage\.getItem\(['"]([^'"]+)['"]/);
+        const targetM = line.match(/getElementById\(['"]([^'"]+)['"]\)/);
+        if (keyM && targetM) {
+          rcLines.push(`cargarlocal(${cleanParam(keyM[1]).toLowerCase()})(${cleanParam(targetM[1]).toLowerCase()})`);
+        }
+      } else if (line.includes("style.setProperty('display', 'none')")) {
+        m = line.match(/getElementById\(['"]([^'"]+)['"]\)/);
+        if (m) rcLines.push(`ocultar(${cleanParam(m[1]).toLowerCase()})`);
+      } else if (line.includes("style.setProperty('display', 'block')")) {
+        m = line.match(/getElementById\(['"]([^'"]+)['"]\)/);
+        if (m) rcLines.push(`mostrar(${cleanParam(m[1]).toLowerCase()})`);
       }
     });
   }
@@ -840,6 +840,16 @@ ${bodyChildren}${scriptBlock}
       parseStyleString(body.getAttribute('style') || '', rcLines);
     }
 
+    let idCounters = {};
+    function getOrGenId(node, prefix) {
+      let id = cleanParam(node.getAttribute('id') || '');
+      if (!id) {
+        idCounters[prefix] = (idCounters[prefix] || 0) + 1;
+        id = `${prefix}_${idCounters[prefix]}`;
+      }
+      return id;
+    }
+
     function traverse(node) {
       if (!node) return;
 
@@ -857,11 +867,11 @@ ${bodyChildren}${scriptBlock}
       if (node.nodeType !== 1) return;
 
       const tag = node.tagName.toLowerCase();
-      const id = cleanParam(node.getAttribute('id') || '');
       const styleAttr = node.getAttribute('style') || '';
 
       const onclick = node.getAttribute('onclick');
-      if (onclick && id) {
+      if (onclick) {
+        const id = getOrGenId(node, 'btn');
         let m = onclick.match(/alert\(['"]([^'"]+)['"]\)/);
         if (m) rcLines.push(`avisar(${id})(${cleanParam(m[1])})`);
 
@@ -884,15 +894,17 @@ ${bodyChildren}${scriptBlock}
         case 'footer':
         case 'nav':
           if (tag === 'section') {
-            rcLines.push(`seccion(${id || 'seccion1'})`);
-          } else if (id) {
+            const id = getOrGenId(node, 'sec');
+            rcLines.push(`seccion(${id})`);
+          } else {
+            const id = getOrGenId(node, 'box');
             rcLines.push(`contenedor(${id})`);
           }
           parseStyleString(styleAttr, rcLines);
           node.childNodes.forEach(traverse);
           if (tag === 'section') {
             rcLines.push(`finseccion`);
-          } else if (id) {
+          } else {
             rcLines.push(`fincontenedor`);
           }
           break;
@@ -908,17 +920,13 @@ ${bodyChildren}${scriptBlock}
             rcLines.push(`finrejilla`);
           } else if (cls.includes('cargando')) {
             rcLines.push('cargando');
-          } else if (id) {
+            parseStyleString(styleAttr, rcLines);
+          } else {
+            const id = getOrGenId(node, 'div');
             rcLines.push(`contenedor(${id})`);
             parseStyleString(styleAttr, rcLines);
             node.childNodes.forEach(traverse);
             rcLines.push(`fincontenedor`);
-          } else if (node.children.length > 0) {
-            parseStyleString(styleAttr, rcLines);
-            node.childNodes.forEach(traverse);
-          } else {
-            const txt = cleanParam(node.textContent);
-            if (txt) rcLines.push(`bloque(${txt})`);
           }
           break;
 
@@ -928,127 +936,156 @@ ${bodyChildren}${scriptBlock}
 
         case 'p':
           rcLines.push(`parrafo(${cleanParam(node.textContent)})`);
+          parseStyleString(styleAttr, rcLines);
           break;
 
         case 'h1': case 'h2': case 'h3': case 'h4': case 'h5': case 'h6':
           const lvl = tag.slice(1);
           rcLines.push(`encabezado(${lvl})(${cleanParam(node.textContent)})`);
+          parseStyleString(styleAttr, rcLines);
           break;
 
         case 'b': case 'strong':
           rcLines.push(`negrita(${cleanParam(node.textContent)})`);
+          parseStyleString(styleAttr, rcLines);
           break;
 
         case 'i': case 'em':
           rcLines.push(`cursiva(${cleanParam(node.textContent)})`);
+          parseStyleString(styleAttr, rcLines);
           break;
 
         case 'u':
           rcLines.push(`subrayado(${cleanParam(node.textContent)})`);
+          parseStyleString(styleAttr, rcLines);
           break;
 
         case 'span':
-          if (id) {
-            rcLines.push(`etiqueta(${id})(${cleanParam(node.textContent)})`);
+          const spanId = cleanParam(node.getAttribute('id') || '');
+          if (spanId) {
+            rcLines.push(`etiqueta(${spanId})(${cleanParam(node.textContent)})`);
           } else {
             rcLines.push(`texto(${cleanParam(node.textContent)})`);
           }
+          parseStyleString(styleAttr, rcLines);
           break;
 
         case 'blockquote':
           rcLines.push(`cita(${cleanParam(node.textContent)})`);
+          parseStyleString(styleAttr, rcLines);
           break;
 
         case 'code':
           rcLines.push(`codigo(${cleanParam(node.textContent)})`);
+          parseStyleString(styleAttr, rcLines);
           break;
 
         case 'a':
           const href = cleanParam(node.getAttribute('href') || '#');
           rcLines.push(`enlace(${href})(${cleanParam(node.textContent)})`);
+          parseStyleString(styleAttr, rcLines);
           break;
 
         case 'img':
           const src = cleanParam(node.getAttribute('src') || '');
           rcLines.push(`imagen(${src})`);
+          parseStyleString(styleAttr, rcLines);
           break;
 
         case 'ul':
           rcLines.push('listadesordenada');
+          parseStyleString(styleAttr, rcLines);
           node.childNodes.forEach(traverse);
           rcLines.push('finlista');
           break;
 
         case 'ol':
           rcLines.push('listaordenada');
+          parseStyleString(styleAttr, rcLines);
           node.childNodes.forEach(traverse);
           rcLines.push('finlista');
           break;
 
         case 'li':
           rcLines.push(`elementolista(${cleanParam(node.textContent)})`);
+          parseStyleString(styleAttr, rcLines);
           break;
 
         case 'table':
           rcLines.push('tabla');
+          parseStyleString(styleAttr, rcLines);
           node.childNodes.forEach(traverse);
           rcLines.push('fintabla');
           break;
 
         case 'tr':
           rcLines.push('filatabla');
+          parseStyleString(styleAttr, rcLines);
           node.childNodes.forEach(traverse);
           rcLines.push('finfilatabla');
           break;
 
         case 'th':
           rcLines.push(`encabezadotabla(${cleanParam(node.textContent)})`);
+          parseStyleString(styleAttr, rcLines);
           break;
 
         case 'td':
           rcLines.push(`celdatabla(${cleanParam(node.textContent)})`);
+          parseStyleString(styleAttr, rcLines);
           break;
 
         case 'button':
-          rcLines.push(`boton(${id || 'btn1'})(${cleanParam(node.textContent)})`);
+          const btnId = getOrGenId(node, 'btn');
+          rcLines.push(`boton(${btnId})(${cleanParam(node.textContent)})`);
+          parseStyleString(styleAttr, rcLines);
           break;
 
         case 'label':
           const chk = node.querySelector('input[type="checkbox"]');
           if (chk) {
-            const chkId = cleanParam(chk.getAttribute('id') || 'chk1');
+            const chkId = getOrGenId(chk, 'chk');
             const txt = cleanParam(node.textContent);
             rcLines.push(`campochequeo(${chkId})(${txt})`);
           } else {
             rcLines.push(`etiquetacampo(${cleanParam(node.textContent)})`);
           }
+          parseStyleString(styleAttr, rcLines);
           break;
 
         case 'canvas':
-          rcLines.push(`lienzo(${id || 'lienzo1'})`);
+          const cnvId = getOrGenId(node, 'lienzo');
+          rcLines.push(`lienzo(${cnvId})`);
+          parseStyleString(styleAttr, rcLines);
           break;
 
         case 'textarea':
-          rcLines.push(`areatexto(${id || 'txt1'})(${cleanParam(node.value || node.textContent)})`);
+          const areaId = getOrGenId(node, 'txt');
+          rcLines.push(`areatexto(${areaId})(${cleanParam(node.value || node.textContent)})`);
           parseStyleString(styleAttr, rcLines);
           break;
 
         case 'input':
+          const inpId = getOrGenId(node, 'inp');
           const type = (node.getAttribute('type') || 'text').toLowerCase();
           const val = cleanParam(node.getAttribute('value') || '');
-          if (type === 'text') rcLines.push(`entrada(${id || 'inp1'})(${val})`);
-          else if (type === 'number') rcLines.push(`camponumero(${id || 'num1'})(${val})`);
-          else if (type === 'email') rcLines.push(`campocorreo(${id || 'email1'})(${val})`);
-          else if (type === 'password') rcLines.push(`campocontrasena(${id || 'pass1'})`);
-          else if (type === 'date') rcLines.push(`campofecha(${id || 'fec1'})`);
+          if (type === 'text') rcLines.push(`entrada(${inpId})(${val})`);
+          else if (type === 'number') rcLines.push(`camponumero(${inpId})(${val})`);
+          else if (type === 'email') rcLines.push(`campocorreo(${inpId})(${val})`);
+          else if (type === 'password') rcLines.push(`campocontrasena(${inpId})`);
+          else if (type === 'date') rcLines.push(`campofecha(${inpId})`);
+          parseStyleString(styleAttr, rcLines);
           break;
 
         case 'select':
-          rcLines.push(`desplegable(${id || 'sel1'})`);
+          const selId = getOrGenId(node, 'sel');
+          rcLines.push(`desplegable(${selId})`);
+          parseStyleString(styleAttr, rcLines);
           break;
 
         case 'progress':
           rcLines.push('cargando');
+          parseStyleString(styleAttr, rcLines);
           break;
 
         case 'script':
