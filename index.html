@@ -78,8 +78,8 @@
     <div class="tabs">
       <button class="tab active" style="pointer-events:none;">Vista Previa ▶</button>
     </div>
-    <div class="editor-body" style="background:#000000;">
-      <iframe id="previewFrame" title="Vista Previa App" style="width:100%; height:100%; border:none; background:#000000;"></iframe>
+    <div class="editor-body" style="background:#ffffff;">
+      <iframe id="previewFrame" title="Vista Previa App" style="width:100%; height:100%; border:none; background:#ffffff;"></iframe>
     </div>
     <div class="status"><span>Ejecución en tiempo real</span></div>
   </section>
@@ -694,7 +694,7 @@
   <meta charset="UTF-8">
   <title>${title}</title>
   <style>
-    body { background-color: #000000; color: #ffffff; font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; margin: 16px; box-sizing: border-box; }
+    body { font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; margin: 16px; box-sizing: border-box; }
     *, *:before, *:after { box-sizing: inherit; }
   </style>
 </head>
@@ -1163,11 +1163,7 @@ limpiar(btn_clr)(inp_a)`;
   function updateLivePreview(htmlContent) {
     const frame = document.getElementById("previewFrame");
     if (frame) {
-      if (!htmlContent || !htmlContent.trim()) {
-        frame.srcdoc = '<!DOCTYPE html><html><head><style>html,body{background:#000000;color:#ffffff;margin:0;height:100%}</style></head><body></body></html>';
-      } else {
-        frame.srcdoc = htmlContent;
-      }
+      frame.srcdoc = htmlContent;
     }
   }
 
