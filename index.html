@@ -138,6 +138,35 @@
 </main>
 <div class="toast" id="toast" role="status"></div>
 
+<!-- Modal Exportar / Guardar RC Studio -->
+<div class="modal-overlay hidden" id="exportModal" role="dialog" aria-modal="true" aria-labelledby="exportTitle">
+  <div class="modal-content" style="max-width: 540px;">
+    <div class="modal-header">
+      <h2 id="exportTitle">Guardar / Exportar Proyecto</h2>
+      <button class="modal-close" id="closeExportModal" title="Cerrar modal">×</button>
+    </div>
+    <div class="modal-body">
+      <p style="margin: 0 0 12px 0; color: var(--muted); font-size: 13px;">
+        Selecciona el formato en el que deseas exportar tu aplicación. El código RC original es la fuente de verdad del proyecto.
+      </p>
+      <div style="display: flex; flex-direction: column; gap: 10px;">
+        <button id="exportRcBtn" style="text-align: left; padding: 12px 16px; border: 1px solid var(--line); border-radius: 8px; background: var(--panel2);">
+          <div style="font-weight: 600; color: var(--blue); font-size: 14px;">⭐ Guardar como RC (.rc)</div>
+          <div style="font-size: 12px; color: var(--muted); margin-top: 4px;">Guarda el código fuente RC original, editable y con todos sus comentarios.</div>
+        </button>
+        <button id="exportHtmlBtn" style="text-align: left; padding: 12px 16px; border: 1px solid var(--line); border-radius: 8px; background: var(--panel2);">
+          <div style="font-weight: 600; color: var(--orange); font-size: 14px;">🌐 Guardar como HTML (.html)</div>
+          <div style="font-size: 12px; color: var(--muted); margin-top: 4px;">Exporta un documento HTML standalone funcional con sus estilos CSS y scripts.</div>
+        </button>
+        <button id="exportCssBtn" style="text-align: left; padding: 12px 16px; border: 1px solid var(--line); border-radius: 8px; background: var(--panel2);">
+          <div style="font-weight: 600; color: #50fa7b; font-size: 14px;">🎨 Guardar como CSS (.css)</div>
+          <div style="font-size: 12px; color: var(--muted); margin-top: 4px;">Exporta las reglas y estilos CSS extraídos de las propiedades de diseño de la app RC.</div>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- Modal Diccionario RC -->
 <div class="modal-overlay hidden" id="dictModal" role="dialog" aria-modal="true" aria-labelledby="dictTitle">
   <div class="modal-content">
@@ -587,7 +616,7 @@
           break;
 
         case 'seccion':
-          if (!meta) closeContainerTag(['section']);
+          closeContainerTag(['section']);
           const secId = bracketId || cleanParam(a1);
           const secNode = createNode('section', secId, '', true);
           addChild(secNode);
@@ -1053,11 +1082,11 @@
 ${extraStyles}  <style>
     body { font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; margin: 16px; box-sizing: border-box; }
     *, *:before, *:after { box-sizing: inherit; }
-    button { cursor: pointer; padding: 10px 14px; font-size: 15px; border-radius: 8px; border: 1px solid #3d4454; background: #272c38; color: #ffffff; display: inline-block; box-sizing: border-box; transition: background 0.15s ease; }
+    button { cursor: pointer; padding: 10px 14px; font-size: 15px; border-radius: 8px; border: 1px solid #3d4454; background: #272c38; color: #ffffff; display: inline-block; vertical-align: middle; box-sizing: border-box; transition: background 0.15s ease; }
     button:hover { background: #383f50; }
     button:active { background: #1e222c; }
-    input[type="text"], input[type="number"], input[type="email"], input[type="password"], input[type="date"], textarea, select { width: 100%; padding: 10px; font-size: 15px; border-radius: 8px; border: 1px solid #3d4454; background: #151821; color: #ffffff; outline: none; }
-    .rejilla { display: grid; width: 100%; gap: 10px; }
+    input[type="text"], input[type="number"], input[type="email"], input[type="password"], input[type="date"], textarea, select { width: 100%; padding: 10px; font-size: 15px; border-radius: 8px; border: 1px solid #3d4454; background: #151821; color: #ffffff; outline: none; box-sizing: border-box; }
+    .rejilla { display: grid; width: 100%; gap: 10px; box-sizing: border-box; }
   </style>
 </head>
 <body${bodyClassAttr}${bodyStyleAttr}>
@@ -1728,10 +1757,11 @@ limpiar(btn_clr)(inp_a)`;
   let toastTimer;
   let isTranslating = false;
   let translateTimer = null;
+  let lastValidHtml = "";
 
   function updateLivePreview(htmlContent) {
     const frame = document.getElementById("previewFrame");
-    if (frame) {
+    if (frame && htmlContent) {
       frame.srcdoc = htmlContent;
     }
   }
@@ -1863,23 +1893,26 @@ limpiar(btn_clr)(inp_a)`;
           const rcVal = editors.rc.value;
           files.get(rcName).content = rcVal;
           const generatedHtml = rcToHtml(rcVal);
-          let htmlName = active.html;
-          if (!htmlName || !files.has(htmlName)) {
-            htmlName = "index.html";
-            files.set(htmlName, {type: "html", content: generatedHtml});
-            active.html = htmlName;
-            renderTabs("html");
-          } else {
-            files.get(htmlName).content = generatedHtml;
+          if (generatedHtml && rootNodeHasContent(rcVal)) {
+            lastValidHtml = generatedHtml;
+            let htmlName = active.html;
+            if (!htmlName || !files.has(htmlName)) {
+              htmlName = "index.html";
+              files.set(htmlName, {type: "html", content: generatedHtml});
+              active.html = htmlName;
+              renderTabs("html");
+            } else {
+              files.get(htmlName).content = generatedHtml;
+            }
+            const htmlEl = editors.html;
+            const start = htmlEl.selectionStart, end = htmlEl.selectionEnd;
+            htmlEl.value = generatedHtml;
+            if (document.activeElement === htmlEl) {
+              htmlEl.setSelectionRange(start, end);
+            }
+            updateLineNumbers("html");
+            document.getElementById("htmlStatusName").textContent = active.html;
           }
-          const htmlEl = editors.html;
-          const start = htmlEl.selectionStart, end = htmlEl.selectionEnd;
-          htmlEl.value = generatedHtml;
-          if (document.activeElement === htmlEl) {
-            htmlEl.setSelectionRange(start, end);
-          }
-          updateLineNumbers("html");
-          document.getElementById("htmlStatusName").textContent = active.html;
         }
       } else if (sourceType === "html") {
         const htmlName = active.html;
@@ -1904,15 +1937,47 @@ limpiar(btn_clr)(inp_a)`;
           }
           updateLineNumbers("rc");
           document.getElementById("rcStatusName").textContent = active.rc;
+
+          const renderedHtml = rcToHtml(generatedRc);
+          if (renderedHtml) lastValidHtml = renderedHtml;
         }
       }
+    } catch (e) {
+      console.warn("Error interpretando:", e);
     } finally {
       isTranslating = false;
       saveState();
       updateHighlight("rc");
       updateHighlight("html");
-      updateLivePreview(editors.html ? editors.html.value : "");
+      if (lastValidHtml) {
+        updateLivePreview(lastValidHtml);
+      }
     }
+  }
+
+  const VALID_RC_COMMANDS = new Set([
+    'incluir', 'titulo', 'seccion', 'contenedor', 'rejilla', 'linea', 'texto',
+    'encabezado', 'parrafo', 'negrita', 'cursiva', 'subrayado', 'etiqueta', 'bloque',
+    'cita', 'codigo', 'enlace', 'imagen', 'listadesordenada', 'listaordenada',
+    'elementolista', 'tabla', 'filatabla', 'encabezadotabla', 'celdatabla', 'boton',
+    'etiquetacampo', 'cargando', 'lienzo', 'areatexto', 'fondo', 'color', 'letra',
+    'tamano', 'ancho', 'alto', 'gap', 'margen', 'relleno', 'radio', 'centrar',
+    'alinearizquierda', 'alinearderecha', 'borde', 'sombra', 'transparencia',
+    'ocultar', 'mostrar', 'flotante', 'desplazamiento', 'entrada', 'camponumero',
+    'campocorreo', 'campocontrasena', 'campofecha', 'campochequeo', 'desplegable',
+    'avisar', 'ira', 'ocultarboton', 'mostrarboton', 'alternar', 'limpiar',
+    'limpiarlienzo', 'deshabilitar', 'habilitar', 'copiartexto', 'sumar', 'restar',
+    'multiplicar', 'dividir', 'incrementar', 'decrementar', 'guardarlocal', 'cargarlocal',
+    'fin', 'finseccion', 'fincontenedor', 'finrejilla', 'finlista', 'fintabla', 'finfilatabla'
+  ]);
+
+  function rootNodeHasContent(rcCode) {
+    if (!rcCode || !rcCode.trim()) return false;
+    const lines = rcCode.split('\n');
+    return lines.some(l => {
+      const parsed = parseRcLine(l);
+      return parsed && parsed.cmd && VALID_RC_COMMANDS.has(parsed.cmd) && !['titulo', 'incluir'].includes(parsed.cmd);
+    });
   }
 
   function debounceTranslate(sourceType) {
@@ -2085,17 +2150,94 @@ limpiar(btn_clr)(inp_a)`;
     explorer.classList.add("hidden");
     document.getElementById("toggleExplorer").setAttribute("aria-expanded", "false");
   };
+  function downloadFile(filename, content, type = "text/plain;charset=utf-8") {
+    const blob = new Blob([content], { type });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    a.click();
+    URL.revokeObjectURL(url);
+    notify("Descargando " + filename);
+  }
+
+  function extractCssFromRc(rcCode) {
+    const html = rcToHtml(rcCode);
+    if (!html) return '/* No CSS generado */\n';
+
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(html, 'text/html');
+    let cssText = '/* CSS generado automáticamente desde RC Studio */\n\n';
+
+    doc.querySelectorAll('style').forEach(styleEl => {
+      const content = styleEl.textContent.trim();
+      if (content) {
+        cssText += content + '\n\n';
+      }
+    });
+
+    cssText += '/* Estilos de elementos */\n';
+    doc.querySelectorAll('[style]').forEach(el => {
+      const styleAttr = el.getAttribute('style');
+      if (!styleAttr || !styleAttr.trim()) return;
+
+      let selector = '';
+      if (el.getAttribute('id')) {
+        selector = '#' + el.getAttribute('id');
+      } else if (el.getAttribute('class')) {
+        selector = '.' + el.getAttribute('class').split(/\s+/).join('.');
+      } else {
+        selector = el.tagName.toLowerCase();
+      }
+
+      cssText += `${selector} {\n  ${styleAttr.split(';').map(s => s.trim()).filter(Boolean).join(';\n  ')};\n}\n\n`;
+    });
+
+    return cssText;
+  }
+
+  const exportModal = document.getElementById("exportModal");
+  const closeExportModal = document.getElementById("closeExportModal");
+
+  function showExportModal() {
+    if (exportModal) exportModal.classList.remove("hidden");
+  }
+
+  function hideExportModal() {
+    if (exportModal) exportModal.classList.add("hidden");
+  }
+
   document.getElementById("saveBtn").onclick = () => {
-    saveCurrentContent("rc"); saveCurrentContent("html");
-    const focused = document.activeElement === editors.html ? "html" :
-      document.activeElement === editors.rc ? "rc" :
-      (active.rc && active.html ? (active.html === document.getElementById("htmlStatusName").textContent ? "html" : "rc") : (active.rc ? "rc" : "html"));
-    const name = active[focused];
-    if (!name || !files.has(name)) { notify("No hay un archivo abierto para guardar."); return; }
-    const blob = new Blob([files.get(name).content], {type:"text/plain;charset=utf-8"});
-    const url = URL.createObjectURL(blob), a = document.createElement("a");
-    a.href = url; a.download = name; a.click(); URL.revokeObjectURL(url);
-    notify("Descargando " + name);
+    saveCurrentContent("rc");
+    showExportModal();
+  };
+
+  if (closeExportModal) closeExportModal.onclick = hideExportModal;
+  if (exportModal) {
+    exportModal.onclick = (e) => {
+      if (e.target === exportModal) hideExportModal();
+    };
+  }
+
+  document.getElementById("exportRcBtn").onclick = () => {
+    hideExportModal();
+    const name = active.rc || "main.rc";
+    const content = editors.rc.value;
+    downloadFile(name.endsWith('.rc') ? name : name + '.rc', content);
+  };
+
+  document.getElementById("exportHtmlBtn").onclick = () => {
+    hideExportModal();
+    const baseName = (active.rc || "app.rc").replace(/\.rc$/i, '');
+    const content = rcToHtml(editors.rc.value);
+    downloadFile(`${baseName}.html`, content, "text/html;charset=utf-8");
+  };
+
+  document.getElementById("exportCssBtn").onclick = () => {
+    hideExportModal();
+    const baseName = (active.rc || "app.rc").replace(/\.rc$/i, '');
+    const content = extractCssFromRc(editors.rc.value);
+    downloadFile(`${baseName}.css`, content, "text/css;charset=utf-8");
   };
   
   if (panelSel) {
