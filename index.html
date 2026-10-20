@@ -168,20 +168,20 @@
         <div class="dict-category">
           <h4>I. Estructura y Contenido (Comandos 1 - 30)</h4>
           <div class="cmd-list">
-            <div class="cmd-item"><code>incluir(archivo)</code><span>Incluye un módulo o archivo externo RC</span></div>
+            <div class="cmd-item"><code>incluir(archivo)</code><span>Incluye otro archivo RC del proyecto</span></div>
             <div class="cmd-item"><code>titulo(texto)</code><span>Define el título de la página/aplicación</span></div>
-            <div class="cmd-item"><code>seccion(id)</code><span>Abre un contenedor tipo sección (&lt;section&gt;)</span></div>
-            <div class="cmd-item"><code>contenedor(id)</code><span>Abre un contenedor multipropósito (&lt;div&gt;)</span></div>
-            <div class="cmd-item"><code>rejilla(columnas)</code><span>Abre una cuadrícula CSS Grid de N columnas</span></div>
+            <div class="cmd-item"><code>seccion(nombre)</code><span>Crea un contenedor tipo sección</span></div>
+            <div class="cmd-item"><code>contenedor(id)</code><span>Crea un contenedor multipropósito</span></div>
+            <div class="cmd-item"><code>rejilla(columnas)</code><span>Crea una cuadrícula CSS Grid de N columnas</span></div>
             <div class="cmd-item"><code>linea</code><span>Inserta una línea divisoria horizontal (&lt;hr&gt;)</span></div>
-            <div class="cmd-item"><code>texto(texto)</code><span>Inserta un bloque de texto libre (&lt;span&gt;)</span></div>
-            <div class="cmd-item"><code>parrafo(texto)</code><span>Inserta un párrafo de texto (&lt;p&gt;)</span></div>
-            <div class="cmd-item"><code>encabezado(nivel)(texto)</code><span>Inserta un encabezado jerárquico (&lt;h1&gt; a &lt;h6&gt;)</span></div>
+            <div class="cmd-item"><code>texto(mensaje)</code><span>Inserta un mensaje de texto libre</span></div>
+            <div class="cmd-item"><code>encabezado(nivel)(mensaje)</code><span>Inserta un encabezado jerárquico del 1 al 6</span></div>
+            <div class="cmd-item"><code>parrafo(mensaje)</code><span>Inserta un párrafo de texto (&lt;p&gt;)</span></div>
             <div class="cmd-item"><code>negrita(texto)</code><span>Aplica formato de texto en negrita (&lt;b&gt;)</span></div>
             <div class="cmd-item"><code>cursiva(texto)</code><span>Aplica formato de texto en cursiva (&lt;i&gt;)</span></div>
             <div class="cmd-item"><code>subrayado(texto)</code><span>Aplica formato de texto subrayado (&lt;u&gt;)</span></div>
-            <div class="cmd-item"><code>etiqueta(id)(texto)</code><span>Crea una etiqueta con ID (&lt;span&gt;)</span></div>
-            <div class="cmd-item"><code>bloque(texto)</code><span>Inserta un bloque de texto (&lt;div&gt;)</span></div>
+            <div class="cmd-item"><code>etiqueta(id)(texto)</code><span>Crea una etiqueta identificable por ID</span></div>
+            <div class="cmd-item"><code>bloque(texto)</code><span>Inserta un bloque contenedor de texto</span></div>
             <div class="cmd-item"><code>cita(texto)</code><span>Inserta una cita destacada (&lt;blockquote&gt;)</span></div>
             <div class="cmd-item"><code>codigo(texto)</code><span>Inserta un fragmento de código (&lt;code&gt;)</span></div>
             <div class="cmd-item"><code>enlace(url)(texto)</code><span>Crea un hipervínculo (&lt;a href="..."&gt;)</span></div>
@@ -193,17 +193,17 @@
             <div class="cmd-item"><code>filatabla</code><span>Inicia una fila de tabla (&lt;tr&gt;)</span></div>
             <div class="cmd-item"><code>encabezadotabla(texto)</code><span>Inserta una celda de encabezado (&lt;th&gt;)</span></div>
             <div class="cmd-item"><code>celdatabla(texto)</code><span>Inserta una celda de datos (&lt;td&gt;)</span></div>
-            <div class="cmd-item"><code>fin</code><span>Cierra el contenedor o estructura activa</span></div>
-            <div class="cmd-item"><code>finseccion</code><span>Cierra el bloque de sección actual (&lt;/section&gt;)</span></div>
-            <div class="cmd-item"><code>fincontenedor</code><span>Cierra el contenedor actual (&lt;/div&gt;)</span></div>
-            <div class="cmd-item"><code>finrejilla</code><span>Cierra la rejilla CSS grid (&lt;/div&gt;)</span></div>
-            <div class="cmd-item"><code>finlista</code><span>Cierra lista (&lt;/ul&gt;/&lt;/ol&gt;) o tabla (&lt;/table&gt;)</span></div>
+            <div class="cmd-item"><code>boton(id)(texto)</code><span>Crea un botón interactivo</span></div>
+            <div class="cmd-item"><code>etiquetacampo(texto)</code><span>Crea una etiqueta de formulario (&lt;label&gt;)</span></div>
+            <div class="cmd-item"><code>cargando</code><span>Inserta un indicador visual de carga</span></div>
+            <div class="cmd-item"><code>lienzo(id)</code><span>Crea un área de dibujo HTML5 Canvas</span></div>
+            <div class="cmd-item"><code>areatexto(id)(texto)</code><span>Crea un área de texto multilínea (&lt;textarea&gt;)</span></div>
           </div>
         </div>
 
         <!-- Categoría II -->
         <div class="dict-category">
-          <h4>II. Diseño y Estilos (Comandos 31 - 50)</h4>
+          <h4>II. Estilo y Diseño Visual (Comandos 31 - 50)</h4>
           <div class="cmd-list">
             <div class="cmd-item"><code>fondo(color)</code><span>Establece el color de fondo del elemento</span></div>
             <div class="cmd-item"><code>color(color)</code><span>Establece el color del texto</span></div>
@@ -218,13 +218,13 @@
             <div class="cmd-item"><code>centrar</code><span>Alinea o centra horizontalmente</span></div>
             <div class="cmd-item"><code>alinearizquierda</code><span>Alinea el texto a la izquierda</span></div>
             <div class="cmd-item"><code>alinearderecha</code><span>Alinea el texto a la derecha</span></div>
-            <div class="cmd-item"><code>borde(estilo)</code><span>Establece el borde o marco del elemento</span></div>
+            <div class="cmd-item"><code>borde(color)</code><span>Establece el borde del elemento</span></div>
             <div class="cmd-item"><code>sombra(nivel)</code><span>Aplica sombra con nivel de elevación</span></div>
             <div class="cmd-item"><code>transparencia(nivel)</code><span>Establece nivel de opacidad/transparencia (1 a 10)</span></div>
-            <div class="cmd-item"><code>flotante(posicion)</code><span>Establece posicionamiento (relative, absolute, fixed)</span></div>
-            <div class="cmd-item"><code>desplazamiento</code><span>Habilita barras de desplazamiento (overflow auto)</span></div>
             <div class="cmd-item"><code>ocultar(id)</code><span>Oculta el elemento especificado por ID</span></div>
             <div class="cmd-item"><code>mostrar(id)</code><span>Muestra el elemento especificado por ID</span></div>
+            <div class="cmd-item"><code>flotante(posicion)</code><span>Establece posicionamiento (relative, absolute, fixed)</span></div>
+            <div class="cmd-item"><code>desplazamiento</code><span>Habilita barras de desplazamiento (overflow auto)</span></div>
           </div>
         </div>
 
@@ -232,11 +232,6 @@
         <div class="dict-category">
           <h4>III. Campos, Eventos y Lógica (Comandos 51 - 75)</h4>
           <div class="cmd-list">
-            <div class="cmd-item"><code>boton(id)(texto)</code><span>Crea un botón interactivo</span></div>
-            <div class="cmd-item"><code>etiquetacampo(texto)</code><span>Crea una etiqueta de formulario (&lt;label&gt;)</span></div>
-            <div class="cmd-item"><code>cargando</code><span>Inserta un indicador visual de carga</span></div>
-            <div class="cmd-item"><code>lienzo(id)</code><span>Crea un área de dibujo HTML5 Canvas</span></div>
-            <div class="cmd-item"><code>areatexto(id)(texto)</code><span>Crea un área de texto multilínea (&lt;textarea&gt;)</span></div>
             <div class="cmd-item"><code>entrada(id)(valor)</code><span>Crea un campo de texto (&lt;input type="text"&gt;)</span></div>
             <div class="cmd-item"><code>camponumero(id)(valor)</code><span>Crea un campo numérico (&lt;input type="number"&gt;)</span></div>
             <div class="cmd-item"><code>campocorreo(id)(valor)</code><span>Crea un campo de correo (&lt;input type="email"&gt;)</span></div>
@@ -244,19 +239,24 @@
             <div class="cmd-item"><code>campofecha(id)</code><span>Crea un selector de fecha (&lt;input type="date"&gt;)</span></div>
             <div class="cmd-item"><code>campochequeo(id)(texto)</code><span>Crea una casilla de verificación (checkbox)</span></div>
             <div class="cmd-item"><code>desplegable(id)</code><span>Crea un menú desplegable (&lt;select&gt;)</span></div>
-            <div class="cmd-item"><code>avisar(id)(mensaje)</code><span>Muestra alerta al presionar un botón</span></div>
-            <div class="cmd-item"><code>ira(id)(url)</code><span>Navega a una URL al presionar un botón</span></div>
-            <div class="cmd-item"><code>ocultarboton(id_btn)(id_destino)</code><span>Oculta destino al hacer clic</span></div>
-            <div class="cmd-item"><code>mostrarboton(id_btn)(id_destino)</code><span>Muestra destino al hacer clic</span></div>
-            <div class="cmd-item"><code>alternar(id_btn)(id_destino)</code><span>Alterna visibilidad de destino al hacer clic</span></div>
-            <div class="cmd-item"><code>limpiar(id_btn)(id_destino)</code><span>Limpia el campo de entrada al hacer clic</span></div>
-            <div class="cmd-item"><code>limpiarlienzo(id_btn)(id_destino)</code><span>Limpia el lienzo canvas al hacer clic</span></div>
+            <div class="cmd-item"><code>avisar(idbtn)(mensaje)</code><span>Muestra alerta al presionar un botón</span></div>
+            <div class="cmd-item"><code>ira(idbtn)(url)</code><span>Navega a una URL al presionar un botón</span></div>
+            <div class="cmd-item"><code>ocultarboton(idbtn)(id)</code><span>Oculta el elemento objetivo al hacer clic</span></div>
+            <div class="cmd-item"><code>mostrarboton(idbtn)(id)</code><span>Muestra el elemento objetivo al hacer clic</span></div>
+            <div class="cmd-item"><code>alternar(idbtn)(id)</code><span>Alterna visibilidad del elemento objetivo al hacer clic</span></div>
+            <div class="cmd-item"><code>limpiar(idbtn)(idin)</code><span>Limpia el campo de entrada al hacer clic</span></div>
+            <div class="cmd-item"><code>limpiarlienzo(idbtn)(idlienzo)</code><span>Limpia el lienzo canvas al hacer clic</span></div>
             <div class="cmd-item"><code>deshabilitar(id)</code><span>Deshabilita un campo o botón</span></div>
             <div class="cmd-item"><code>habilitar(id)</code><span>Habilita un campo o botón</span></div>
-            <div class="cmd-item"><code>copiartexto(id_btn)(id_destino)</code><span>Copia el texto al portapapeles al hacer clic</span></div>
-            <div class="cmd-item"><code>sumar(id_btn)(in1)(in2)(lbl)</code><span>Suma valores de in1 e in2 y los muestra en lbl (también restar/multiplicar/dividir)</span></div>
-            <div class="cmd-item"><code>incrementar(id_btn)(destino)(paso)</code><span>Incrementa valor en destino según paso (también decrementar)</span></div>
-            <div class="cmd-item"><code>guardarlocal(id_btn)(clave)(origen)</code><span>Guarda en localStorage al hacer clic (también cargarlocal)</span></div>
+            <div class="cmd-item"><code>copiartexto(idbtn)(id)</code><span>Copia el contenido del elemento al portapapeles</span></div>
+            <div class="cmd-item"><code>sumar(idbtn)(in1)(in2)(lbl)</code><span>Suma valores de in1 e in2 y los muestra en lbl</span></div>
+            <div class="cmd-item"><code>restar(idbtn)(in1)(in2)(lbl)</code><span>Resta valores de in1 e in2 y los muestra en lbl</span></div>
+            <div class="cmd-item"><code>multiplicar(idbtn)(in1)(in2)(lbl)</code><span>Multiplica valores de in1 e in2 y los muestra en lbl</span></div>
+            <div class="cmd-item"><code>dividir(idbtn)(in1)(in2)(lbl)</code><span>Divide valores de in1 e in2 (maneja división por cero)</span></div>
+            <div class="cmd-item"><code>incrementar(idbtn)(id)(paso)</code><span>Incrementa valor en destino según el paso especificado</span></div>
+            <div class="cmd-item"><code>decrementar(idbtn)(id)(paso)</code><span>Decrementa valor en destino según el paso especificado</span></div>
+            <div class="cmd-item"><code>guardarlocal(idbtn)(clave)(idin)</code><span>Guarda en localStorage el valor del campo al pulsar el botón</span></div>
+            <div class="cmd-item"><code>cargarlocal(clave)(lbl)</code><span>Lee el valor almacenado y lo muestra en la etiqueta de destino</span></div>
           </div>
         </div>
       </div>
