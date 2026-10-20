@@ -488,6 +488,19 @@
           if (inArg) currentArg += ch;
         }
       }
+
+      if (args.length === 1 && args[0].includes(',')) {
+        const spec = RC_COMMANDS_SPEC[cmd];
+        const parts = args[0].split(',').map(s => s.trim());
+        if (spec && spec.params && spec.params.length > 0 && parts.length > spec.params.length) {
+          const maxParams = spec.params.length;
+          const firstParts = parts.slice(0, maxParams - 1);
+          const lastPart = parts.slice(maxParams - 1).join(',').trim();
+          args = [...firstParts, lastPart];
+        } else {
+          args = parts;
+        }
+      }
     }
 
     return { cmd, bracketId, args, rawLine: line, lineNum };
@@ -751,16 +764,46 @@
 
         case 'texto':
         case 'parrafo': {
-          const pNode = createNode('p', bracketId);
-          pNode.innerText = cleanParam(a1);
+          let pId = bracketId;
+          let pText = '';
+          if (bracketId) {
+            pText = cleanParam(a1);
+          } else if (args.length >= 2) {
+            pId = cleanParam(a1);
+            pText = cleanParam(a2);
+          } else {
+            pText = cleanParam(a1);
+          }
+          const pNode = createNode('p', pId);
+          pNode.innerText = pText;
           addChild(pNode);
           break;
         }
 
         case 'encabezado': {
-          const level = Math.max(1, Math.min(6, parseInt(a1, 10) || 1));
-          const hNode = createNode(`h${level}`, bracketId);
-          hNode.innerText = cleanParam(a2);
+          let level = 1;
+          let hText = '';
+          let hId = bracketId;
+          if (bracketId) {
+            level = Math.max(1, Math.min(6, parseInt(a1, 10) || 1));
+            hText = cleanParam(a2 || a1);
+          } else if (args.length >= 3) {
+            hId = cleanParam(a1);
+            level = Math.max(1, Math.min(6, parseInt(a2, 10) || 1));
+            hText = cleanParam(a3);
+          } else if (args.length === 2) {
+            if (/^\d+$/.test(a1)) {
+              level = Math.max(1, Math.min(6, parseInt(a1, 10) || 1));
+              hText = cleanParam(a2);
+            } else {
+              hId = cleanParam(a1);
+              hText = cleanParam(a2);
+            }
+          } else {
+            hText = cleanParam(a1);
+          }
+          const hNode = createNode(`h${level}`, hId);
+          hNode.innerText = hText;
           addChild(hNode);
           break;
         }
@@ -787,8 +830,17 @@
         }
 
         case 'etiqueta': {
-          const lblId = bracketId || cleanParam(a1);
-          const lblText = cleanParam(bracketId ? a1 : (a2 || a1));
+          let lblId = bracketId;
+          let lblText = '';
+          if (bracketId) {
+            lblText = cleanParam(a1);
+          } else if (args.length >= 2) {
+            lblId = cleanParam(a1);
+            lblText = cleanParam(a2);
+          } else {
+            lblId = cleanParam(a1);
+            lblText = cleanParam(a1);
+          }
           const lblNode = createNode('span', lblId);
           lblNode.innerText = lblText;
           addChild(lblNode);
@@ -796,37 +848,94 @@
         }
 
         case 'bloque': {
-          const blkNode = createNode('div', bracketId);
-          blkNode.innerText = cleanParam(a1);
+          let blkId = bracketId;
+          let blkText = '';
+          if (bracketId) {
+            blkText = cleanParam(a1);
+          } else if (args.length >= 2) {
+            blkId = cleanParam(a1);
+            blkText = cleanParam(a2);
+          } else {
+            blkText = cleanParam(a1);
+          }
+          const blkNode = createNode('div', blkId);
+          blkNode.innerText = blkText;
           addChild(blkNode);
           break;
         }
 
         case 'cita': {
-          const qNode = createNode('blockquote', bracketId);
-          qNode.innerText = cleanParam(a1);
+          let qId = bracketId;
+          let qText = '';
+          if (bracketId) {
+            qText = cleanParam(a1);
+          } else if (args.length >= 2) {
+            qId = cleanParam(a1);
+            qText = cleanParam(a2);
+          } else {
+            qText = cleanParam(a1);
+          }
+          const qNode = createNode('blockquote', qId);
+          qNode.innerText = qText;
           addChild(qNode);
           break;
         }
 
         case 'codigo': {
-          const codeNode = createNode('code', bracketId);
-          codeNode.innerText = cleanParam(a1);
+          let cId = bracketId;
+          let cText = '';
+          if (bracketId) {
+            cText = cleanParam(a1);
+          } else if (args.length >= 2) {
+            cId = cleanParam(a1);
+            cText = cleanParam(a2);
+          } else {
+            cText = cleanParam(a1);
+          }
+          const codeNode = createNode('code', cId);
+          codeNode.innerText = cText;
           addChild(codeNode);
           break;
         }
 
         case 'enlace': {
-          const aNode = createNode('a', bracketId);
-          aNode.innerText = cleanParam(a2);
-          aNode.href = cleanParam(a1);
+          let aId = bracketId;
+          let aUrl = '';
+          let aText = '';
+          if (bracketId) {
+            aUrl = cleanParam(a1);
+            aText = cleanParam(a2 || a1);
+          } else if (args.length >= 3) {
+            aId = cleanParam(a1);
+            aUrl = cleanParam(a2);
+            aText = cleanParam(a3);
+          } else if (args.length === 2) {
+            aUrl = cleanParam(a1);
+            aText = cleanParam(a2);
+          } else {
+            aUrl = cleanParam(a1);
+            aText = cleanParam(a1);
+          }
+          const aNode = createNode('a', aId);
+          aNode.innerText = aText;
+          aNode.href = aUrl;
           addChild(aNode);
           break;
         }
 
         case 'imagen': {
-          const imgNode = createNode('img', bracketId);
-          imgNode.src = cleanParam(a1);
+          let imgId = bracketId;
+          let imgSrc = '';
+          if (bracketId) {
+            imgSrc = cleanParam(a1);
+          } else if (args.length >= 2) {
+            imgId = cleanParam(a1);
+            imgSrc = cleanParam(a2);
+          } else {
+            imgSrc = cleanParam(a1);
+          }
+          const imgNode = createNode('img', imgId);
+          imgNode.src = imgSrc;
           addChild(imgNode);
           break;
         }
@@ -877,7 +986,7 @@
             btnId = cleanParam(a1);
             btnText = cleanParam(a2);
           } else {
-            btnId = '';
+            btnId = cleanParam(a1);
             btnText = cleanParam(a1);
           }
           const btnNode = createNode('button', btnId);
@@ -905,36 +1014,72 @@
           break;
 
         case 'areatexto': {
-          const areaId = bracketId || cleanParam(a1);
+          let areaId = bracketId;
+          let areaVal = '';
+          if (bracketId) {
+            areaVal = cleanParam(a1);
+          } else if (args.length >= 2) {
+            areaId = cleanParam(a1);
+            areaVal = cleanParam(a2);
+          } else {
+            areaId = cleanParam(a1);
+          }
           const areaNode = createNode('textarea', areaId);
-          areaNode.innerText = cleanParam(a2);
+          areaNode.innerText = areaVal;
           addChild(areaNode);
           break;
         }
 
         case 'entrada': {
-          const inTxtId = bracketId || cleanParam(a1);
+          let inTxtId = bracketId;
+          let inTxtVal = '';
+          if (bracketId) {
+            inTxtVal = cleanParam(a1);
+          } else if (args.length >= 2) {
+            inTxtId = cleanParam(a1);
+            inTxtVal = cleanParam(a2);
+          } else {
+            inTxtId = cleanParam(a1);
+          }
           const inTxt = createNode('input', inTxtId);
           inTxt.inputType = 'text';
-          inTxt.val = cleanParam(a2);
+          inTxt.val = inTxtVal;
           addChild(inTxt);
           break;
         }
 
         case 'camponumero': {
-          const inNumId = bracketId || cleanParam(a1);
+          let inNumId = bracketId;
+          let inNumVal = '';
+          if (bracketId) {
+            inNumVal = cleanParam(a1);
+          } else if (args.length >= 2) {
+            inNumId = cleanParam(a1);
+            inNumVal = cleanParam(a2);
+          } else {
+            inNumId = cleanParam(a1);
+          }
           const inNum = createNode('input', inNumId);
           inNum.inputType = 'number';
-          inNum.val = cleanParam(a2);
+          inNum.val = inNumVal;
           addChild(inNum);
           break;
         }
 
         case 'campocorreo': {
-          const inMailId = bracketId || cleanParam(a1);
+          let inMailId = bracketId;
+          let inMailVal = '';
+          if (bracketId) {
+            inMailVal = cleanParam(a1);
+          } else if (args.length >= 2) {
+            inMailId = cleanParam(a1);
+            inMailVal = cleanParam(a2);
+          } else {
+            inMailId = cleanParam(a1);
+          }
           const inMail = createNode('input', inMailId);
           inMail.inputType = 'email';
-          inMail.val = cleanParam(a2);
+          inMail.val = inMailVal;
           addChild(inMail);
           break;
         }
@@ -1100,11 +1245,11 @@
           break;
 
         case 'alternar':
-          scriptLines.push(`document.getElementById(${escapeJsString(a1)})?.addEventListener('click', () => { const el = document.getElementById(${escapeJsString(a2)}); if(el) el.style.display = (el.style.display === 'none' ? 'block' : 'none'); });`);
+          scriptLines.push(`document.getElementById(${escapeJsString(a1)})?.addEventListener('click', () => { const el = document.getElementById(${escapeJsString(a2)}); if(el) { const isHidden = window.getComputedStyle(el).display === 'none' || el.style.display === 'none'; el.style.display = isHidden ? 'block' : 'none'; } });`);
           break;
 
         case 'limpiar':
-          scriptLines.push(`document.getElementById(${escapeJsString(a1)})?.addEventListener('click', () => { const el = document.getElementById(${escapeJsString(a2)}); if(el) { if('value' in el) el.value = ''; else el.innerText = ''; } });`);
+          scriptLines.push(`document.getElementById(${escapeJsString(a1)})?.addEventListener('click', () => { const el = document.getElementById(${escapeJsString(a2)}); if(el) { if(['INPUT', 'TEXTAREA', 'SELECT'].includes(el.tagName)) el.value = ''; else el.innerText = ''; } });`);
           break;
 
         case 'limpiarlienzo':
@@ -1120,7 +1265,7 @@
           break;
 
         case 'copiartexto':
-          scriptLines.push(`document.getElementById(${escapeJsString(a1)})?.addEventListener('click', () => { const el = document.getElementById(${escapeJsString(a2)}); if(el) navigator.clipboard.writeText(el.value || el.innerText); });`);
+          scriptLines.push(`document.getElementById(${escapeJsString(a1)})?.addEventListener('click', () => { const el = document.getElementById(${escapeJsString(a2)}); if(el) { const txt = ['INPUT', 'TEXTAREA', 'SELECT'].includes(el.tagName) ? el.value : el.innerText; navigator.clipboard.writeText(txt); } });`);
           break;
 
         case 'sumar':
@@ -1133,21 +1278,26 @@
             const el2 = document.getElementById(${escapeJsString(a3)});
             const lbl = document.getElementById(${escapeJsString(a4)});
             if(!el1 || !el2 || !lbl) return;
-            const v1 = parseFloat(el1.value !== undefined ? el1.value : el1.innerText) || 0;
-            const v2 = parseFloat(el2.value !== undefined ? el2.value : el2.innerText) || 0;
+            const getVal = (node) => {
+              const raw = ['INPUT', 'TEXTAREA', 'SELECT'].includes(node.tagName) ? node.value : node.innerText;
+              return parseFloat(raw) || 0;
+            };
+            const v1 = getVal(el1);
+            const v2 = getVal(el2);
             let res = 0;
             if('${opChar}' === '+') res = v1 + v2;
             else if('${opChar}' === '-') res = v1 - v2;
             else if('${opChar}' === '*') res = v1 * v2;
             else if('${opChar}' === '/') {
               if(v2 === 0) {
-                if('value' in lbl) lbl.value = 'Error: División por cero'; else lbl.innerText = 'Error: División por cero';
+                if(['INPUT', 'TEXTAREA', 'SELECT'].includes(lbl.tagName)) lbl.value = 'Error: División por cero';
+                else lbl.innerText = 'Error: División por cero';
                 return;
               }
               res = v1 / v2;
             }
             res = Number(res.toFixed(8)) / 1;
-            if('value' in lbl && lbl.tagName !== 'SPAN' && lbl.tagName !== 'P' && lbl.tagName !== 'DIV') lbl.value = res.toString();
+            if(['INPUT', 'TEXTAREA', 'SELECT'].includes(lbl.tagName)) lbl.value = res.toString();
             else lbl.innerText = res.toString();
           });`);
           break;
@@ -1160,13 +1310,16 @@
           scriptLines.push(`document.getElementById(${escapeJsString(a1)})?.addEventListener('click', () => {
             const el = document.getElementById(${escapeJsString(a2)});
             if(!el) return;
-            const stepStr = ${escapeJsString(stepVal)};
-            if('value' in el && el.tagName !== 'SPAN' && el.tagName !== 'P' && el.tagName !== 'DIV') {
-              if (el.value === '' || el.value === 'Error: División por cero') el.value = stepStr;
-              else el.value = el.value + stepStr;
+            const step = parseFloat(${escapeJsString(stepVal)}) || 1;
+            const isInput = ['INPUT', 'TEXTAREA', 'SELECT'].includes(el.tagName);
+            const currentRaw = isInput ? el.value : el.innerText;
+            const currentNum = parseFloat(currentRaw) || 0;
+            const res = ${isInc ? 'currentNum + step' : 'currentNum - step'};
+            const cleanRes = Number(res.toFixed(8)) / 1;
+            if(isInput) {
+              el.value = cleanRes.toString();
             } else {
-              if (el.innerText === '' || el.innerText === 'Error: División por cero') el.innerText = stepStr;
-              else el.innerText = el.innerText + stepStr;
+              el.innerText = cleanRes.toString();
             }
           });`);
           break;
@@ -1175,7 +1328,10 @@
         case 'guardarlocal':
           scriptLines.push(`document.getElementById(${escapeJsString(a1)})?.addEventListener('click', () => {
             const el = document.getElementById(${escapeJsString(a3)});
-            if(el) localStorage.setItem(${escapeJsString(a2)}, el.value !== undefined ? el.value : el.innerText);
+            if(el) {
+              const val = ['INPUT', 'TEXTAREA', 'SELECT'].includes(el.tagName) ? el.value : el.innerText;
+              localStorage.setItem(${escapeJsString(a2)}, val);
+            }
           });`);
           break;
 
@@ -1183,7 +1339,10 @@
           scriptLines.push(`{
             const val = localStorage.getItem(${escapeJsString(a1)}) || '';
             const lbl = document.getElementById(${escapeJsString(a2)});
-            if(lbl) { if('value' in lbl && lbl.tagName !== 'SPAN' && lbl.tagName !== 'P') lbl.value = val; else lbl.innerText = val; }
+            if(lbl) {
+              if(['INPUT', 'TEXTAREA', 'SELECT'].includes(lbl.tagName)) lbl.value = val;
+              else lbl.innerText = val;
+            }
           }`);
           break;
       }
@@ -1242,7 +1401,7 @@
 
     let scriptBlock = '';
     if (scriptLines.length > 0) {
-      scriptBlock = `\n  <script>\n    ${scriptLines.join('\n    ')}\n  <\/script>`;
+      scriptBlock = `\n  <script>\n    (function() {\n      function initRC() {\n        ${scriptLines.join('\n        ')}\n      }\n      if (document.readyState === 'loading') {\n        document.addEventListener('DOMContentLoaded', initRC);\n      } else {\n        initRC();\n      }\n    })();\n  <\/script>`;
     }
 
     return `<!DOCTYPE html>
