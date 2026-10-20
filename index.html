@@ -297,47 +297,59 @@
     line = line.trim();
     if (!line || line.startsWith('//')) return null;
 
-    const parenIndex = line.indexOf('(');
-    if (parenIndex === -1) {
-      return { cmd: line.toLowerCase(), args: [] };
+    let bracketId = '';
+    let workLine = line;
+
+    // Support bracket syntax: comando[id](args) or comando[id]
+    const bracketMatch = workLine.match(/^([a-z0-9_]+)\[([a-z0-9_]+)\](.*)$/i);
+    if (bracketMatch) {
+      const baseCmd = bracketMatch[1].toLowerCase();
+      bracketId = bracketMatch[2].toLowerCase();
+      const restAfterBracket = bracketMatch[3].trim();
+      workLine = baseCmd + restAfterBracket;
     }
 
-    const cmd = line.slice(0, parenIndex).trim().toLowerCase();
-    const rest = line.slice(parenIndex);
-    const args = [];
+    const parenIndex = workLine.indexOf('(');
+    let cmd = workLine.toLowerCase();
+    let args = [];
 
-    let depth = 0;
-    let currentArg = '';
-    let inArg = false;
+    if (parenIndex !== -1) {
+      cmd = workLine.slice(0, parenIndex).trim().toLowerCase();
+      const rest = workLine.slice(parenIndex);
 
-    for (let i = 0; i < rest.length; i++) {
-      const ch = rest[i];
-      if (ch === '(') {
-        if (depth === 0) {
-          inArg = true;
-          currentArg = '';
+      let depth = 0;
+      let currentArg = '';
+      let inArg = false;
+
+      for (let i = 0; i < rest.length; i++) {
+        const ch = rest[i];
+        if (ch === '(') {
+          if (depth === 0) {
+            inArg = true;
+            currentArg = '';
+          } else {
+            currentArg += ch;
+          }
+          depth++;
+        } else if (ch === ')') {
+          depth--;
+          if (depth === 0) {
+            inArg = false;
+            args.push(currentArg.trim());
+            currentArg = '';
+          } else {
+            currentArg += ch;
+          }
         } else {
-          currentArg += ch;
+          if (inArg) currentArg += ch;
         }
-        depth++;
-      } else if (ch === ')') {
-        depth--;
-        if (depth === 0) {
-          inArg = false;
-          args.push(currentArg.trim());
-          currentArg = '';
-        } else {
-          currentArg += ch;
-        }
-      } else {
-        if (inArg) currentArg += ch;
       }
     }
 
-    return { cmd, args };
+    return { cmd, bracketId, args };
   }
 
-  function rcToHtml(rcCode) {
+  function rcToHtml(rcCode, visitedFiles = new Set()) {
     if (!rcCode) return '';
     const lines = rcCode.split('\n');
     let title = 'Aplicación RC';
@@ -391,7 +403,7 @@
 
       if (line.startsWith('//')) {
         const commentNode = createNode('comment');
-        commentNode.rawHtml = `<!-- ${line.slice(2).trim()} -->`;
+        commentNode.rawHtml = `<!-- ${escapeHtml(line.slice(2).trim())} -->`;
         currentContainer().children.push(commentNode);
         lastCreatedNode = null;
         return;
@@ -400,7 +412,7 @@
       const parsed = parseRcLine(line);
       if (!parsed) return;
 
-      const { cmd, args } = parsed;
+      const { cmd, bracketId, args } = parsed;
       const a1 = args[0] || '';
       const a2 = args[1] || '';
       const a3 = args[2] || '';
@@ -427,10 +439,51 @@
 
       switch (cmd) {
         case 'incluir':
-          const incNode = createNode('comment');
-          incNode.rawHtml = `<!-- incluir: ${a1} -->`;
-          currentContainer().children.push(incNode);
-          lastCreatedNode = null;
+          const targetFileName = cleanParam(a1);
+          if (!targetFileName) break;
+
+          if (visitedFiles.has(targetFileName)) {
+            const errNode = createNode('comment');
+            errNode.rawHtml = `<!-- Error: Inclusión circular detectada en '${escapeHtml(targetFileName)}' -->`;
+            currentContainer().children.push(errNode);
+            break;
+          }
+
+          if (typeof files !== 'undefined' && !files.has(targetFileName)) {
+            const errNode = createNode('comment');
+            errNode.rawHtml = `<!-- Error de inclusión: el archivo '${escapeHtml(targetFileName)}' no existe -->`;
+            currentContainer().children.push(errNode);
+            break;
+          }
+
+          if (typeof files !== 'undefined') {
+            const targetFile = files.get(targetFileName);
+            const newVisited = new Set(visitedFiles);
+            newVisited.add(targetFileName);
+
+            if (targetFile.type === 'rc' || targetFileName.endsWith('.rc')) {
+              const subHtml = rcToHtml(targetFile.content, newVisited);
+              const incNode = createNode('comment');
+              const bodyMatch = subHtml.match(/<body[^>]*>([\s\S]*?)<\/body>/i);
+              incNode.rawHtml = bodyMatch ? bodyMatch[1].trim() : subHtml;
+              currentContainer().children.push(incNode);
+
+              const scriptMatch = subHtml.match(/<script>([\s\S]*?)<\/script>/i);
+              if (scriptMatch) {
+                scriptLines.push(scriptMatch[1].trim());
+              }
+            } else if (targetFile.type === 'html' || targetFileName.endsWith('.html')) {
+              const incNode = createNode('comment');
+              incNode.rawHtml = targetFile.content;
+              currentContainer().children.push(incNode);
+            } else if (targetFileName.endsWith('.css')) {
+              const incNode = createNode('comment');
+              incNode.rawHtml = `<style>\n${targetFile.content}\n</style>`;
+              currentContainer().children.push(incNode);
+            } else if (targetFileName.endsWith('.js')) {
+              scriptLines.push(targetFile.content);
+            }
+          }
           break;
 
         case 'titulo':
@@ -439,12 +492,12 @@
 
         case 'seccion':
           closeContainerTag(['section']);
-          const secNode = createNode('section', a1, '', true);
+          const secNode = createNode('section', bracketId || a1, '', true);
           addChild(secNode);
           break;
 
         case 'contenedor':
-          const divNode = createNode('div', a1, '', true);
+          const divNode = createNode('div', bracketId || a1, '', true);
           addChild(divNode);
           break;
 
@@ -493,8 +546,8 @@
           break;
 
         case 'etiqueta':
-          const lblNode = createNode('span', a1);
-          lblNode.innerText = cleanParam(a2);
+          const lblNode = createNode('span', bracketId || a1);
+          lblNode.innerText = cleanParam(a2 || a1);
           addChild(lblNode);
           break;
 
@@ -564,8 +617,8 @@
           break;
 
         case 'boton':
-          const btnNode = createNode('button', a1);
-          btnNode.innerText = cleanParam(a2);
+          const btnNode = createNode('button', bracketId || a1);
+          btnNode.innerText = cleanParam(bracketId ? a1 : a2);
           addChild(btnNode);
           break;
 
