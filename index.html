@@ -21,7 +21,21 @@
   .tab.active{background:#272b36;color:var(--text);border:1px solid var(--line);border-bottom-color:#272b36}
   .editor-body{display:flex;flex:1;min-height:0;position:relative;overflow:hidden;background:#0e1015}
   .gutter{width:42px;flex:0 0 42px;padding:17px 8px 17px 0;background:#15171e;color:#5a6275;font:14px/1.75 ui-monospace,SFMono-Regular,Consolas,monospace;text-align:right;user-select:none;border-right:1px solid var(--line);overflow:hidden;white-space:pre}
-  .editor textarea{resize:none;flex:1;min-width:0;height:100%;border:0;outline:0;background:#0e1015;color:#d9e2f2;padding:17px;font:14px/1.75 ui-monospace,SFMono-Regular,Consolas,monospace;tab-size:2;white-space:pre;overflow:auto}
+  .editor-input-wrap { position: relative; flex: 1; min-width: 0; height: 100%; overflow: hidden; background: #0e1015; }
+  .highlight-layer { position: absolute; top: 0; left: 0; right: 0; bottom: 0; margin: 0; padding: 17px; font: 14px/1.75 ui-monospace, SFMono-Regular, Consolas, monospace; tab-size: 2; white-space: pre; word-wrap: normal; overflow: hidden; pointer-events: none; background: transparent; box-sizing: border-box; color: #d9e2f2; }
+  .highlight-layer code { font: inherit; background: none; padding: 0; display: block; }
+  .editor textarea { position: absolute; top: 0; left: 0; right: 0; bottom: 0; width: 100%; height: 100%; margin: 0; padding: 17px; font: 14px/1.75 ui-monospace, SFMono-Regular, Consolas, monospace; tab-size: 2; white-space: pre; word-wrap: normal; overflow: auto; background: transparent; color: transparent; caret-color: #ffffff; border: 0; outline: 0; resize: none; box-sizing: border-box; z-index: 1; }
+  .editor textarea::selection { background: rgba(104, 181, 255, 0.35); color: transparent; }
+
+  /* Tokens Resaltado de Sintaxis */
+  .hl-comment { color: #6272a4; font-style: italic; }
+  .hl-cmd     { color: #ff79c6; font-weight: 600; }
+  .hl-string  { color: #f1fa8c; }
+  .hl-num     { color: #bd93f9; }
+  .hl-color   { color: #50fa7b; font-weight: 600; }
+  .hl-paren   { color: #ff79c6; }
+  .hl-tag     { color: #79c0ff; font-weight: 600; }
+  .hl-attr    { color: #d2a8ff; }
   .status{height:30px;display:flex;align-items:center;gap:15px;padding:0 12px;border-top:1px solid var(--line);color:var(--muted);font-size:12px}
   .status .spacer{flex:1}
   .explorer{width:250px;flex:0 0 250px;display:flex;flex-direction:column;background:var(--panel);border:1px solid var(--line);border-radius:9px;overflow:hidden}
@@ -39,13 +53,36 @@
   .explorer-note{padding:10px;border-top:1px solid var(--line);font-size:12px;color:var(--muted)}
   .empty{padding:15px;color:var(--muted);text-align:center}
   .toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:#292d38;border:1px solid #454b5a;padding:9px 14px;border-radius:8px;display:none;z-index:99}
-  @media(max-width:720px){.layout{padding:5px;gap:5px}.explorer{width:205px;flex-basis:205px}.editor textarea{padding:10px;font-size:12px}.gutter{padding:10px 6px 10px 0;font-size:12px;width:34px;flex-basis:34px}.tab{padding:8px}.topbar{padding:0 7px}}
+  @media(max-width:720px){.layout{padding:5px;gap:5px}.explorer{width:205px;flex-basis:205px}.editor textarea, .highlight-layer{padding:10px;font-size:12px}.gutter{padding:10px 6px 10px 0;font-size:12px;width:34px;flex-basis:34px}.tab{padding:8px}.topbar{padding:0 7px}}
   @media(max-width:560px){.layout{position:relative}.editor{min-width:0}.explorer{position:absolute;z-index:5;right:5px;top:5px;bottom:5px;box-shadow:0 10px 35px #0009}.explorer.hidden{display:none}}
+
+  /* Modal Overlay y Contenido Diccionario */
+  .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.75); backdrop-filter: blur(4px); display: flex; align-items: center; justify-content: center; z-index: 1000; padding: 16px; }
+  .modal-overlay.hidden { display: none; }
+  .modal-content { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; width: 100%; max-width: 820px; max-height: 85vh; display: flex; flex-direction: column; box-shadow: 0 16px 40px rgba(0,0,0,0.6); overflow: hidden; }
+  .modal-header { display: flex; align-items: center; padding: 14px 18px; border-bottom: 1px solid var(--line); background: #15161c; }
+  .modal-header h2 { flex: 1; margin: 0; font-size: 16px; font-weight: 600; color: var(--text); }
+  .modal-close { background: transparent; border: 0; font-size: 22px; color: var(--muted); cursor: pointer; padding: 0 6px; line-height: 1; border-radius: 4px; }
+  .modal-close:hover { color: var(--text); background: var(--panel2); }
+  .modal-body { padding: 18px; overflow-y: auto; display: flex; flex-direction: column; gap: 16px; }
+  .dict-rules { background: var(--panel2); border: 1px solid var(--line); border-radius: 8px; padding: 14px 16px; }
+  .dict-rules h3 { margin: 0 0 10px 0; font-size: 14px; color: var(--blue); }
+  .dict-rules ul { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 6px; color: var(--text); font-size: 13px; }
+  .dict-rules code { background: #111217; padding: 2px 6px; border-radius: 4px; color: var(--orange); font-family: ui-monospace, SFMono-Regular, Consolas, monospace; }
+  .dict-search-wrap input { width: 100%; padding: 9px 12px; background: #0e1015; border: 1px solid var(--line); border-radius: 8px; color: var(--text); font-size: 13px; outline: none; }
+  .dict-search-wrap input:focus { border-color: var(--blue); }
+  .dict-categories { display: flex; flex-direction: column; gap: 16px; }
+  .dict-category h4 { margin: 0 0 8px 0; font-size: 14px; color: var(--orange); border-bottom: 1px solid var(--line); padding-bottom: 6px; }
+  .cmd-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 8px; }
+  .cmd-item { background: #12141a; border: 1px solid var(--line); border-radius: 6px; padding: 8px 10px; display: flex; flex-direction: column; gap: 4px; }
+  .cmd-item code { color: var(--blue); font-family: ui-monospace, SFMono-Regular, Consolas, monospace; font-size: 13px; font-weight: 600; }
+  .cmd-item span { color: var(--muted); font-size: 12px; }
 </style>
 </head>
 <body>
 <header class="topbar">
   <button id="saveBtn" title="Descargar archivo abierto">Guardar archivo</button>
+  <button id="dictBtn" title="Ver Diccionario RC">Ver Diccionario RC 📖</button>
   <div class="spacer"></div>
   <label style="font-size:12px; color:var(--muted);">Paneles:</label>
   <select id="panelSelector" style="background:var(--panel2); color:var(--text); border:1px solid var(--line); border-radius:7px; padding:5px 8px;">
@@ -62,7 +99,10 @@
     <div class="tabs" id="rcTabs"></div>
     <div class="editor-body">
       <div class="gutter" id="rcGutter">1</div>
-      <textarea id="rcEditor" spellcheck="false" aria-label="Código RC" autocapitalize="off" autocomplete="off"></textarea>
+      <div class="editor-input-wrap">
+        <pre class="highlight-layer" id="rcHighlight" aria-hidden="true"><code id="rcHighlightCode"></code></pre>
+        <textarea id="rcEditor" spellcheck="false" aria-label="Código RC" autocapitalize="off" autocomplete="off"></textarea>
+      </div>
     </div>
     <div class="status"><span id="rcStatusName">main.rc</span><span class="spacer"></span><span id="rcStatusLine">Línea 1, Col 1</span></div>
   </section>
@@ -70,7 +110,10 @@
     <div class="tabs" id="htmlTabs"></div>
     <div class="editor-body">
       <div class="gutter" id="htmlGutter">1</div>
-      <textarea id="htmlEditor" spellcheck="false" aria-label="Código HTML" autocapitalize="off" autocomplete="off"></textarea>
+      <div class="editor-input-wrap">
+        <pre class="highlight-layer" id="htmlHighlight" aria-hidden="true"><code id="htmlHighlightCode"></code></pre>
+        <textarea id="htmlEditor" spellcheck="false" aria-label="Código HTML" autocapitalize="off" autocomplete="off"></textarea>
+      </div>
     </div>
     <div class="status"><span id="htmlStatusName">index.html</span><span class="spacer"></span><span id="htmlStatusLine">Línea 1, Col 1</span></div>
   </section>
@@ -95,6 +138,132 @@
 </main>
 <div class="toast" id="toast" role="status"></div>
 
+<!-- Modal Diccionario RC -->
+<div class="modal-overlay hidden" id="dictModal" role="dialog" aria-modal="true" aria-labelledby="dictTitle">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h2 id="dictTitle">Diccionario RC - Documentación y Reglas</h2>
+      <button class="modal-close" id="closeDictModal" title="Cerrar diccionario">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="dict-rules">
+        <h3>Reglas Oficiales de Sintaxis RC</h3>
+        <ul>
+          <li><strong>Minúsculas:</strong> 100% letras minúsculas en todos los comandos e identificadores.</li>
+          <li><strong>Identificadores (_):</strong> Usar guion bajo <code>_</code> para nombres de IDs y variables (ej. <code>btn_1</code>, <code>sec_calc</code>).</li>
+          <li><strong>Parámetros ():</strong> Encerrar argumentos en paréntesis <code>()</code>. Múltiples argumentos usan paréntesis consecutivos <code>(arg1)(arg2)</code>.</li>
+          <li><strong>Estructuras y grupos []:</strong> Usar corchetes <code>[]</code> cuando aplique para conjuntos o rangos de opciones.</li>
+          <li><strong>Asignaciones (=):</strong> Signo igual <code>=</code> para asignaciones directas o configuraciones.</li>
+          <li><strong>Comentarios (//):</strong> Usar doble barra <code>//</code> para comentarios de una sola línea.</li>
+          <li><strong>Inclusión:</strong> Usar <code>incluir(nombre)</code> para importar archivos o módulos externos RC.</li>
+        </ul>
+      </div>
+
+      <div class="dict-search-wrap">
+        <input type="text" id="dictSearch" placeholder="Buscar comando por nombre o descripción..." spellcheck="false" autocomplete="off">
+      </div>
+
+      <div class="dict-categories" id="dictCategories">
+        <!-- Categoría I -->
+        <div class="dict-category">
+          <h4>I. Estructura y Contenido (Comandos 1 - 30)</h4>
+          <div class="cmd-list">
+            <div class="cmd-item"><code>incluir(archivo)</code><span>Incluye otro archivo RC del proyecto</span></div>
+            <div class="cmd-item"><code>titulo(texto)</code><span>Define el título de la página/aplicación</span></div>
+            <div class="cmd-item"><code>seccion(nombre)</code><span>Crea un contenedor tipo sección</span></div>
+            <div class="cmd-item"><code>contenedor(id)</code><span>Crea un contenedor multipropósito</span></div>
+            <div class="cmd-item"><code>rejilla(columnas)</code><span>Crea una cuadrícula CSS Grid de N columnas</span></div>
+            <div class="cmd-item"><code>linea</code><span>Inserta una línea divisoria horizontal (&lt;hr&gt;)</span></div>
+            <div class="cmd-item"><code>texto(mensaje)</code><span>Inserta un mensaje de texto libre</span></div>
+            <div class="cmd-item"><code>encabezado(nivel)(mensaje)</code><span>Inserta un encabezado jerárquico del 1 al 6</span></div>
+            <div class="cmd-item"><code>parrafo(mensaje)</code><span>Inserta un párrafo de texto (&lt;p&gt;)</span></div>
+            <div class="cmd-item"><code>negrita(texto)</code><span>Aplica formato de texto en negrita (&lt;b&gt;)</span></div>
+            <div class="cmd-item"><code>cursiva(texto)</code><span>Aplica formato de texto en cursiva (&lt;i&gt;)</span></div>
+            <div class="cmd-item"><code>subrayado(texto)</code><span>Aplica formato de texto subrayado (&lt;u&gt;)</span></div>
+            <div class="cmd-item"><code>etiqueta(id)(texto)</code><span>Crea una etiqueta identificable por ID</span></div>
+            <div class="cmd-item"><code>bloque(texto)</code><span>Inserta un bloque contenedor de texto</span></div>
+            <div class="cmd-item"><code>cita(texto)</code><span>Inserta una cita destacada (&lt;blockquote&gt;)</span></div>
+            <div class="cmd-item"><code>codigo(texto)</code><span>Inserta un fragmento de código (&lt;code&gt;)</span></div>
+            <div class="cmd-item"><code>enlace(url)(texto)</code><span>Crea un hipervínculo (&lt;a href="..."&gt;)</span></div>
+            <div class="cmd-item"><code>imagen(url)</code><span>Inserta una imagen (&lt;img src="..."&gt;)</span></div>
+            <div class="cmd-item"><code>listadesordenada</code><span>Inicia una lista no ordenada (&lt;ul&gt;)</span></div>
+            <div class="cmd-item"><code>listaordenada</code><span>Inicia una lista numerada (&lt;ol&gt;)</span></div>
+            <div class="cmd-item"><code>elementolista(texto)</code><span>Inserta un elemento de lista (&lt;li&gt;)</span></div>
+            <div class="cmd-item"><code>tabla</code><span>Inicia una tabla de datos (&lt;table&gt;)</span></div>
+            <div class="cmd-item"><code>filatabla</code><span>Inicia una fila de tabla (&lt;tr&gt;)</span></div>
+            <div class="cmd-item"><code>encabezadotabla(texto)</code><span>Inserta una celda de encabezado (&lt;th&gt;)</span></div>
+            <div class="cmd-item"><code>celdatabla(texto)</code><span>Inserta una celda de datos (&lt;td&gt;)</span></div>
+            <div class="cmd-item"><code>boton(id)(texto)</code><span>Crea un botón interactivo</span></div>
+            <div class="cmd-item"><code>etiquetacampo(texto)</code><span>Crea una etiqueta de formulario (&lt;label&gt;)</span></div>
+            <div class="cmd-item"><code>cargando</code><span>Inserta un indicador visual de carga</span></div>
+            <div class="cmd-item"><code>lienzo(id)</code><span>Crea un área de dibujo HTML5 Canvas</span></div>
+            <div class="cmd-item"><code>areatexto(id)(texto)</code><span>Crea un área de texto multilínea (&lt;textarea&gt;)</span></div>
+          </div>
+        </div>
+
+        <!-- Categoría II -->
+        <div class="dict-category">
+          <h4>II. Estilo y Diseño Visual (Comandos 31 - 50)</h4>
+          <div class="cmd-list">
+            <div class="cmd-item"><code>fondo(color)</code><span>Establece el color de fondo del elemento</span></div>
+            <div class="cmd-item"><code>color(color)</code><span>Establece el color del texto</span></div>
+            <div class="cmd-item"><code>letra(fuente)</code><span>Establece la familia tipográfica / fuente</span></div>
+            <div class="cmd-item"><code>tamano(px)</code><span>Establece el tamaño de letra en píxeles</span></div>
+            <div class="cmd-item"><code>ancho(px)</code><span>Establece el ancho del elemento</span></div>
+            <div class="cmd-item"><code>alto(px)</code><span>Establece el alto del elemento</span></div>
+            <div class="cmd-item"><code>gap(px)</code><span>Establece el espaciado interno en rejillas</span></div>
+            <div class="cmd-item"><code>margen(px)</code><span>Establece el margen exterior</span></div>
+            <div class="cmd-item"><code>relleno(px)</code><span>Establece el relleno interior (padding)</span></div>
+            <div class="cmd-item"><code>radio(px)</code><span>Establece el radio de bordes redondeados</span></div>
+            <div class="cmd-item"><code>centrar</code><span>Alinea o centra horizontalmente</span></div>
+            <div class="cmd-item"><code>alinearizquierda</code><span>Alinea el texto a la izquierda</span></div>
+            <div class="cmd-item"><code>alinearderecha</code><span>Alinea el texto a la derecha</span></div>
+            <div class="cmd-item"><code>borde(color)</code><span>Establece el borde del elemento</span></div>
+            <div class="cmd-item"><code>sombra(nivel)</code><span>Aplica sombra con nivel de elevación</span></div>
+            <div class="cmd-item"><code>transparencia(nivel)</code><span>Establece nivel de opacidad/transparencia (1 a 10)</span></div>
+            <div class="cmd-item"><code>ocultar(id)</code><span>Oculta el elemento especificado por ID</span></div>
+            <div class="cmd-item"><code>mostrar(id)</code><span>Muestra el elemento especificado por ID</span></div>
+            <div class="cmd-item"><code>flotante(posicion)</code><span>Establece posicionamiento (relative, absolute, fixed)</span></div>
+            <div class="cmd-item"><code>desplazamiento</code><span>Habilita barras de desplazamiento (overflow auto)</span></div>
+          </div>
+        </div>
+
+        <!-- Categoría III -->
+        <div class="dict-category">
+          <h4>III. Campos, Eventos y Lógica (Comandos 51 - 75)</h4>
+          <div class="cmd-list">
+            <div class="cmd-item"><code>entrada(id)(valor)</code><span>Crea un campo de texto (&lt;input type="text"&gt;)</span></div>
+            <div class="cmd-item"><code>camponumero(id)(valor)</code><span>Crea un campo numérico (&lt;input type="number"&gt;)</span></div>
+            <div class="cmd-item"><code>campocorreo(id)(valor)</code><span>Crea un campo de correo (&lt;input type="email"&gt;)</span></div>
+            <div class="cmd-item"><code>campocontrasena(id)</code><span>Crea un campo de contraseña (&lt;input type="password"&gt;)</span></div>
+            <div class="cmd-item"><code>campofecha(id)</code><span>Crea un selector de fecha (&lt;input type="date"&gt;)</span></div>
+            <div class="cmd-item"><code>campochequeo(id)(texto)</code><span>Crea una casilla de verificación (checkbox)</span></div>
+            <div class="cmd-item"><code>desplegable(id)</code><span>Crea un menú desplegable (&lt;select&gt;)</span></div>
+            <div class="cmd-item"><code>avisar(idbtn)(mensaje)</code><span>Muestra alerta al presionar un botón</span></div>
+            <div class="cmd-item"><code>ira(idbtn)(url)</code><span>Navega a una URL al presionar un botón</span></div>
+            <div class="cmd-item"><code>ocultarboton(idbtn)(id)</code><span>Oculta el elemento objetivo al hacer clic</span></div>
+            <div class="cmd-item"><code>mostrarboton(idbtn)(id)</code><span>Muestra el elemento objetivo al hacer clic</span></div>
+            <div class="cmd-item"><code>alternar(idbtn)(id)</code><span>Alterna visibilidad del elemento objetivo al hacer clic</span></div>
+            <div class="cmd-item"><code>limpiar(idbtn)(idin)</code><span>Limpia el campo de entrada al hacer clic</span></div>
+            <div class="cmd-item"><code>limpiarlienzo(idbtn)(idlienzo)</code><span>Limpia el lienzo canvas al hacer clic</span></div>
+            <div class="cmd-item"><code>deshabilitar(id)</code><span>Deshabilita un campo o botón</span></div>
+            <div class="cmd-item"><code>habilitar(id)</code><span>Habilita un campo o botón</span></div>
+            <div class="cmd-item"><code>copiartexto(idbtn)(id)</code><span>Copia el contenido del elemento al portapapeles</span></div>
+            <div class="cmd-item"><code>sumar(idbtn)(in1)(in2)(lbl)</code><span>Suma valores de in1 e in2 y los muestra en lbl</span></div>
+            <div class="cmd-item"><code>restar(idbtn)(in1)(in2)(lbl)</code><span>Resta valores de in1 e in2 y los muestra en lbl</span></div>
+            <div class="cmd-item"><code>multiplicar(idbtn)(in1)(in2)(lbl)</code><span>Multiplica valores de in1 e in2 y los muestra en lbl</span></div>
+            <div class="cmd-item"><code>dividir(idbtn)(in1)(in2)(lbl)</code><span>Divide valores de in1 e in2 (maneja división por cero)</span></div>
+            <div class="cmd-item"><code>incrementar(idbtn)(id)(paso)</code><span>Incrementa valor en destino según el paso especificado</span></div>
+            <div class="cmd-item"><code>decrementar(idbtn)(id)(paso)</code><span>Decrementa valor en destino según el paso especificado</span></div>
+            <div class="cmd-item"><code>guardarlocal(idbtn)(clave)(idin)</code><span>Guarda en localStorage el valor del campo al pulsar el botón</span></div>
+            <div class="cmd-item"><code>cargarlocal(clave)(lbl)</code><span>Lee el valor almacenado y lo muestra en la etiqueta de destino</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
 <script>
 (() => {
   function cleanParam(val) {
@@ -115,6 +284,14 @@
     return val.toLowerCase();
   }
 
+  function formatUnit(val) {
+    if (!val) return '0px';
+    val = String(val).trim();
+    if (!val) return '0px';
+    if (/^\d+(?:\.\d+)?$/.test(val)) return val + 'px';
+    return val;
+  }
+
   function formatBorder(val) {
     if (!val) return '1px solid #ccc';
     val = val.trim();
@@ -128,47 +305,59 @@
     line = line.trim();
     if (!line || line.startsWith('//')) return null;
 
-    const parenIndex = line.indexOf('(');
-    if (parenIndex === -1) {
-      return { cmd: line.toLowerCase(), args: [] };
+    let bracketId = '';
+    let workLine = line;
+
+    // Support bracket syntax: comando[id](args) or comando[id]
+    const bracketMatch = workLine.match(/^([a-z0-9_]+)\[([a-z0-9_]+)\](.*)$/i);
+    if (bracketMatch) {
+      const baseCmd = bracketMatch[1].toLowerCase();
+      bracketId = bracketMatch[2].toLowerCase();
+      const restAfterBracket = bracketMatch[3].trim();
+      workLine = baseCmd + restAfterBracket;
     }
 
-    const cmd = line.slice(0, parenIndex).trim().toLowerCase();
-    const rest = line.slice(parenIndex);
-    const args = [];
+    const parenIndex = workLine.indexOf('(');
+    let cmd = workLine.toLowerCase();
+    let args = [];
 
-    let depth = 0;
-    let currentArg = '';
-    let inArg = false;
+    if (parenIndex !== -1) {
+      cmd = workLine.slice(0, parenIndex).trim().toLowerCase();
+      const rest = workLine.slice(parenIndex);
 
-    for (let i = 0; i < rest.length; i++) {
-      const ch = rest[i];
-      if (ch === '(') {
-        if (depth === 0) {
-          inArg = true;
-          currentArg = '';
+      let depth = 0;
+      let currentArg = '';
+      let inArg = false;
+
+      for (let i = 0; i < rest.length; i++) {
+        const ch = rest[i];
+        if (ch === '(') {
+          if (depth === 0) {
+            inArg = true;
+            currentArg = '';
+          } else {
+            currentArg += ch;
+          }
+          depth++;
+        } else if (ch === ')') {
+          depth--;
+          if (depth === 0) {
+            inArg = false;
+            args.push(currentArg.trim());
+            currentArg = '';
+          } else {
+            currentArg += ch;
+          }
         } else {
-          currentArg += ch;
+          if (inArg) currentArg += ch;
         }
-        depth++;
-      } else if (ch === ')') {
-        depth--;
-        if (depth === 0) {
-          inArg = false;
-          args.push(currentArg.trim());
-          currentArg = '';
-        } else {
-          currentArg += ch;
-        }
-      } else {
-        if (inArg) currentArg += ch;
       }
     }
 
-    return { cmd, args };
+    return { cmd, bracketId, args };
   }
 
-  function rcToHtml(rcCode) {
+  function rcToHtml(rcCode, visitedFiles = new Set()) {
     if (!rcCode) return '';
     const lines = rcCode.split('\n');
     let title = 'Aplicación RC';
@@ -222,7 +411,7 @@
 
       if (line.startsWith('//')) {
         const commentNode = createNode('comment');
-        commentNode.rawHtml = `<!-- ${line.slice(2).trim()} -->`;
+        commentNode.rawHtml = `<!-- ${escapeHtml(line.slice(2).trim())} -->`;
         currentContainer().children.push(commentNode);
         lastCreatedNode = null;
         return;
@@ -231,7 +420,7 @@
       const parsed = parseRcLine(line);
       if (!parsed) return;
 
-      const { cmd, args } = parsed;
+      const { cmd, bracketId, args } = parsed;
       const a1 = args[0] || '';
       const a2 = args[1] || '';
       const a3 = args[2] || '';
@@ -239,6 +428,31 @@
 
       const listCmds = ['elementolista'];
       const tableCmds = ['filatabla', 'encabezadotabla', 'celdatabla'];
+      const elementCmds = [
+        'seccion', 'contenedor', 'rejilla', 'boton', 'parrafo', 'texto',
+        'encabezado', 'entrada', 'camponumero', 'campocorreo', 'campocontrasena',
+        'campofecha', 'campochequeo', 'desplegable', 'areatexto', 'lienzo',
+        'cargando', 'tabla', 'listadesordenada', 'listaordenada'
+      ];
+
+      const styleCmds = [
+        'fondo', 'color', 'letra', 'tamano', 'ancho', 'alto', 'gap', 'margen',
+        'relleno', 'radio', 'centrar', 'alinearizquierda', 'alinearderecha',
+        'borde', 'sombra', 'transparencia', 'flotante', 'desplazamiento'
+      ];
+
+      if (elementCmds.includes(cmd) && cmd !== 'contenedor' && cmd !== 'seccion' && cmd !== 'rejilla') {
+        if (nodeStack.length > 1) {
+          const top = nodeStack[nodeStack.length - 1];
+          if (top.tag === 'div' && top.children.length === 0 && top.isAutoShapeContainer) {
+            nodeStack.pop();
+          }
+        }
+      }
+
+      if (elementCmds.includes(cmd)) {
+        lastCreatedNode = null;
+      }
 
       if (nodeStack.length > 1) {
         const top = nodeStack[nodeStack.length - 1];
@@ -258,10 +472,51 @@
 
       switch (cmd) {
         case 'incluir':
-          const incNode = createNode('comment');
-          incNode.rawHtml = `<!-- incluir: ${a1} -->`;
-          currentContainer().children.push(incNode);
-          lastCreatedNode = null;
+          const targetFileName = cleanParam(a1);
+          if (!targetFileName) break;
+
+          if (visitedFiles.has(targetFileName)) {
+            const errNode = createNode('comment');
+            errNode.rawHtml = `<!-- Error: Inclusión circular detectada en '${escapeHtml(targetFileName)}' -->`;
+            currentContainer().children.push(errNode);
+            break;
+          }
+
+          if (typeof files !== 'undefined' && !files.has(targetFileName)) {
+            const errNode = createNode('comment');
+            errNode.rawHtml = `<!-- Error de inclusión: el archivo '${escapeHtml(targetFileName)}' no existe -->`;
+            currentContainer().children.push(errNode);
+            break;
+          }
+
+          if (typeof files !== 'undefined') {
+            const targetFile = files.get(targetFileName);
+            const newVisited = new Set(visitedFiles);
+            newVisited.add(targetFileName);
+
+            if (targetFile.type === 'rc' || targetFileName.endsWith('.rc')) {
+              const subHtml = rcToHtml(targetFile.content, newVisited);
+              const incNode = createNode('comment');
+              const bodyMatch = subHtml.match(/<body[^>]*>([\s\S]*?)<\/body>/i);
+              incNode.rawHtml = bodyMatch ? bodyMatch[1].trim() : subHtml;
+              currentContainer().children.push(incNode);
+
+              const scriptMatch = subHtml.match(/<script>([\s\S]*?)<\/script>/i);
+              if (scriptMatch) {
+                scriptLines.push(scriptMatch[1].trim());
+              }
+            } else if (targetFile.type === 'html' || targetFileName.endsWith('.html')) {
+              const incNode = createNode('comment');
+              incNode.rawHtml = targetFile.content;
+              currentContainer().children.push(incNode);
+            } else if (targetFileName.endsWith('.css')) {
+              const incNode = createNode('comment');
+              incNode.rawHtml = `<style>\n${targetFile.content}\n</style>`;
+              currentContainer().children.push(incNode);
+            } else if (targetFileName.endsWith('.js')) {
+              scriptLines.push(targetFile.content);
+            }
+          }
           break;
 
         case 'titulo':
@@ -270,12 +525,12 @@
 
         case 'seccion':
           closeContainerTag(['section']);
-          const secNode = createNode('section', a1, '', true);
+          const secNode = createNode('section', bracketId || a1, '', true);
           addChild(secNode);
           break;
 
         case 'contenedor':
-          const divNode = createNode('div', a1, '', true);
+          const divNode = createNode('div', bracketId || a1, '', true);
           addChild(divNode);
           break;
 
@@ -324,8 +579,8 @@
           break;
 
         case 'etiqueta':
-          const lblNode = createNode('span', a1);
-          lblNode.innerText = cleanParam(a2);
+          const lblNode = createNode('span', bracketId || a1);
+          lblNode.innerText = cleanParam(a2 || a1);
           addChild(lblNode);
           break;
 
@@ -395,8 +650,19 @@
           break;
 
         case 'boton':
-          const btnNode = createNode('button', a1);
-          btnNode.innerText = cleanParam(a2);
+          let btnId = bracketId;
+          let btnText = '';
+          if (bracketId) {
+            btnText = cleanParam(a1);
+          } else if (args.length >= 2) {
+            btnId = cleanParam(a1);
+            btnText = cleanParam(a2);
+          } else {
+            btnId = '';
+            btnText = cleanParam(a1);
+          }
+          const btnNode = createNode('button', btnId);
+          btnNode.innerText = btnText;
           addChild(btnNode);
           break;
 
@@ -466,7 +732,8 @@
           break;
 
         case 'fondo':
-          currentTargetForStyle().styles.push(`background-color: ${formatColor(a1)};`);
+          const bgTarget = currentTargetForStyle();
+          bgTarget.styles.push(`background-color: ${formatColor(a1)};`);
           break;
 
         case 'color':
@@ -478,31 +745,35 @@
           break;
 
         case 'tamano':
-          currentTargetForStyle().styles.push(`font-size: ${a1.endsWith('px') ? a1 : a1 + 'px'};`);
+          currentTargetForStyle().styles.push(`font-size: ${formatUnit(a1)};`);
           break;
 
         case 'ancho':
-          currentTargetForStyle().styles.push(`width: ${a1.endsWith('px') ? a1 : a1 + 'px'};`);
+          currentTargetForStyle().styles.push(`width: ${formatUnit(a1)};`);
           break;
 
         case 'alto':
-          currentTargetForStyle().styles.push(`height: ${a1.endsWith('px') ? a1 : a1 + 'px'};`);
+          currentTargetForStyle().styles.push(`height: ${formatUnit(a1)};`);
           break;
 
         case 'gap':
-          currentTargetForStyle().styles.push(`gap: ${a1.endsWith('px') ? a1 : a1 + 'px'};`);
+          currentTargetForStyle().styles.push(`gap: ${formatUnit(a1)};`);
           break;
 
         case 'margen':
-          currentTargetForStyle().styles.push(`margin: ${a1.endsWith('px') ? a1 : a1 + 'px'};`);
+          currentTargetForStyle().styles.push(`margin: ${formatUnit(a1)};`);
           break;
 
         case 'relleno':
-          currentTargetForStyle().styles.push(`padding: ${a1.endsWith('px') ? a1 : a1 + 'px'};`);
+          currentTargetForStyle().styles.push(`padding: ${formatUnit(a1)};`);
           break;
 
         case 'radio':
-          currentTargetForStyle().styles.push(`border-radius: ${a1.endsWith('px') ? a1 : a1 + 'px'};`);
+          const radTarget = currentTargetForStyle();
+          radTarget.styles.push(`border-radius: ${formatUnit(a1)};`);
+          if (radTarget.tag === 'div' && radTarget.isContainer) {
+            radTarget.isAutoShapeContainer = true;
+          }
           break;
 
         case 'centrar':
@@ -633,6 +904,9 @@
         case 'finlista':
         case 'fintabla':
         case 'finfilatabla':
+          if (nodeStack.length > 1) {
+            nodeStack[nodeStack.length - 1].hasExplicitClose = true;
+          }
           closeContainerTag();
           break;
       }
@@ -685,7 +959,7 @@
   <style>
     body { font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; margin: 16px; box-sizing: border-box; }
     *, *:before, *:after { box-sizing: inherit; }
-    button { cursor: pointer; padding: 10px 14px; font-size: 15px; border-radius: 8px; border: 1px solid #3d4454; background: #272c38; color: #ffffff; width: 100%; transition: background 0.15s ease; }
+    button { cursor: pointer; padding: 10px 14px; font-size: 15px; border-radius: 8px; border: 1px solid #3d4454; background: #272c38; color: #ffffff; display: inline-block; box-sizing: border-box; transition: background 0.15s ease; }
     button:hover { background: #383f50; }
     button:active { background: #1e222c; }
     input[type="text"], input[type="number"], input[type="email"], input[type="password"], input[type="date"], textarea, select { width: 100%; padding: 10px; font-size: 15px; border-radius: 8px; border: 1px solid #3d4454; background: #151821; color: #ffffff; outline: none; }
@@ -1209,11 +1483,68 @@ multiplicar(btn_mul)(inp_a)(inp_b)(lbl_resultado)
 dividir(btn_div)(inp_a)(inp_b)(lbl_resultado)
 limpiar(btn_clr)(inp_a)`;
 
-  const files = new Map([
-    ["main.rc", {type:"rc", content: initialRc}],
-    ["index.html", {type:"html", content: rcToHtml(initialRc)}]
-  ]);
-  const active = {rc:"main.rc", html:"index.html"};
+  const STORAGE_KEY = "rc_studio_state";
+  const files = new Map();
+  const active = { rc: null, html: null };
+  const panelSel = document.getElementById("panelSelector");
+
+  function saveState() {
+    try {
+      const state = {
+        files: Array.from(files.entries()),
+        active: { rc: active.rc, html: active.html },
+        panelMode: panelSel ? panelSel.value : "rc-preview"
+      };
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    } catch (e) {
+      console.warn("No se pudo guardar el estado en localStorage", e);
+    }
+  }
+
+  function loadState() {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (!raw) return false;
+      const parsed = JSON.parse(raw);
+      if (!parsed || !Array.isArray(parsed.files) || parsed.files.length === 0) return false;
+
+      files.clear();
+      for (const [name, fileObj] of parsed.files) {
+        if (name && fileObj && fileObj.type && fileObj.content !== undefined) {
+          files.set(name, fileObj);
+        }
+      }
+
+      if (parsed.active) {
+        if (parsed.active.rc && files.has(parsed.active.rc)) active.rc = parsed.active.rc;
+        else active.rc = [...files.keys()].find(n => files.get(n).type === "rc") || null;
+
+        if (parsed.active.html && files.has(parsed.active.html)) active.html = parsed.active.html;
+        else active.html = [...files.keys()].find(n => files.get(n).type === "html") || null;
+      }
+
+      if (parsed.panelMode && panelSel) {
+        panelSel.value = parsed.panelMode;
+      }
+
+      return files.size > 0;
+    } catch (e) {
+      console.warn("Error al cargar estado desde localStorage", e);
+      return false;
+    }
+  }
+
+  function initDefaultFiles() {
+    files.set("main.rc", {type:"rc", content: initialRc});
+    files.set("index.html", {type:"html", content: rcToHtml(initialRc)});
+    active.rc = "main.rc";
+    active.html = "index.html";
+  }
+
+  if (!loadState()) {
+    initDefaultFiles();
+  }
+
   const editors = {rc:document.getElementById("rcEditor"), html:document.getElementById("htmlEditor")};
   const gutters = {rc:document.getElementById("rcGutter"), html:document.getElementById("htmlGutter")};
   const tabs = {rc:document.getElementById("rcTabs"), html:document.getElementById("htmlTabs")};
@@ -1240,6 +1571,101 @@ limpiar(btn_clr)(inp_a)`;
     if (prevSec) prevSec.style.display = (mode === "rc-preview" || mode === "preview" || mode === "all" ? "flex" : "none");
   }
 
+
+  function escapeHtml(str) {
+    if (!str) return "";
+    return str
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;");
+  }
+
+  function highlightRc(code) {
+    if (!code) return "";
+    const lines = code.split("\n");
+    const standaloneCmds = new Set([
+      "linea","centrar","alinearizquierda","alinearderecha","desplazamiento","cargando",
+      "listadesordenada","listaordenada","tabla","filatabla","fin","finseccion",
+      "fincontenedor","finrejilla","finlista","fintabla","finfilatabla"
+    ]);
+
+    return lines.map(line => {
+      const trimmed = line.trim();
+      if (trimmed.startsWith("//")) {
+        return `<span class="hl-comment">${escapeHtml(line)}</span>`;
+      }
+
+      const tokenRegex = /(#[0-9a-fA-F]{3,8}\b)|(\b\d+(?:px|rem|em|%)?\b)|(\b[a-z0-9_]+\b)(?=\()|(\b[a-z0-9_]+\b)|([\(\)\[\]=])|([^\(\)\[\]=#a-zA-Z0-9_]+)/g;
+
+      let result = "";
+      let match;
+      while ((match = tokenRegex.exec(line)) !== null) {
+        const [full, color, num, cmdWithParen, word, symbol, rest] = match;
+        if (color) {
+          result += `<span class="hl-color">${escapeHtml(color)}</span>`;
+        } else if (num) {
+          result += `<span class="hl-num">${escapeHtml(num)}</span>`;
+        } else if (cmdWithParen) {
+          result += `<span class="hl-cmd">${escapeHtml(cmdWithParen)}</span>`;
+        } else if (word) {
+          if (standaloneCmds.has(word.toLowerCase())) {
+            result += `<span class="hl-cmd">${escapeHtml(word)}</span>`;
+          } else {
+            result += escapeHtml(word);
+          }
+        } else if (symbol) {
+          result += `<span class="hl-paren">${escapeHtml(symbol)}</span>`;
+        } else if (rest) {
+          result += escapeHtml(rest);
+        } else {
+          result += escapeHtml(full);
+        }
+      }
+
+      return result || escapeHtml(line);
+    }).join("\n");
+  }
+
+  function highlightHtml(code) {
+    if (!code) return "";
+    const htmlRegex = /(<!--[\s\S]*?-->)|(<\/?[a-zA-Z0-9\-]+|<!DOCTYPE[^>]*>)|("[^"]*"|'[^']*')|(\b[a-zA-Z\-]+(?==))|(>|\/)|([^<"'>\/a-zA-Z\-]+|[a-zA-Z\-]+)/g;
+
+    let result = "";
+    let match;
+    while ((match = htmlRegex.exec(code)) !== null) {
+      const [full, comment, tag, str, attr, bracket, rest] = match;
+      if (comment) {
+        result += `<span class="hl-comment">${escapeHtml(comment)}</span>`;
+      } else if (tag) {
+        result += `<span class="hl-tag">${escapeHtml(tag)}</span>`;
+      } else if (str) {
+        result += `<span class="hl-string">${escapeHtml(str)}</span>`;
+      } else if (attr) {
+        result += `<span class="hl-attr">${escapeHtml(attr)}</span>`;
+      } else if (bracket) {
+        result += `<span class="hl-tag">${escapeHtml(bracket)}</span>`;
+      } else if (rest) {
+        result += escapeHtml(rest);
+      } else {
+        result += escapeHtml(full);
+      }
+    }
+
+    return result || escapeHtml(code);
+  }
+
+  function updateHighlight(type) {
+    const editor = editors[type];
+    const codeEl = document.getElementById(type + "HighlightCode");
+    const layer = document.getElementById(type + "Highlight");
+    if (!editor || !codeEl || !layer) return;
+
+    const val = editor.value || "";
+    const highlighted = type === "rc" ? highlightRc(val) : highlightHtml(val);
+    codeEl.innerHTML = highlighted + (val.endsWith("\n") ? "\n " : "");
+    layer.scrollTop = editor.scrollTop;
+    layer.scrollLeft = editor.scrollLeft;
+  }
 
   function updateLineNumbers(type) {
     if (!editors[type] || !gutters[type]) return;
@@ -1307,6 +1733,9 @@ limpiar(btn_clr)(inp_a)`;
       }
     } finally {
       isTranslating = false;
+      saveState();
+      updateHighlight("rc");
+      updateHighlight("html");
       updateLivePreview(editors.html ? editors.html.value : "");
     }
   }
@@ -1326,7 +1755,10 @@ limpiar(btn_clr)(inp_a)`;
   function paneFor(name) { return files.get(name).type; }
   function saveCurrentContent(type) {
     const name = active[type];
-    if (name && files.has(name)) files.get(name).content = editors[type].value;
+    if (name && files.has(name)) {
+      files.get(name).content = editors[type].value;
+      saveState();
+    }
   }
   function renderTabs(type) {
     tabs[type].innerHTML = "";
@@ -1376,6 +1808,7 @@ limpiar(btn_clr)(inp_a)`;
       }
       updateCursor(type);
       updateLineNumbers(type);
+      updateHighlight(type);
     }
     renderExplorer();
   }
@@ -1383,7 +1816,8 @@ limpiar(btn_clr)(inp_a)`;
     for (const type of ["rc","html"]) saveCurrentContent(type);
     const type = paneFor(name); active[type] = name;
     if (panelSel) applyPanelMode(panelSel.value);
-  renderAll();
+    saveState();
+    renderAll();
   }
   function uniqueName(base, type) {
     const ext = type === "rc" ? ".rc" : ".html";
@@ -1404,7 +1838,8 @@ limpiar(btn_clr)(inp_a)`;
     const content = type === "rc" ? '// nuevo archivo rc\n\n' : '<!DOCTYPE html>\n<html lang="es">\n<head>\n  <meta charset="UTF-8">\n  <title>nuevo documento</title>\n</head>\n<body>\n\n</body>\n</html>\n';
     files.set(name, {type, content}); active[type] = name;
     if (panelSel) applyPanelMode(panelSel.value);
-  renderAll(); editors[type].focus(); notify("Archivo creado: " + name);
+    saveState();
+    renderAll(); editors[type].focus(); notify("Archivo creado: " + name);
   }
   function renameFile(oldName) {
     saveCurrentContent("rc"); saveCurrentContent("html");
@@ -1419,15 +1854,17 @@ limpiar(btn_clr)(inp_a)`;
     files.delete(oldName); files.set(base, file);
     if (active[file.type] === oldName) active[file.type] = base;
     if (panelSel) applyPanelMode(panelSel.value);
-  renderAll(); notify("Archivo renombrado.");
+    saveState();
+    renderAll(); notify("Archivo renombrado.");
   }
   function deleteFile(name) {
-    if (!confirm('¿Eliminar "' + name + '"? Esta acción no se puede deshacer.')) return;
+    if (!confirm('¿Eliminar "' + name + '"? Esta acción no se me puede deshacer.')) return;
     saveCurrentContent("rc"); saveCurrentContent("html");
     const type = paneFor(name); files.delete(name);
     if (active[type] === name) active[type] = [...files.keys()].find(n => paneFor(n) === type) || null;
     if (panelSel) applyPanelMode(panelSel.value);
-  renderAll(); notify("Archivo eliminado.");
+    saveState();
+    renderAll(); notify("Archivo eliminado.");
   }
   function updateCursor(type) {
     const el = editors[type], before = el.value.slice(0, el.selectionStart);
@@ -1440,10 +1877,16 @@ limpiar(btn_clr)(inp_a)`;
       saveCurrentContent(type);
       updateCursor(type);
       updateLineNumbers(type);
+      updateHighlight(type);
       debounceTranslate(type);
     });
     editors[type].addEventListener("scroll", () => {
       gutters[type].scrollTop = editors[type].scrollTop;
+      const layer = document.getElementById(type + "Highlight");
+      if (layer) {
+        layer.scrollTop = editors[type].scrollTop;
+        layer.scrollLeft = editors[type].scrollLeft;
+      }
     });
     editors[type].addEventListener("click", () => updateCursor(type));
     editors[type].addEventListener("keyup", () => updateCursor(type));
@@ -1452,7 +1895,7 @@ limpiar(btn_clr)(inp_a)`;
         e.preventDefault();
         const start = editors[type].selectionStart, end = editors[type].selectionEnd;
         editors[type].setRangeText("  ", start, end, "end");
-        saveCurrentContent(type); updateCursor(type); updateLineNumbers(type); debounceTranslate(type);
+        saveCurrentContent(type); updateCursor(type); updateLineNumbers(type); updateHighlight(type); debounceTranslate(type);
       }
     });
   }
@@ -1480,11 +1923,68 @@ limpiar(btn_clr)(inp_a)`;
     notify("Descargando " + name);
   };
   
-  const panelSel = document.getElementById("panelSelector");
   if (panelSel) {
-    panelSel.addEventListener("change", e => applyPanelMode(e.target.value));
+    panelSel.addEventListener("change", e => {
+      applyPanelMode(e.target.value);
+      saveState();
+    });
     applyPanelMode(panelSel.value);
   }
+
+  // Diccionario Modal Handlers
+  const dictModal = document.getElementById("dictModal");
+  const dictBtn = document.getElementById("dictBtn");
+  const closeDictModal = document.getElementById("closeDictModal");
+  const dictSearch = document.getElementById("dictSearch");
+
+  if (dictBtn && dictModal) {
+    dictBtn.addEventListener("click", () => {
+      dictModal.classList.remove("hidden");
+      if (dictSearch) dictSearch.focus();
+    });
+  }
+
+  function hideDictModal() {
+    if (dictModal) dictModal.classList.add("hidden");
+  }
+
+  if (closeDictModal) {
+    closeDictModal.addEventListener("click", hideDictModal);
+  }
+
+  if (dictModal) {
+    dictModal.addEventListener("click", (e) => {
+      if (e.target === dictModal) hideDictModal();
+    });
+  }
+
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && dictModal && !dictModal.classList.contains("hidden")) {
+      hideDictModal();
+    }
+  });
+
+  if (dictSearch) {
+    dictSearch.addEventListener("input", (e) => {
+      const q = e.target.value.trim().toLowerCase();
+      const categories = document.querySelectorAll(".dict-category");
+      categories.forEach(cat => {
+        let visibleCount = 0;
+        const items = cat.querySelectorAll(".cmd-item");
+        items.forEach(item => {
+          const text = item.textContent.toLowerCase();
+          if (!q || text.includes(q)) {
+            item.style.display = "flex";
+            visibleCount++;
+          } else {
+            item.style.display = "none";
+          }
+        });
+        cat.style.display = (visibleCount > 0 || !q) ? "block" : "none";
+      });
+    });
+  }
+
   renderAll();
   updateLivePreview(editors.html ? editors.html.value : "");
 })();
