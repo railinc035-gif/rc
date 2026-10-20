@@ -86,9 +86,8 @@
   <div class="spacer"></div>
   <label style="font-size:12px; color:var(--muted);">Paneles:</label>
   <select id="panelSelector" style="background:var(--panel2); color:var(--text); border:1px solid var(--line); border-radius:7px; padding:5px 8px;">
-    <option value="rc-preview" selected>RC + Vista Previa</option>
-    <option value="rc-html">RC + HTML</option>
-    <option value="all">RC + HTML + Vista Previa</option>
+    <option value="rc-preview" selected>Editor RC + Vista Previa</option>
+    <option value="rc">Solo Editor RC</option>
     <option value="preview">Solo Vista Previa</option>
   </select>
   <button id="toggleExplorer" aria-expanded="true" title="Mostrar u ocultar explorador">Explorador ▣</button>
@@ -106,17 +105,6 @@
     </div>
     <div class="status"><span id="rcStatusName">main.rc</span><span class="spacer"></span><span id="rcStatusLine">Línea 1, Col 1</span></div>
   </section>
-  <section class="editor" id="htmlEditorSection" aria-label="Editor HTML">
-    <div class="tabs" id="htmlTabs"></div>
-    <div class="editor-body">
-      <div class="gutter" id="htmlGutter">1</div>
-      <div class="editor-input-wrap">
-        <pre class="highlight-layer" id="htmlHighlight" aria-hidden="true"><code id="htmlHighlightCode"></code></pre>
-        <textarea id="htmlEditor" spellcheck="false" aria-label="Código HTML" autocapitalize="off" autocomplete="off"></textarea>
-      </div>
-    </div>
-    <div class="status"><span id="htmlStatusName">index.html</span><span class="spacer"></span><span id="htmlStatusLine">Línea 1, Col 1</span></div>
-  </section>
   <section class="editor" id="previewPaneSection" aria-label="Vista Previa en Vivo">
     <div class="tabs">
       <button class="tab active" style="pointer-events:none;">Vista Previa ▶</button>
@@ -129,8 +117,7 @@
   <aside class="explorer" id="explorer">
     <div class="explorer-head"><span>Archivos del proyecto</span><button id="closeExplorer" title="Ocultar explorador">×</button></div>
     <div class="new-actions">
-      <button id="newRc">+ .rc</button>
-      <button id="newHtml">+ HTML</button>
+      <button id="newRc" style="width: 100%;">+ Nuevo Archivo .rc</button>
     </div>
     <div class="file-list" id="fileList"></div>
     <div class="explorer-note">Selecciona un archivo para abrirlo. Usa ✎ para renombrar o × para eliminar.</div>
@@ -295,6 +282,97 @@
 
 <script>
 (() => {
+  // ==========================================
+  // ESPECIFICACIÓN CENTRAL DE 75 COMANDOS RC
+  // ==========================================
+  const RC_COMMANDS_SPEC = {
+    // Categoría I: Estructura y Contenido (Comandos 1 - 30)
+    incluir: { cat: 1, name: 'incluir', params: ['archivo'], minArgs: 1, type: 'include', desc: 'Incluye otro archivo RC del proyecto' },
+    titulo: { cat: 1, name: 'titulo', params: ['texto'], minArgs: 1, type: 'head', desc: 'Define el título de la página/aplicación' },
+    seccion: { cat: 1, name: 'seccion', params: ['nombre'], minArgs: 0, type: 'container', tag: 'section', desc: 'Crea un contenedor tipo sección' },
+    contenedor: { cat: 1, name: 'contenedor', params: ['id'], minArgs: 0, type: 'container', tag: 'div', desc: 'Crea un contenedor multipropósito' },
+    rejilla: { cat: 1, name: 'rejilla', params: ['columnas'], minArgs: 1, type: 'container', tag: 'div', isGrid: true, desc: 'Crea una cuadrícula CSS Grid de N columnas' },
+    linea: { cat: 1, name: 'linea', params: [], minArgs: 0, type: 'element', tag: 'hr', selfClosing: true, desc: 'Inserta una línea divisoria horizontal (<hr>)' },
+    texto: { cat: 1, name: 'texto', params: ['mensaje'], minArgs: 1, type: 'element', tag: 'p', desc: 'Inserta un mensaje de texto libre' },
+    encabezado: { cat: 1, name: 'encabezado', params: ['nivel', 'mensaje'], minArgs: 2, type: 'element', tag: 'h', desc: 'Inserta un encabezado jerárquico del 1 al 6' },
+    parrafo: { cat: 1, name: 'parrafo', params: ['mensaje'], minArgs: 1, type: 'element', tag: 'p', desc: 'Inserta un párrafo de texto (<p>)' },
+    negrita: { cat: 1, name: 'negrita', params: ['texto'], minArgs: 1, type: 'element', tag: 'b', desc: 'Aplica formato de texto en negrita (<b>)' },
+    cursiva: { cat: 1, name: 'cursiva', params: ['texto'], minArgs: 1, type: 'element', tag: 'i', desc: 'Aplica formato de texto en cursiva (<i>)' },
+    subrayado: { cat: 1, name: 'subrayado', params: ['texto'], minArgs: 1, type: 'element', tag: 'u', desc: 'Aplica formato de texto subrayado (<u>)' },
+    etiqueta: { cat: 1, name: 'etiqueta', params: ['id', 'texto'], minArgs: 1, type: 'element', tag: 'span', desc: 'Crea una etiqueta identificable por ID' },
+    bloque: { cat: 1, name: 'bloque', params: ['texto'], minArgs: 1, type: 'element', tag: 'div', desc: 'Inserta un bloque contenedor de texto' },
+    cita: { cat: 1, name: 'cita', params: ['texto'], minArgs: 1, type: 'element', tag: 'blockquote', desc: 'Inserta una cita destacada (<blockquote>)' },
+    codigo: { cat: 1, name: 'codigo', params: ['texto'], minArgs: 1, type: 'element', tag: 'code', desc: 'Inserta un fragmento de código (<code>)' },
+    enlace: { cat: 1, name: 'enlace', params: ['url', 'texto'], minArgs: 2, type: 'element', tag: 'a', desc: 'Crea un hipervínculo (<a href="...">)' },
+    imagen: { cat: 1, name: 'imagen', params: ['url'], minArgs: 1, type: 'element', tag: 'img', selfClosing: true, desc: 'Inserta una imagen (<img src="...">)' },
+    listadesordenada: { cat: 1, name: 'listadesordenada', params: [], minArgs: 0, type: 'container', tag: 'ul', desc: 'Inicia una lista no ordenada (<ul>)' },
+    listaordenada: { cat: 1, name: 'listaordenada', params: [], minArgs: 0, type: 'container', tag: 'ol', desc: 'Inicia una lista numerada (<ol>)' },
+    elementolista: { cat: 1, name: 'elementolista', params: ['texto'], minArgs: 1, type: 'element', tag: 'li', desc: 'Inserta un elemento de lista (<li>)' },
+    tabla: { cat: 1, name: 'tabla', params: [], minArgs: 0, type: 'container', tag: 'table', desc: 'Inicia una tabla de datos (<table>)' },
+    filatabla: { cat: 1, name: 'filatabla', params: [], minArgs: 0, type: 'container', tag: 'tr', desc: 'Inicia una fila de tabla (<tr>)' },
+    encabezadotabla: { cat: 1, name: 'encabezadotabla', params: ['texto'], minArgs: 1, type: 'element', tag: 'th', desc: 'Inserta una celda de encabezado (<th>)' },
+    celdatabla: { cat: 1, name: 'celdatabla', params: ['texto'], minArgs: 1, type: 'element', tag: 'td', desc: 'Inserta una celda de datos (<td>)' },
+    boton: { cat: 1, name: 'boton', params: ['id', 'texto'], minArgs: 1, type: 'element', tag: 'button', desc: 'Crea un botón interactivo' },
+    etiquetacampo: { cat: 1, name: 'etiquetacampo', params: ['texto'], minArgs: 1, type: 'element', tag: 'label', desc: 'Crea una etiqueta de formulario (<label>)' },
+    cargando: { cat: 1, name: 'cargando', params: [], minArgs: 0, type: 'element', tag: 'div', className: 'cargando', desc: 'Inserta un indicador visual de carga' },
+    lienzo: { cat: 1, name: 'lienzo', params: ['id'], minArgs: 1, type: 'element', tag: 'canvas', desc: 'Crea un área de dibujo HTML5 Canvas' },
+    areatexto: { cat: 1, name: 'areatexto', params: ['id', 'texto'], minArgs: 1, type: 'element', tag: 'textarea', desc: 'Crea un área de texto multilínea (<textarea>)' },
+
+    // Categoría II: Estilo y Diseño Visual (Comandos 31 - 50)
+    fondo: { cat: 2, name: 'fondo', params: ['color'], minArgs: 1, type: 'style', prop: 'background-color', desc: 'Establece el color de fondo del elemento' },
+    color: { cat: 2, name: 'color', params: ['color'], minArgs: 1, type: 'style', prop: 'color', desc: 'Establece el color del texto' },
+    letra: { cat: 2, name: 'letra', params: ['fuente'], minArgs: 1, type: 'style', prop: 'font-family', desc: 'Establece la familia tipográfica / fuente' },
+    tamano: { cat: 2, name: 'tamano', params: ['px'], minArgs: 1, type: 'style', prop: 'font-size', desc: 'Establece el tamaño de letra en píxeles' },
+    ancho: { cat: 2, name: 'ancho', params: ['px'], minArgs: 1, type: 'style', prop: 'width', desc: 'Establece el ancho del elemento' },
+    alto: { cat: 2, name: 'alto', params: ['px'], minArgs: 1, type: 'style', prop: 'height', desc: 'Establece el alto del elemento' },
+    gap: { cat: 2, name: 'gap', params: ['px'], minArgs: 1, type: 'style', prop: 'gap', desc: 'Establece el espaciado interno en rejillas' },
+    margen: { cat: 2, name: 'margen', params: ['px'], minArgs: 1, type: 'style', prop: 'margin', desc: 'Establece el margen exterior' },
+    relleno: { cat: 2, name: 'relleno', params: ['px'], minArgs: 1, type: 'style', prop: 'padding', desc: 'Establece el relleno interior (padding)' },
+    radio: { cat: 2, name: 'radio', params: ['px'], minArgs: 1, type: 'style', prop: 'border-radius', desc: 'Establece el radio de bordes redondeados' },
+    centrar: { cat: 2, name: 'centrar', params: [], minArgs: 0, type: 'style', action: 'center', desc: 'Alinea o centra horizontalmente' },
+    alinearizquierda: { cat: 2, name: 'alinearizquierda', params: [], minArgs: 0, type: 'style', action: 'left', desc: 'Alinea el texto a la izquierda' },
+    alinearderecha: { cat: 2, name: 'alinearderecha', params: [], minArgs: 0, type: 'style', action: 'right', desc: 'Alinea el texto a la derecha' },
+    borde: { cat: 2, name: 'borde', params: ['color'], minArgs: 1, type: 'style', prop: 'border', desc: 'Establece el borde del elemento' },
+    sombra: { cat: 2, name: 'sombra', params: ['nivel'], minArgs: 1, type: 'style', action: 'shadow', desc: 'Aplica sombra con nivel de elevación' },
+    transparencia: { cat: 2, name: 'transparencia', params: ['nivel'], minArgs: 1, type: 'style', action: 'opacity', desc: 'Establece nivel de opacidad/transparencia (1 a 10)' },
+    ocultar: { cat: 2, name: 'ocultar', params: ['id'], minArgs: 1, type: 'script', action: 'hide', desc: 'Oculta el elemento especificado por ID' },
+    mostrar: { cat: 2, name: 'mostrar', params: ['id'], minArgs: 1, type: 'script', action: 'show', desc: 'Muestra el elemento especificado por ID' },
+    flotante: { cat: 2, name: 'flotante', params: ['posicion'], minArgs: 1, type: 'style', action: 'displayOrFloat', desc: 'Establece posicionamiento (relative, absolute, fixed, flex, grid)' },
+    desplazamiento: { cat: 2, name: 'desplazamiento', params: [], minArgs: 0, type: 'style', prop: 'overflow', val: 'auto', desc: 'Habilita barras de desplazamiento (overflow auto)' },
+
+    // Categoría III: Campos, Eventos y Lógica (Comandos 51 - 75)
+    entrada: { cat: 3, name: 'entrada', params: ['id', 'valor'], minArgs: 1, type: 'input', inputType: 'text', desc: 'Crea un campo de texto (<input type="text">)' },
+    camponumero: { cat: 3, name: 'camponumero', params: ['id', 'valor'], minArgs: 1, type: 'input', inputType: 'number', desc: 'Crea un campo numérico (<input type="number">)' },
+    campocorreo: { cat: 3, name: 'campocorreo', params: ['id', 'valor'], minArgs: 1, type: 'input', inputType: 'email', desc: 'Crea un campo de correo (<input type="email">)' },
+    campocontrasena: { cat: 3, name: 'campocontrasena', params: ['id'], minArgs: 1, type: 'input', inputType: 'password', desc: 'Crea un campo de contraseña (<input type="password">)' },
+    campofecha: { cat: 3, name: 'campofecha', params: ['id'], minArgs: 1, type: 'input', inputType: 'date', desc: 'Crea un selector de fecha (<input type="date">)' },
+    campochequeo: { cat: 3, name: 'campochequeo', params: ['id', 'texto'], minArgs: 2, type: 'checkbox', desc: 'Crea una casilla de verificación (checkbox)' },
+    desplegable: { cat: 3, name: 'desplegable', params: ['id'], minArgs: 1, type: 'element', tag: 'select', desc: 'Crea un menú desplegable (<select>)' },
+    avisar: { cat: 3, name: 'avisar', params: ['idbtn', 'mensaje'], minArgs: 2, type: 'event', desc: 'Muestra alerta al presionar un botón' },
+    ira: { cat: 3, name: 'ira', params: ['idbtn', 'url'], minArgs: 2, type: 'event', desc: 'Navega a una URL al presionar un botón' },
+    ocultarboton: { cat: 3, name: 'ocultarboton', params: ['idbtn', 'idtarget'], minArgs: 2, type: 'event', desc: 'Oculta el elemento objetivo al hacer clic' },
+    mostrarboton: { cat: 3, name: 'mostrarboton', params: ['idbtn', 'idtarget'], minArgs: 2, type: 'event', desc: 'Muestra el elemento objetivo al hacer clic' },
+    alternar: { cat: 3, name: 'alternar', params: ['idbtn', 'idtarget'], minArgs: 2, type: 'event', desc: 'Alterna visibilidad del elemento objetivo al hacer clic' },
+    limpiar: { cat: 3, name: 'limpiar', params: ['idbtn', 'idin'], minArgs: 2, type: 'event', desc: 'Limpia el campo de entrada al hacer clic' },
+    limpiarlienzo: { cat: 3, name: 'limpiarlienzo', params: ['idbtn', 'idlienzo'], minArgs: 2, type: 'event', desc: 'Limpia el lienzo canvas al hacer clic' },
+    deshabilitar: { cat: 3, name: 'deshabilitar', params: ['id'], minArgs: 1, type: 'script', desc: 'Deshabilita un campo o botón' },
+    habilitar: { cat: 3, name: 'habilitar', params: ['id'], minArgs: 1, type: 'script', desc: 'Habilita un campo o botón' },
+    copiartexto: { cat: 3, name: 'copiartexto', params: ['idbtn', 'idtarget'], minArgs: 2, type: 'event', desc: 'Copia el contenido del elemento al portapapeles' },
+    sumar: { cat: 3, name: 'sumar', params: ['idbtn', 'in1', 'in2', 'lbl'], minArgs: 4, type: 'math', op: '+', desc: 'Suma valores de in1 e in2 y los muestra en lbl' },
+    restar: { cat: 3, name: 'restar', params: ['idbtn', 'in1', 'in2', 'lbl'], minArgs: 4, type: 'math', op: '-', desc: 'Resta valores de in1 e in2 y los muestra en lbl' },
+    multiplicar: { cat: 3, name: 'multiplicar', params: ['idbtn', 'in1', 'in2', 'lbl'], minArgs: 4, type: 'math', op: '*', desc: 'Multiplica valores de in1 e in2 y los muestra en lbl' },
+    dividir: { cat: 3, name: 'dividir', params: ['idbtn', 'in1', 'in2', 'lbl'], minArgs: 4, type: 'math', op: '/', desc: 'Divide valores de in1 e in2 (maneja división por cero)' },
+    incrementar: { cat: 3, name: 'incrementar', params: ['idbtn', 'idtarget', 'paso'], minArgs: 2, type: 'math', op: 'inc', desc: 'Incrementa valor en destino según el paso especificado' },
+    decrementar: { cat: 3, name: 'decrementar', params: ['idbtn', 'idtarget', 'paso'], minArgs: 2, type: 'math', op: 'dec', desc: 'Decrementa valor en destino según el paso especificado' },
+    guardarlocal: { cat: 3, name: 'guardarlocal', params: ['idbtn', 'clave', 'idin'], minArgs: 3, type: 'storage', action: 'save', desc: 'Guarda en localStorage el valor del campo al pulsar el botón' },
+    cargarlocal: { cat: 3, name: 'cargarlocal', params: ['clave', 'lbl'], minArgs: 2, type: 'storage', action: 'load', desc: 'Lee el valor almacenado y lo muestra en la etiqueta de destino' }
+  };
+
+  const CLOSING_COMMANDS = new Set([
+    'fin', 'finseccion', 'fincontenedor', 'finrejilla', 'finlista', 'fintabla', 'finfilatabla'
+  ]);
+
+  // Auxiliares de formato
   function cleanParam(val) {
     if (val === null || val === undefined) return '';
     return String(val)
@@ -317,27 +395,44 @@
     if (!val) return '0px';
     val = String(val).trim();
     if (!val) return '0px';
-    if (/^\d+(?:\.\d+)?$/.test(val)) return val + 'px';
+    if (/^[0-9]+(?:\.[0-9]+)?$/.test(val)) return val + 'px';
     return val;
   }
 
   function formatBorder(val) {
     if (!val) return '1px solid #ccc';
     val = val.trim();
-    if (/\b(solid|dashed|dotted|double|groove|ridge|inset|outset|none)\b/i.test(val) || /^\d+px/i.test(val)) {
+    if (/\b(solid|dashed|dotted|double|groove|ridge|inset|outset|none)\b/i.test(val) || /^[0-9]+px/i.test(val)) {
       return val;
     }
     return `1px solid ${formatColor(val)}`;
   }
 
-  function parseRcLine(line) {
+  function escapeHtml(str) {
+    if (!str) return '';
+    return str
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
+
+  function escapeJsString(str) {
+    if (str === null || str === undefined) return "''";
+    return JSON.stringify(String(str));
+  }
+
+  // ==========================================
+  // PARSER DE LÍNEAS RC
+  // ==========================================
+  function parseRcLine(line, lineNum = 1) {
     line = line.trim();
     if (!line || line.startsWith('//')) return null;
 
     let bracketId = '';
     let workLine = line;
 
-    // Support bracket syntax: comando[id](args) or comando[id]
+    // Sintaxis de corchetes: comando[id](args) o comando[id]
     const bracketMatch = workLine.match(/^([a-z0-9_]+)\[([a-z0-9_]+)\](.*)$/i);
     if (bracketMatch) {
       const baseCmd = bracketMatch[1].toLowerCase();
@@ -383,41 +478,19 @@
       }
     }
 
-    return { cmd, bracketId, args };
+    return { cmd, bracketId, args, rawLine: line, lineNum };
   }
 
-  function encodeMeta(obj) {
-    try {
-      const str = JSON.stringify(obj);
-      return btoa(encodeURIComponent(str));
-    } catch (e) {
-      return '';
-    }
-  }
-
-  function decodeMeta(str) {
-    try {
-      const json = decodeURIComponent(atob(str.trim()));
-      return JSON.parse(json);
-    } catch (e) {
-      return null;
-    }
-  }
-
+  // ==========================================
+  // COMPILADOR Y GENERADOR RC -> HTML/CSS/JS
+  // ==========================================
   function rcToHtml(rcCode, visitedFiles = new Set()) {
     if (!rcCode || !rcCode.trim()) return '';
 
-    let meta = null;
-    const metaMatch = rcCode.match(/\/\/\s*\[rc-meta:\s*([A-Za-z0-9+/=]+)\]/);
-    if (metaMatch) {
-      meta = decodeMeta(metaMatch[1]);
-    }
-
-    const cleanRcCode = rcCode.replace(/\/\/\s*\[rc-meta:\s*([A-Za-z0-9+/=]+)\]/g, '');
-    const lines = cleanRcCode.split('\n');
-
-    let title = (meta && meta.title) ? meta.title : 'Aplicación RC';
+    const lines = rcCode.split('\n');
+    let title = 'Aplicación RC Studio';
     const scriptLines = [];
+    const warnings = [];
 
     const nodesById = new Map();
 
@@ -439,11 +512,7 @@
       return node;
     }
 
-    const rootNode = createNode('body', 'body_root', meta && meta.bodyClass ? meta.bodyClass : '', true);
-    if (meta && meta.bodyStyle) {
-      rootNode.styles.push(meta.bodyStyle);
-    }
-
+    const rootNode = createNode('body', 'body_root', '', true);
     const nodeStack = [rootNode];
     let lastCreatedNode = null;
 
@@ -461,37 +530,8 @@
       return currentContainer();
     }
 
-    function applyMetaToNode(node) {
-      if (!meta || !meta.elements || !node.id) return;
-      const elMeta = meta.elements[node.id];
-      if (!elMeta) return;
-
-      if (elMeta.className && !node.className) {
-        node.className = elMeta.className;
-      } else if (elMeta.className && node.className && !node.className.includes(elMeta.className)) {
-        node.className = (node.className + ' ' + elMeta.className).trim();
-      }
-
-      if (elMeta.style && !node.styles.includes(elMeta.style)) {
-        node.styles.unshift(elMeta.style);
-      }
-
-      if (elMeta.attrs) {
-        Object.assign(node.attrs, elMeta.attrs);
-      }
-    }
-
     function addChild(node) {
-      let targetContainer = currentContainer();
-
-      if (meta && meta.elements && node.id && meta.elements[node.id]) {
-        const pId = meta.elements[node.id].parentId;
-        if (pId && nodesById.has(pId)) {
-          targetContainer = nodesById.get(pId);
-        }
-      }
-
-      applyMetaToNode(node);
+      const targetContainer = currentContainer();
       targetContainer.children.push(node);
       lastCreatedNode = node;
 
@@ -512,7 +552,8 @@
       }
     }
 
-    lines.forEach((rawLine) => {
+    lines.forEach((rawLine, idx) => {
+      const lineNum = idx + 1;
       const line = rawLine.trim();
       if (!line) return;
 
@@ -524,10 +565,17 @@
         return;
       }
 
-      const parsed = parseRcLine(line);
+      const parsed = parseRcLine(line, lineNum);
       if (!parsed) return;
 
       const { cmd, bracketId, args } = parsed;
+      const spec = RC_COMMANDS_SPEC[cmd];
+
+      if (!spec && !CLOSING_COMMANDS.has(cmd)) {
+        warnings.push(`Línea ${lineNum}: Comando desconocido '${escapeHtml(cmd)}'`);
+        return;
+      }
+
       const a1 = args[0] || '';
       const a2 = args[1] || '';
       const a3 = args[2] || '';
@@ -562,8 +610,20 @@
         }
       }
 
+      // Procesar comando según su tipo
+      if (CLOSING_COMMANDS.has(cmd)) {
+        if (cmd === 'finseccion') closeContainerTag(['section']);
+        else if (cmd === 'fincontenedor') closeContainerTag(['div']);
+        else if (cmd === 'finrejilla') closeContainerTag(['div']);
+        else if (cmd === 'finlista') closeContainerTag(['ul', 'ol']);
+        else if (cmd === 'fintabla') closeContainerTag(['table']);
+        else if (cmd === 'finfilatabla') closeContainerTag(['tr']);
+        else closeContainerTag();
+        return;
+      }
+
       switch (cmd) {
-        case 'incluir':
+        case 'incluir': {
           const targetFileName = cleanParam(a1);
           if (!targetFileName) break;
 
@@ -586,7 +646,7 @@
             const newVisited = new Set(visitedFiles);
             newVisited.add(targetFileName);
 
-            if (targetFile.type === 'rc' || targetFileName.endsWith('.rc')) {
+            if (targetFileName.endsWith('.rc') || targetFile.type === 'rc') {
               const subHtml = rcToHtml(targetFile.content, newVisited);
               const incNode = createNode('comment');
               const bodyMatch = subHtml.match(/<body[^>]*>([\s\S]*?)<\/body>/i);
@@ -594,41 +654,32 @@
               currentContainer().children.push(incNode);
 
               const scriptMatch = subHtml.match(/<script>([\s\S]*?)<\/script>/i);
-              if (scriptMatch) {
-                scriptLines.push(scriptMatch[1].trim());
-              }
-            } else if (targetFile.type === 'html' || targetFileName.endsWith('.html')) {
-              const incNode = createNode('comment');
-              incNode.rawHtml = targetFile.content;
-              currentContainer().children.push(incNode);
-            } else if (targetFileName.endsWith('.css')) {
-              const incNode = createNode('comment');
-              incNode.rawHtml = `<style>\n${targetFile.content}\n</style>`;
-              currentContainer().children.push(incNode);
-            } else if (targetFileName.endsWith('.js')) {
-              scriptLines.push(targetFile.content);
+              if (scriptMatch) scriptLines.push(scriptMatch[1].trim());
             }
           }
           break;
+        }
 
         case 'titulo':
           title = cleanParam(a1);
           break;
 
-        case 'seccion':
+        case 'seccion': {
           closeContainerTag(['section']);
           const secId = bracketId || cleanParam(a1);
           const secNode = createNode('section', secId, '', true);
           addChild(secNode);
           break;
+        }
 
-        case 'contenedor':
+        case 'contenedor': {
           const divId = bracketId || cleanParam(a1);
           const divNode = createNode('div', divId, '', true);
           addChild(divNode);
           break;
+        }
 
-        case 'rejilla':
+        case 'rejilla': {
           const gridId = bracketId || cleanParam(a2 || '');
           const cols = parseInt(a1, 10) || 1;
           const gridNode = createNode('div', gridId, 'rejilla', true);
@@ -636,81 +687,93 @@
           gridNode.styles.push(`grid-template-columns: repeat(${cols}, 1fr);`);
           addChild(gridNode);
           break;
+        }
 
         case 'linea':
           addChild(createNode('hr'));
           break;
 
         case 'texto':
-        case 'parrafo':
+        case 'parrafo': {
           const pNode = createNode('p', bracketId);
           pNode.innerText = cleanParam(a1);
           addChild(pNode);
           break;
+        }
 
-        case 'encabezado':
+        case 'encabezado': {
           const level = Math.max(1, Math.min(6, parseInt(a1, 10) || 1));
           const hNode = createNode(`h${level}`, bracketId);
           hNode.innerText = cleanParam(a2);
           addChild(hNode);
           break;
+        }
 
-        case 'negrita':
+        case 'negrita': {
           const bNode = createNode('b', bracketId);
           bNode.innerText = cleanParam(a1);
           addChild(bNode);
           break;
+        }
 
-        case 'cursiva':
+        case 'cursiva': {
           const iNode = createNode('i', bracketId);
           iNode.innerText = cleanParam(a1);
           addChild(iNode);
           break;
+        }
 
-        case 'subrayado':
+        case 'subrayado': {
           const uNode = createNode('u', bracketId);
           uNode.innerText = cleanParam(a1);
           addChild(uNode);
           break;
+        }
 
-        case 'etiqueta':
+        case 'etiqueta': {
           const lblId = bracketId || cleanParam(a1);
           const lblText = cleanParam(bracketId ? a1 : (a2 || a1));
           const lblNode = createNode('span', lblId);
           lblNode.innerText = lblText;
           addChild(lblNode);
           break;
+        }
 
-        case 'bloque':
+        case 'bloque': {
           const blkNode = createNode('div', bracketId);
           blkNode.innerText = cleanParam(a1);
           addChild(blkNode);
           break;
+        }
 
-        case 'cita':
+        case 'cita': {
           const qNode = createNode('blockquote', bracketId);
           qNode.innerText = cleanParam(a1);
           addChild(qNode);
           break;
+        }
 
-        case 'codigo':
+        case 'codigo': {
           const codeNode = createNode('code', bracketId);
           codeNode.innerText = cleanParam(a1);
           addChild(codeNode);
           break;
+        }
 
-        case 'enlace':
+        case 'enlace': {
           const aNode = createNode('a', bracketId);
           aNode.innerText = cleanParam(a2);
           aNode.href = cleanParam(a1);
           addChild(aNode);
           break;
+        }
 
-        case 'imagen':
+        case 'imagen': {
           const imgNode = createNode('img', bracketId);
           imgNode.src = cleanParam(a1);
           addChild(imgNode);
           break;
+        }
 
         case 'listadesordenada':
           addChild(createNode('ul', bracketId, '', true));
@@ -720,11 +783,12 @@
           addChild(createNode('ol', bracketId, '', true));
           break;
 
-        case 'elementolista':
+        case 'elementolista': {
           const liNode = createNode('li', bracketId);
           liNode.innerText = cleanParam(a1);
           addChild(liNode);
           break;
+        }
 
         case 'tabla':
           addChild(createNode('table', bracketId, '', true));
@@ -734,19 +798,21 @@
           addChild(createNode('tr', bracketId, '', true));
           break;
 
-        case 'encabezadotabla':
+        case 'encabezadotabla': {
           const thNode = createNode('th', bracketId);
           thNode.innerText = cleanParam(a1);
           addChild(thNode);
           break;
+        }
 
-        case 'celdatabla':
+        case 'celdatabla': {
           const tdNode = createNode('td', bracketId);
           tdNode.innerText = cleanParam(a1);
           addChild(tdNode);
           break;
+        }
 
-        case 'boton':
+        case 'boton': {
           let btnId = bracketId;
           let btnText = '';
           if (bracketId) {
@@ -762,79 +828,90 @@
           btnNode.innerText = btnText;
           addChild(btnNode);
           break;
+        }
 
-        case 'etiquetacampo':
+        case 'etiquetacampo': {
           const lblField = createNode('label', bracketId);
           lblField.innerText = cleanParam(a1);
           addChild(lblField);
           break;
+        }
 
-        case 'cargando':
+        case 'cargando': {
           const loadNode = createNode('div', bracketId, 'cargando');
           loadNode.innerText = 'Cargando...';
           addChild(loadNode);
           break;
+        }
 
         case 'lienzo':
           addChild(createNode('canvas', bracketId || cleanParam(a1)));
           break;
 
-        case 'areatexto':
+        case 'areatexto': {
           const areaId = bracketId || cleanParam(a1);
           const areaNode = createNode('textarea', areaId);
           areaNode.innerText = cleanParam(a2);
           addChild(areaNode);
           break;
+        }
 
-        case 'entrada':
+        case 'entrada': {
           const inTxtId = bracketId || cleanParam(a1);
           const inTxt = createNode('input', inTxtId);
           inTxt.inputType = 'text';
           inTxt.val = cleanParam(a2);
           addChild(inTxt);
           break;
+        }
 
-        case 'camponumero':
+        case 'camponumero': {
           const inNumId = bracketId || cleanParam(a1);
           const inNum = createNode('input', inNumId);
           inNum.inputType = 'number';
           inNum.val = cleanParam(a2);
           addChild(inNum);
           break;
+        }
 
-        case 'campocorreo':
+        case 'campocorreo': {
           const inMailId = bracketId || cleanParam(a1);
           const inMail = createNode('input', inMailId);
           inMail.inputType = 'email';
           inMail.val = cleanParam(a2);
           addChild(inMail);
           break;
+        }
 
-        case 'campocontrasena':
+        case 'campocontrasena': {
           const inPassId = bracketId || cleanParam(a1);
           const inPass = createNode('input', inPassId);
           inPass.inputType = 'password';
           addChild(inPass);
           break;
+        }
 
-        case 'campofecha':
+        case 'campofecha': {
           const inDateId = bracketId || cleanParam(a1);
           const inDate = createNode('input', inDateId);
           inDate.inputType = 'date';
           addChild(inDate);
           break;
+        }
 
-        case 'campochequeo':
+        case 'campochequeo': {
           const chkId = bracketId || cleanParam(a1);
           const chkNode = createNode('label', chkId);
-          chkNode.rawHtml = `<label><input type="checkbox" id="${chkId}"> ${cleanParam(a2)}</label>`;
+          chkNode.rawHtml = `<label><input type="checkbox" id="${chkId}"> ${escapeHtml(cleanParam(a2))}</label>`;
           addChild(chkNode);
           break;
+        }
 
-        case 'desplegable':
+        case 'desplegable': {
           const selId = bracketId || cleanParam(a1);
           addChild(createNode('select', selId));
           break;
+        }
 
         case 'fondo':
           currentTargetForStyle().styles.push(`background-color: ${formatColor(a1)};`);
@@ -873,11 +950,10 @@
           break;
 
         case 'radio':
-          const radTarget = currentTargetForStyle();
-          radTarget.styles.push(`border-radius: ${formatUnit(a1)};`);
+          currentTargetForStyle().styles.push(`border-radius: ${formatUnit(a1)};`);
           break;
 
-        case 'centrar':
+        case 'centrar': {
           const targetCentrar = currentTargetForStyle();
           if (targetCentrar.isContainer) {
             targetCentrar.styles.push(`margin-left: auto; margin-right: auto; text-align: center; justify-content: center; align-items: center;`);
@@ -885,8 +961,9 @@
             targetCentrar.styles.push(`display: block; margin-left: auto; margin-right: auto; text-align: center;`);
           }
           break;
+        }
 
-        case 'alinearizquierda':
+        case 'alinearizquierda': {
           const targetIzq = currentTargetForStyle();
           if (targetIzq.isContainer) {
             targetIzq.styles.push(`text-align: left; justify-content: flex-start; align-items: flex-start;`);
@@ -894,8 +971,9 @@
             targetIzq.styles.push(`text-align: left;`);
           }
           break;
+        }
 
-        case 'alinearderecha':
+        case 'alinearderecha': {
           const targetDer = currentTargetForStyle();
           if (targetDer.isContainer) {
             targetDer.styles.push(`text-align: right; justify-content: flex-end; align-items: flex-end;`);
@@ -903,22 +981,25 @@
             targetDer.styles.push(`text-align: right;`);
           }
           break;
+        }
 
         case 'borde':
           currentTargetForStyle().styles.push(`border: ${formatBorder(a1)};`);
           break;
 
-        case 'sombra':
+        case 'sombra': {
           const shadowLvl = parseInt(a1, 10) || 1;
           currentTargetForStyle().styles.push(`box-shadow: 0 ${shadowLvl * 2}px ${shadowLvl * 4}px rgba(0,0,0,0.2);`);
           break;
+        }
 
-        case 'transparencia':
+        case 'transparencia': {
           const op = (parseFloat(a1) || 10) / 10;
           currentTargetForStyle().styles.push(`opacity: ${op};`);
           break;
+        }
 
-        case 'flotante':
+        case 'flotante': {
           const flotVal = cleanParam(a1).toLowerCase();
           if (['flex', 'inline-flex', 'grid', 'inline-grid', 'block', 'inline-block', 'none'].includes(flotVal)) {
             currentTargetForStyle().styles.push(`display: ${flotVal};`);
@@ -932,122 +1013,142 @@
             currentTargetForStyle().styles.push(`position: ${flotVal};`);
           }
           break;
+        }
 
         case 'desplazamiento':
           currentTargetForStyle().styles.push(`overflow: auto;`);
           break;
 
         case 'ocultar':
-          scriptLines.push(`document.getElementById('${a1}')?.style.setProperty('display', 'none');`);
+          scriptLines.push(`document.getElementById(${escapeJsString(a1)})?.style.setProperty('display', 'none');`);
           break;
 
         case 'mostrar':
-          scriptLines.push(`document.getElementById('${a1}')?.style.setProperty('display', 'block');`);
+          scriptLines.push(`document.getElementById(${escapeJsString(a1)})?.style.setProperty('display', 'block');`);
           break;
 
         case 'avisar':
-          scriptLines.push(`document.getElementById('${a1}')?.addEventListener('click', () => alert('${a2}'));`);
+          scriptLines.push(`document.getElementById(${escapeJsString(a1)})?.addEventListener('click', () => alert(${escapeJsString(a2)}));`);
           break;
 
         case 'ira':
-          scriptLines.push(`document.getElementById('${a1}')?.addEventListener('click', () => window.location.href = '${a2}');`);
+          scriptLines.push(`document.getElementById(${escapeJsString(a1)})?.addEventListener('click', () => window.location.href = ${escapeJsString(a2)});`);
           break;
 
         case 'ocultarboton':
-          scriptLines.push(`document.getElementById('${a1}')?.addEventListener('click', () => { const el = document.getElementById('${a2}'); if(el) el.style.display = 'none'; });`);
+          scriptLines.push(`document.getElementById(${escapeJsString(a1)})?.addEventListener('click', () => { const el = document.getElementById(${escapeJsString(a2)}); if(el) el.style.display = 'none'; });`);
           break;
 
         case 'mostrarboton':
-          scriptLines.push(`document.getElementById('${a1}')?.addEventListener('click', () => { const el = document.getElementById('${a2}'); if(el) el.style.display = 'block'; });`);
+          scriptLines.push(`document.getElementById(${escapeJsString(a1)})?.addEventListener('click', () => { const el = document.getElementById(${escapeJsString(a2)}); if(el) el.style.display = 'block'; });`);
           break;
 
         case 'alternar':
-          scriptLines.push(`document.getElementById('${a1}')?.addEventListener('click', () => { const el = document.getElementById('${a2}'); if(el) el.style.display = (el.style.display === 'none' ? 'block' : 'none'); });`);
+          scriptLines.push(`document.getElementById(${escapeJsString(a1)})?.addEventListener('click', () => { const el = document.getElementById(${escapeJsString(a2)}); if(el) el.style.display = (el.style.display === 'none' ? 'block' : 'none'); });`);
           break;
 
         case 'limpiar':
-          scriptLines.push(`document.getElementById('${a1}')?.addEventListener('click', () => { const el = document.getElementById('${a2}'); if(el) el.value = ''; });`);
+          scriptLines.push(`document.getElementById(${escapeJsString(a1)})?.addEventListener('click', () => { const el = document.getElementById(${escapeJsString(a2)}); if(el) { if('value' in el) el.value = ''; else el.innerText = ''; } });`);
           break;
 
         case 'limpiarlienzo':
-          scriptLines.push(`document.getElementById('${a1}')?.addEventListener('click', () => { const c = document.getElementById('${a2}'); if(c) c.getContext('2d').clearRect(0, 0, c.width, c.height); });`);
+          scriptLines.push(`document.getElementById(${escapeJsString(a1)})?.addEventListener('click', () => { const c = document.getElementById(${escapeJsString(a2)}); if(c && c.getContext) c.getContext('2d').clearRect(0, 0, c.width, c.height); });`);
           break;
 
         case 'deshabilitar':
-          scriptLines.push(`document.getElementById('${a1}')?.setAttribute('disabled', 'true');`);
+          scriptLines.push(`document.getElementById(${escapeJsString(a1)})?.setAttribute('disabled', 'true');`);
           break;
 
         case 'habilitar':
-          scriptLines.push(`document.getElementById('${a1}')?.removeAttribute('disabled');`);
+          scriptLines.push(`document.getElementById(${escapeJsString(a1)})?.removeAttribute('disabled');`);
           break;
 
         case 'copiartexto':
-          scriptLines.push(`document.getElementById('${a1}')?.addEventListener('click', () => { const el = document.getElementById('${a2}'); if(el) navigator.clipboard.writeText(el.value || el.innerText); });`);
+          scriptLines.push(`document.getElementById(${escapeJsString(a1)})?.addEventListener('click', () => { const el = document.getElementById(${escapeJsString(a2)}); if(el) navigator.clipboard.writeText(el.value || el.innerText); });`);
           break;
 
         case 'sumar':
-          scriptLines.push(`document.getElementById('${a1}')?.addEventListener('click', () => { const v1 = parseFloat(document.getElementById('${a2}')?.value)||0; const v2 = parseFloat(document.getElementById('${a3}')?.value)||0; const lbl = document.getElementById('${a4}'); if(lbl) lbl.innerText = (v1 + v2).toString(); });`);
-          break;
-
         case 'restar':
-          scriptLines.push(`document.getElementById('${a1}')?.addEventListener('click', () => { const v1 = parseFloat(document.getElementById('${a2}')?.value)||0; const v2 = parseFloat(document.getElementById('${a3}')?.value)||0; const lbl = document.getElementById('${a4}'); if(lbl) lbl.innerText = (v1 - v2).toString(); });`);
-          break;
-
         case 'multiplicar':
-          scriptLines.push(`document.getElementById('${a1}')?.addEventListener('click', () => { const v1 = parseFloat(document.getElementById('${a2}')?.value)||0; const v2 = parseFloat(document.getElementById('${a3}')?.value)||0; const lbl = document.getElementById('${a4}'); if(lbl) lbl.innerText = (v1 * v2).toString(); });`);
+        case 'dividir': {
+          const opChar = spec.op;
+          scriptLines.push(`document.getElementById(${escapeJsString(a1)})?.addEventListener('click', () => {
+            const el1 = document.getElementById(${escapeJsString(a2)});
+            const el2 = document.getElementById(${escapeJsString(a3)});
+            const lbl = document.getElementById(${escapeJsString(a4)});
+            if(!el1 || !el2 || !lbl) return;
+            const v1 = parseFloat(el1.value !== undefined ? el1.value : el1.innerText) || 0;
+            const v2 = parseFloat(el2.value !== undefined ? el2.value : el2.innerText) || 0;
+            let res = 0;
+            if('${opChar}' === '+') res = v1 + v2;
+            else if('${opChar}' === '-') res = v1 - v2;
+            else if('${opChar}' === '*') res = v1 * v2;
+            else if('${opChar}' === '/') {
+              if(v2 === 0) {
+                if('value' in lbl) lbl.value = 'Error: División por cero'; else lbl.innerText = 'Error: División por cero';
+                return;
+              }
+              res = v1 / v2;
+            }
+            res = Number(res.toFixed(8)) / 1;
+            if('value' in lbl && lbl.tagName !== 'SPAN' && lbl.tagName !== 'P' && lbl.tagName !== 'DIV') lbl.value = res.toString();
+            else lbl.innerText = res.toString();
+          });`);
           break;
-
-        case 'dividir':
-          scriptLines.push(`document.getElementById('${a1}')?.addEventListener('click', () => { const v1 = parseFloat(document.getElementById('${a2}')?.value)||0; const v2 = parseFloat(document.getElementById('${a3}')?.value)||0; const lbl = document.getElementById('${a4}'); if(lbl) lbl.innerText = v2 !== 0 ? (v1 / v2).toString() : 'Error'; });`);
-          break;
+        }
 
         case 'incrementar':
-          const incStep = parseFloat(a3) || 1;
-          scriptLines.push(`document.getElementById('${a1}')?.addEventListener('click', () => { const el = document.getElementById('${a2}'); if(el) { if('value' in el && el.value !== '') el.value = (parseFloat(el.value)||0) + ${incStep}; else el.innerText = (parseFloat(el.innerText)||0) + ${incStep}; } });`);
+        case 'decrementar': {
+          const isInc = cmd === 'incrementar';
+          const stepVal = a3 || '1';
+          scriptLines.push(`document.getElementById(${escapeJsString(a1)})?.addEventListener('click', () => {
+            const el = document.getElementById(${escapeJsString(a2)});
+            if(!el) return;
+            const stepStr = ${escapeJsString(stepVal)};
+            if('value' in el && el.tagName !== 'SPAN' && el.tagName !== 'P' && el.tagName !== 'DIV') {
+              if (el.value === '' || el.value === 'Error: División por cero') el.value = stepStr;
+              else el.value = el.value + stepStr;
+            } else {
+              if (el.innerText === '' || el.innerText === 'Error: División por cero') el.innerText = stepStr;
+              else el.innerText = el.innerText + stepStr;
+            }
+          });`);
           break;
-
-        case 'decrementar':
-          const decStep = parseFloat(a3) || 1;
-          scriptLines.push(`document.getElementById('${a1}')?.addEventListener('click', () => { const el = document.getElementById('${a2}'); if(el) { if('value' in el && el.value !== '') el.value = (parseFloat(el.value)||0) - ${decStep}; else el.innerText = (parseFloat(el.innerText)||0) - ${decStep}; } });`);
-          break;
+        }
 
         case 'guardarlocal':
-          scriptLines.push(`document.getElementById('${a1}')?.addEventListener('click', () => { const el = document.getElementById('${a3}'); if(el) localStorage.setItem('${a2}', el.value); });`);
+          scriptLines.push(`document.getElementById(${escapeJsString(a1)})?.addEventListener('click', () => {
+            const el = document.getElementById(${escapeJsString(a3)});
+            if(el) localStorage.setItem(${escapeJsString(a2)}, el.value !== undefined ? el.value : el.innerText);
+          });`);
           break;
 
         case 'cargarlocal':
-          scriptLines.push(`{ const val = localStorage.getItem('${a1}') || ''; const lbl = document.getElementById('${a2}'); if(lbl) lbl.innerText = val; }`);
-          break;
-
-        case 'fin':
-        case 'finseccion':
-        case 'fincontenedor':
-        case 'finrejilla':
-        case 'finlista':
-        case 'fintabla':
-        case 'finfilatabla':
-          closeContainerTag();
+          scriptLines.push(`{
+            const val = localStorage.getItem(${escapeJsString(a1)}) || '';
+            const lbl = document.getElementById(${escapeJsString(a2)});
+            if(lbl) { if('value' in lbl && lbl.tagName !== 'SPAN' && lbl.tagName !== 'P') lbl.value = val; else lbl.innerText = val; }
+          }`);
           break;
       }
     });
 
     function renderNode(node, depth = 1) {
       const indent = ' '.repeat(depth * 2);
-
       if (node.rawHtml) return `${indent}${node.rawHtml}`;
 
       let attrs = '';
-      if (node.id) attrs += ` id="${node.id}"`;
-      if (node.className) attrs += ` class="${node.className}"`;
-      if (node.inputType) attrs += ` type="${node.inputType}"`;
-      if (node.val !== undefined && node.val !== '') attrs += ` value="${node.val}"`;
-      if (node.href) attrs += ` href="${node.href}"`;
-      if (node.src) attrs += ` src="${node.src}" alt="imagen"`;
+      if (node.id) attrs += ` id="${escapeHtml(node.id)}"`;
+      if (node.className) attrs += ` class="${escapeHtml(node.className)}"`;
+      if (node.inputType) attrs += ` type="${escapeHtml(node.inputType)}"`;
+      if (node.val !== undefined && node.val !== '') attrs += ` value="${escapeHtml(node.val)}"`;
+      if (node.href) attrs += ` href="${escapeHtml(node.href)}"`;
+      if (node.src) attrs += ` src="${escapeHtml(node.src)}" alt="imagen"`;
 
       if (node.attrs) {
         for (const [k, v] of Object.entries(node.attrs)) {
           if (!['id', 'class', 'type', 'value', 'href', 'src', 'style'].includes(k.toLowerCase())) {
-            attrs += ` ${k}="${escapeHtml(v)}"`;
+            attrs += ` ${escapeHtml(k)}="${escapeHtml(v)}"`;
           }
         }
       }
@@ -1059,609 +1160,65 @@
         return `${indent}<${node.tag}${attrs}>`;
       }
 
-      const textContent = node.innerText || '';
+      const textContent = escapeHtml(node.innerText || '');
       if (!node.children || node.children.length === 0) {
         return `${indent}<${node.tag}${attrs}>${textContent}</${node.tag}>`;
       }
 
       const childrenHtml = node.children.map(c => renderNode(c, depth + 1)).join('\n');
-      return `${indent}<${node.tag}${attrs}>${textContent ? textContent + '\n' : ''}${childrenHtml}\n${indent}</${node.tag}>`;
+      return `${indent}<${node.tag}${attrs}>\n${textContent ? indent + '  ' + textContent + '\n' : ''}${childrenHtml}\n${indent}</${node.tag}>`;
     }
 
     const bodyChildren = rootNode.children.map(c => renderNode(c, 1)).join('\n');
-    let bodyStyleAttr = '';
-    if (rootNode.styles.length > 0) {
-      bodyStyleAttr = ` style="${rootNode.styles.join(' ')}"`;
-    }
-    let bodyClassAttr = '';
-    if (rootNode.className) {
-      bodyClassAttr = ` class="${rootNode.className}"`;
-    }
 
-    let extraStyles = '';
-    if (meta && meta.styles && meta.styles.length > 0) {
-      extraStyles = meta.styles.map(s => `  <style>\n${s}\n  </style>`).join('\n') + '\n';
-    }
-
-    let combinedScripts = [...scriptLines];
-    if (meta && meta.scripts && meta.scripts.length > 0) {
-      meta.scripts.forEach(s => {
-        if (!combinedScripts.includes(s)) combinedScripts.push(s);
-      });
+    let warningBlock = '';
+    if (warnings.length > 0) {
+      warningBlock = `  <div style="background: #2a1b1b; color: #ff8080; border: 1px solid #662222; padding: 10px; margin: 10px 0; border-radius: 6px; font-family: monospace; font-size: 12px;">\n` +
+        warnings.map(w => `    <div>⚠️ ${w}</div>`).join('\n') + `\n  </div>\n`;
     }
 
     let scriptBlock = '';
-    if (combinedScripts.length > 0) {
-      scriptBlock = `\n  <script>\n    ${combinedScripts.join('\n    ')}\n  <\/script>`;
+    if (scriptLines.length > 0) {
+      scriptBlock = `\n  <script>\n    ${scriptLines.join('\n    ')}\n  <\/script>`;
     }
 
     return `<!DOCTYPE html>
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <title>${title}</title>
-${extraStyles}  <style>
-    body { font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; margin: 16px; box-sizing: border-box; }
+  <title>${escapeHtml(title)}</title>
+  <style>
+    body { font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; margin: 16px; box-sizing: border-box; background: #0e1015; color: #ffffff; }
     *, *:before, *:after { box-sizing: inherit; }
     button { cursor: pointer; padding: 10px 14px; font-size: 15px; border-radius: 8px; border: 1px solid #3d4454; background: #272c38; color: #ffffff; display: inline-block; vertical-align: middle; box-sizing: border-box; transition: background 0.15s ease; margin: 4px; }
     button:hover { background: #383f50; }
     button:active { background: #1e222c; }
-    input[type="text"], input[type="number"], input[type="email"], input[type="password"], input[type="date"], textarea, select { width: 100%; padding: 10px; font-size: 15px; border-radius: 8px; border: 1px solid #3d4454; background: #151821; color: #ffffff; outline: none; box-sizing: border-box; }
+    input[type="text"], input[type="number"], input[type="email"], input[type="password"], input[type="date"], textarea, select { width: 100%; padding: 10px; font-size: 15px; border-radius: 8px; border: 1px solid #3d4454; background: #151821; color: #ffffff; outline: none; box-sizing: border-box; margin: 4px 0; }
     .rejilla { display: grid; width: 100%; gap: 10px; box-sizing: border-box; }
+    .cargando { display: inline-block; padding: 10px 20px; background: #222733; color: #68b5ff; border-radius: 6px; border: 1px dashed #68b5ff; }
   </style>
 </head>
-<body${bodyClassAttr}${bodyStyleAttr}>
-${bodyChildren}${scriptBlock}
+<body>
+${warningBlock}${bodyChildren}${scriptBlock}
 </body>
 </html>
 `;
   }
 
-
-  function parseStyleString(styleStr, rcLines) {
-    if (!styleStr) return;
-    const decls = styleStr.split(';');
-    decls.forEach(d => {
-      const parts = d.split(':');
-      if (parts.length < 2) return;
-      const prop = parts[0].trim().toLowerCase();
-      const val = cleanParam(parts[1].trim());
-
-      if (prop === 'background-color' || prop === 'background') rcLines.push(`fondo(${formatColor(val)})`);
-      else if (prop === 'color') rcLines.push(`color(${formatColor(val)})`);
-      else if (prop === 'font-family') rcLines.push(`letra(${val.split(',')[0].trim()})`);
-      else if (prop === 'font-size') rcLines.push(`tamano(${val})`);
-      else if (prop === 'width') rcLines.push(`ancho(${val})`);
-      else if (prop === 'height') rcLines.push(`alto(${val})`);
-      else if (prop === 'gap') rcLines.push(`gap(${val})`);
-      else if (prop === 'margin') rcLines.push(`margen(${val})`);
-      else if (prop === 'padding') rcLines.push(`relleno(${val})`);
-      else if (prop === 'border-radius') rcLines.push(`radio(${val})`);
-      else if (prop === 'text-align') {
-        const valLower = val.toLowerCase();
-        if (valLower === 'center') rcLines.push('centrar');
-        else if (valLower === 'left') rcLines.push('alinearizquierda');
-        else if (valLower === 'right') rcLines.push('alinearderecha');
-      }
-      else if (prop === 'border') rcLines.push(`borde(${formatBorder(val)})`);
-      else if (prop === 'box-shadow') {
-        const shadowMatch = val.match(/0\s+(\d+)px\s+(\d+)px/);
-        let lvl = 2;
-        if (shadowMatch) {
-          lvl = Math.max(1, Math.round(parseInt(shadowMatch[1], 10) / 2) || Math.round(parseInt(shadowMatch[2], 10) / 4) || 2);
-        }
-        rcLines.push(`sombra(${lvl})`);
-      }
-      else if (prop === 'opacity') {
-        const num = Math.round(parseFloat(val) * 10) || 10;
-        rcLines.push(`transparencia(${num})`);
-      }
-      else if (prop === 'position' || prop === 'display') rcLines.push(`flotante(${val.toLowerCase()})`);
-      else if (prop === 'flex-direction') rcLines.push(`flotante(${val.toLowerCase()})`);
-      else if (prop === 'justify-content' || prop === 'align-items') {
-        const valLower = val.toLowerCase();
-        if (valLower.includes('center')) rcLines.push('centrar');
-        else if (valLower.includes('right') || valLower.includes('end')) rcLines.push('alinearderecha');
-        else if (valLower.includes('left') || valLower.includes('start')) rcLines.push('alinearizquierda');
-      }
-      else if (prop === 'float') {
-        const valLower = val.toLowerCase();
-        if (valLower === 'left') rcLines.push('flotante(izquierda)');
-        else if (valLower === 'right') rcLines.push('flotante(derecha)');
-      }
-      else if (prop === 'overflow' && val.toLowerCase() === 'auto') rcLines.push('desplazamiento');
-    });
-  }
-
-  function parseScriptContent(scriptText, rcLines) {
-    if (!scriptText) return;
-
-    // Normalize script lines
-    const lines = scriptText.split('\n');
-
-    lines.forEach(rawLine => {
-      const line = rawLine.trim();
-      if (!line) return;
-
-      let m;
-      if ((m = line.match(/getElementById\(['"]([^'"]+)['"]\)(?:\?)?\.addEventListener\(['"]click['"]\s*,\s*(?:\(\)\s*=>|function\s*\(\)\s*\{)\s*alert\(['"]([^'"]+)['"]\)/))) {
-        rcLines.push(`avisar(${cleanParam(m[1]).toLowerCase()})(${cleanParam(m[2]).toLowerCase()})`);
-      } else if ((m = line.match(/getElementById\(['"]([^'"]+)['"]\)(?:\?)?\.addEventListener\(['"]click['"]\s*,\s*(?:\(\)\s*=>|function\s*\(\)\s*\{)\s*window\.location\.href\s*=\s*['"]([^'"]+)['"]/))) {
-        rcLines.push(`ira(${cleanParam(m[1]).toLowerCase()})(${cleanParam(m[2])})`);
-      } else if (line.includes("v1") && line.includes("v2")) {
-        const ids = [...line.matchAll(/getElementById\(['"]([^'"]+)['"]\)/g)].map(x => cleanParam(x[1]).toLowerCase());
-        const opM = line.match(/v1\s*([+\-*\/])\s*v2/);
-        if (ids.length >= 4 && opM) {
-          const btn = ids[0], in1 = ids[1], in2 = ids[2], lbl = ids[3], op = opM[1];
-          let cmd = 'sumar';
-          if (op === '-') cmd = 'restar';
-          else if (op === '*') cmd = 'multiplicar';
-          else if (op === '/') cmd = 'dividir';
-          rcLines.push(`${cmd}(${btn})(${in1})(${in2})(${lbl})`);
-        }
-      } else if (line.includes("style.display") && line.includes("=== 'none'")) {
-        const ids = [...line.matchAll(/getElementById\(['"]([^'"]+)['"]\)/g)].map(x => cleanParam(x[1]).toLowerCase());
-        if (ids.length >= 2) rcLines.push(`alternar(${ids[0]})(${ids[1]})`);
-      } else if (line.includes("style.display") && line.includes("'none'") && !line.includes("style.setProperty")) {
-        const ids = [...line.matchAll(/getElementById\(['"]([^'"]+)['"]\)/g)].map(x => cleanParam(x[1]).toLowerCase());
-        if (ids.length >= 2) rcLines.push(`ocultarboton(${ids[0]})(${ids[1]})`);
-      } else if (line.includes("style.display") && line.includes("'block'") && !line.includes("style.setProperty")) {
-        const ids = [...line.matchAll(/getElementById\(['"]([^'"]+)['"]\)/g)].map(x => cleanParam(x[1]).toLowerCase());
-        if (ids.length >= 2) rcLines.push(`mostrarboton(${ids[0]})(${ids[1]})`);
-      } else if (line.includes(".value = ''") || line.includes('.value=""')) {
-        const ids = [...line.matchAll(/getElementById\(['"]([^'"]+)['"]\)/g)].map(x => cleanParam(x[1]).toLowerCase());
-        if (ids.length >= 2) rcLines.push(`limpiar(${ids[0]})(${ids[1]})`);
-      } else if (line.includes("setAttribute('disabled'")) {
-        m = line.match(/getElementById\(['"]([^'"]+)['"]\)/);
-        if (m) rcLines.push(`deshabilitar(${cleanParam(m[1]).toLowerCase()})`);
-      } else if (line.includes("removeAttribute('disabled'")) {
-        m = line.match(/getElementById\(['"]([^'"]+)['"]\)/);
-        if (m) rcLines.push(`habilitar(${cleanParam(m[1]).toLowerCase()})`);
-      } else if (line.includes("clearRect")) {
-        const ids = [...line.matchAll(/getElementById\(['"]([^'"]+)['"]\)/g)].map(x => cleanParam(x[1]).toLowerCase());
-        if (ids.length >= 2) rcLines.push(`limpiarlienzo(${ids[0]})(${ids[1]})`);
-      } else if (line.includes("clipboard.writeText")) {
-        const ids = [...line.matchAll(/getElementById\(['"]([^'"]+)['"]\)/g)].map(x => cleanParam(x[1]).toLowerCase());
-        if (ids.length >= 2) rcLines.push(`copiartexto(${ids[0]})(${ids[1]})`);
-      } else if (line.includes("+") && line.includes("parseFloat") && !line.includes("v1")) {
-        const ids = [...line.matchAll(/getElementById\(['"]([^'"]+)['"]\)/g)].map(x => cleanParam(x[1]).toLowerCase());
-        const stepM = line.match(/\+\s*(\d+(?:\.\d+)?)/);
-        const step = stepM ? stepM[1] : '1';
-        if (ids.length >= 2) rcLines.push(`incrementar(${ids[0]})(${ids[1]})(${step})`);
-      } else if (line.includes("-") && line.includes("parseFloat") && !line.includes("v1")) {
-        const ids = [...line.matchAll(/getElementById\(['"]([^'"]+)['"]\)/g)].map(x => cleanParam(x[1]).toLowerCase());
-        const stepM = line.match(/-\s*(\d+(?:\.\d+)?)/);
-        const step = stepM ? stepM[1] : '1';
-        if (ids.length >= 2) rcLines.push(`decrementar(${ids[0]})(${ids[1]})(${step})`);
-      } else if (line.includes("localStorage.setItem")) {
-        const ids = [...line.matchAll(/getElementById\(['"]([^'"]+)['"]\)/g)].map(x => cleanParam(x[1]).toLowerCase());
-        const keyM = line.match(/localStorage\.setItem\(['"]([^'"]+)['"]/);
-        if (ids.length >= 1 && keyM) {
-          const btn = ids[0];
-          const key = cleanParam(keyM[1]).toLowerCase();
-          const target = ids[1] || 'inp1';
-          rcLines.push(`guardarlocal(${btn})(${key})(${target})`);
-        }
-      } else if (line.includes("localStorage.getItem")) {
-        const keyM = line.match(/localStorage\.getItem\(['"]([^'"]+)['"]/);
-        const targetM = line.match(/getElementById\(['"]([^'"]+)['"]\)/);
-        if (keyM && targetM) {
-          rcLines.push(`cargarlocal(${cleanParam(keyM[1]).toLowerCase()})(${cleanParam(targetM[1]).toLowerCase()})`);
-        }
-      } else if (line.includes("style.setProperty('display', 'none')")) {
-        m = line.match(/getElementById\(['"]([^'"]+)['"]\)/);
-        if (m) rcLines.push(`ocultar(${cleanParam(m[1]).toLowerCase()})`);
-      } else if (line.includes("style.setProperty('display', 'block')")) {
-        m = line.match(/getElementById\(['"]([^'"]+)['"]\)/);
-        if (m) rcLines.push(`mostrar(${cleanParam(m[1]).toLowerCase()})`);
-      }
-    });
-  }
-
-  function htmlToRc(htmlCode) {
-    if (!htmlCode) return '';
-    const rcLines = [];
-
-    const meta = {
-      v: 1,
-      title: '',
-      styles: [],
-      bodyStyle: '',
-      bodyClass: '',
-      elements: {},
-      scripts: []
-    };
-
-    const parser = new DOMParser();
-    const doc = parser.parseFromString(htmlCode, 'text/html');
-
-    const titleEl = doc.querySelector('title');
-    if (titleEl && titleEl.textContent.trim()) {
-      meta.title = cleanParam(titleEl.textContent);
-      rcLines.push(`titulo(${meta.title})`);
-    }
-
-    doc.querySelectorAll('style').forEach(styleEl => {
-      const cssText = styleEl.textContent ? styleEl.textContent.trim() : '';
-      if (cssText) {
-        meta.styles.push(cssText);
-      }
-    });
-
-    const body = doc.body;
-    if (body) {
-      meta.bodyStyle = body.getAttribute('style') || '';
-      meta.bodyClass = body.getAttribute('class') || '';
-      parseStyleString(meta.bodyStyle, rcLines);
-    }
-
-    let idCounters = {};
-    function getOrGenId(node, prefix) {
-      let id = cleanParam(node.getAttribute('id') || '');
-      if (!id) {
-        idCounters[prefix] = (idCounters[prefix] || 0) + 1;
-        id = `${prefix}_${idCounters[prefix]}`;
-      }
-      return id;
-    }
-
-    function recordElementMeta(node, id, parentId) {
-      const attrs = {};
-      if (node.attributes) {
-        for (let i = 0; i < node.attributes.length; i++) {
-          const attr = node.attributes[i];
-          if (!['id', 'class', 'style', 'onclick'].includes(attr.name.toLowerCase())) {
-            attrs[attr.name] = attr.value;
-          }
-        }
-      }
-      meta.elements[id] = {
-        tag: node.tagName.toLowerCase(),
-        className: node.getAttribute('class') || '',
-        style: node.getAttribute('style') || '',
-        attrs: attrs,
-        parentId: parentId || null
-      };
-    }
-
-    function traverse(node, parentId = null) {
-      if (!node) return;
-
-      if (node.nodeType === 8) { // Comment
-        const commentText = cleanParam(node.textContent);
-        if (commentText.startsWith('rc-meta:')) return;
-        if (commentText.startsWith('incluir:')) {
-          const file = commentText.replace('incluir:', '').trim();
-          rcLines.push(`incluir(${file})`);
-        } else {
-          rcLines.push(`// ${commentText}`);
-        }
-        return;
-      }
-
-      if (node.nodeType !== 1) return;
-
-      const tag = node.tagName.toLowerCase();
-      const styleAttr = node.getAttribute('style') || '';
-
-      const onclick = node.getAttribute('onclick');
-      if (onclick) {
-        const id = getOrGenId(node, 'btn');
-        let m = onclick.match(/alert\(['"]([^'"]+)['"]\)/);
-        if (m) rcLines.push(`avisar(${id})(${cleanParam(m[1])})`);
-
-        m = onclick.match(/location\.href\s*=\s*['"]([^'"]+)['"]/);
-        if (m) rcLines.push(`ira(${id})(${cleanParam(m[1])})`);
-
-        m = onclick.match(/document\.getElementById\(['"]([^'"]+)['"]\)\.style\.display\s*=\s*['"]none['"]/);
-        if (m) rcLines.push(`ocultarboton(${id})(${cleanParam(m[1])})`);
-
-        m = onclick.match(/document\.getElementById\(['"]([^'"]+)['"]\)\.style\.display\s*=\s*['"]block['"]/);
-        if (m) rcLines.push(`mostrarboton(${id})(${cleanParam(m[1])})`);
-      }
-
-      let currentId = null;
-
-      switch (tag) {
-        case 'section':
-          currentId = getOrGenId(node, 'sec');
-          rcLines.push(`seccion[${currentId}]`);
-          recordElementMeta(node, currentId, parentId);
-          parseStyleString(styleAttr, rcLines);
-          node.childNodes.forEach(child => traverse(child, currentId));
-          break;
-
-        case 'form':
-        case 'main':
-        case 'article':
-        case 'header':
-        case 'footer':
-        case 'nav':
-          currentId = getOrGenId(node, 'box');
-          rcLines.push(`contenedor[${currentId}]`);
-          recordElementMeta(node, currentId, parentId);
-          parseStyleString(styleAttr, rcLines);
-          node.childNodes.forEach(child => traverse(child, currentId));
-          break;
-
-        case 'div':
-          const cls = node.getAttribute('class') || '';
-          if (cls.includes('rejilla') || styleAttr.includes('grid-template-columns') || styleAttr.includes('display: grid') || styleAttr.includes('display:grid')) {
-            currentId = getOrGenId(node, 'grid');
-            let cols = '2';
-            const repMatch = styleAttr.match(/grid-template-columns\s*:\s*repeat\((\d+)/i);
-            if (repMatch) {
-              cols = repMatch[1];
-            } else {
-              const gtcMatch = styleAttr.match(/grid-template-columns\s*:\s*([^;]+)/i);
-              if (gtcMatch) {
-                const parts = gtcMatch[1].trim().split(/\s+/);
-                if (parts.length > 0) cols = String(parts.length);
-              } else if (node.children && node.children.length >= 4) {
-                cols = '4';
-              }
-            }
-            rcLines.push(`rejilla[${currentId}](${cols})`);
-            recordElementMeta(node, currentId, parentId);
-            parseStyleString(styleAttr, rcLines);
-            node.childNodes.forEach(child => traverse(child, currentId));
-          } else if (cls.includes('cargando')) {
-            currentId = getOrGenId(node, 'load');
-            rcLines.push(`cargando[${currentId}]`);
-            recordElementMeta(node, currentId, parentId);
-            parseStyleString(styleAttr, rcLines);
-          } else {
-            currentId = getOrGenId(node, 'div');
-            rcLines.push(`contenedor[${currentId}]`);
-            recordElementMeta(node, currentId, parentId);
-            parseStyleString(styleAttr, rcLines);
-            node.childNodes.forEach(child => traverse(child, currentId));
-          }
-          break;
-
-        case 'hr':
-          rcLines.push('linea');
-          break;
-
-        case 'p':
-          currentId = getOrGenId(node, 'p');
-          rcLines.push(`parrafo[${currentId}](${cleanParam(node.textContent)})`);
-          recordElementMeta(node, currentId, parentId);
-          parseStyleString(styleAttr, rcLines);
-          break;
-
-        case 'h1': case 'h2': case 'h3': case 'h4': case 'h5': case 'h6':
-          currentId = getOrGenId(node, 'h');
-          const lvl = tag.slice(1);
-          rcLines.push(`encabezado[${currentId}](${lvl})(${cleanParam(node.textContent)})`);
-          recordElementMeta(node, currentId, parentId);
-          parseStyleString(styleAttr, rcLines);
-          break;
-
-        case 'b': case 'strong':
-          currentId = getOrGenId(node, 'b');
-          rcLines.push(`negrita[${currentId}](${cleanParam(node.textContent)})`);
-          recordElementMeta(node, currentId, parentId);
-          parseStyleString(styleAttr, rcLines);
-          break;
-
-        case 'i': case 'em':
-          currentId = getOrGenId(node, 'i');
-          rcLines.push(`cursiva[${currentId}](${cleanParam(node.textContent)})`);
-          recordElementMeta(node, currentId, parentId);
-          parseStyleString(styleAttr, rcLines);
-          break;
-
-        case 'u':
-          currentId = getOrGenId(node, 'u');
-          rcLines.push(`subrayado[${currentId}](${cleanParam(node.textContent)})`);
-          recordElementMeta(node, currentId, parentId);
-          parseStyleString(styleAttr, rcLines);
-          break;
-
-        case 'span':
-          currentId = getOrGenId(node, 'lbl');
-          rcLines.push(`etiqueta(${currentId})(${cleanParam(node.textContent)})`);
-          recordElementMeta(node, currentId, parentId);
-          parseStyleString(styleAttr, rcLines);
-          break;
-
-        case 'blockquote':
-          currentId = getOrGenId(node, 'q');
-          rcLines.push(`cita[${currentId}](${cleanParam(node.textContent)})`);
-          recordElementMeta(node, currentId, parentId);
-          parseStyleString(styleAttr, rcLines);
-          break;
-
-        case 'code':
-          currentId = getOrGenId(node, 'code');
-          rcLines.push(`codigo[${currentId}](${cleanParam(node.textContent)})`);
-          recordElementMeta(node, currentId, parentId);
-          parseStyleString(styleAttr, rcLines);
-          break;
-
-        case 'a':
-          currentId = getOrGenId(node, 'link');
-          const href = cleanParam(node.getAttribute('href') || '#');
-          rcLines.push(`enlace[${currentId}](${href})(${cleanParam(node.textContent)})`);
-          recordElementMeta(node, currentId, parentId);
-          parseStyleString(styleAttr, rcLines);
-          break;
-
-        case 'img':
-          currentId = getOrGenId(node, 'img');
-          const src = cleanParam(node.getAttribute('src') || '');
-          rcLines.push(`imagen[${currentId}](${src})`);
-          recordElementMeta(node, currentId, parentId);
-          parseStyleString(styleAttr, rcLines);
-          break;
-
-        case 'ul':
-          currentId = getOrGenId(node, 'ul');
-          rcLines.push(`listadesordenada[${currentId}]`);
-          recordElementMeta(node, currentId, parentId);
-          parseStyleString(styleAttr, rcLines);
-          node.childNodes.forEach(child => traverse(child, currentId));
-          break;
-
-        case 'ol':
-          currentId = getOrGenId(node, 'ol');
-          rcLines.push(`listaordenada[${currentId}]`);
-          recordElementMeta(node, currentId, parentId);
-          parseStyleString(styleAttr, rcLines);
-          node.childNodes.forEach(child => traverse(child, currentId));
-          break;
-
-        case 'li':
-          currentId = getOrGenId(node, 'li');
-          rcLines.push(`elementolista[${currentId}](${cleanParam(node.textContent)})`);
-          recordElementMeta(node, currentId, parentId);
-          parseStyleString(styleAttr, rcLines);
-          break;
-
-        case 'table':
-          currentId = getOrGenId(node, 'tbl');
-          rcLines.push(`tabla[${currentId}]`);
-          recordElementMeta(node, currentId, parentId);
-          parseStyleString(styleAttr, rcLines);
-          node.childNodes.forEach(child => traverse(child, currentId));
-          break;
-
-        case 'tr':
-          currentId = getOrGenId(node, 'tr');
-          rcLines.push(`filatabla[${currentId}]`);
-          recordElementMeta(node, currentId, parentId);
-          parseStyleString(styleAttr, rcLines);
-          node.childNodes.forEach(child => traverse(child, currentId));
-          break;
-
-        case 'th':
-          currentId = getOrGenId(node, 'th');
-          rcLines.push(`encabezadotabla[${currentId}](${cleanParam(node.textContent)})`);
-          recordElementMeta(node, currentId, parentId);
-          parseStyleString(styleAttr, rcLines);
-          break;
-
-        case 'td':
-          currentId = getOrGenId(node, 'td');
-          rcLines.push(`celdatabla[${currentId}](${cleanParam(node.textContent)})`);
-          recordElementMeta(node, currentId, parentId);
-          parseStyleString(styleAttr, rcLines);
-          break;
-
-        case 'button':
-          currentId = getOrGenId(node, 'btn');
-          rcLines.push(`boton(${currentId})(${cleanParam(node.textContent)})`);
-          recordElementMeta(node, currentId, parentId);
-          parseStyleString(styleAttr, rcLines);
-          break;
-
-        case 'label':
-          const chk = node.querySelector('input[type="checkbox"]');
-          if (chk) {
-            const chkId = getOrGenId(chk, 'chk');
-            currentId = chkId;
-            const txt = cleanParam(node.textContent);
-            rcLines.push(`campochequeo(${chkId})(${txt})`);
-            recordElementMeta(node, currentId, parentId);
-          } else {
-            currentId = getOrGenId(node, 'lblfield');
-            rcLines.push(`etiquetacampo[${currentId}](${cleanParam(node.textContent)})`);
-            recordElementMeta(node, currentId, parentId);
-          }
-          parseStyleString(styleAttr, rcLines);
-          break;
-
-        case 'canvas':
-          currentId = getOrGenId(node, 'lienzo');
-          rcLines.push(`lienzo(${currentId})`);
-          recordElementMeta(node, currentId, parentId);
-          parseStyleString(styleAttr, rcLines);
-          break;
-
-        case 'textarea':
-          currentId = getOrGenId(node, 'txt');
-          rcLines.push(`areatexto(${currentId})(${cleanParam(node.value || node.textContent)})`);
-          recordElementMeta(node, currentId, parentId);
-          parseStyleString(styleAttr, rcLines);
-          break;
-
-        case 'input':
-          currentId = getOrGenId(node, 'inp');
-          const type = (node.getAttribute('type') || 'text').toLowerCase();
-          const val = cleanParam(node.getAttribute('value') || '');
-          if (type === 'text') rcLines.push(`entrada(${currentId})(${val})`);
-          else if (type === 'number') rcLines.push(`camponumero(${currentId})(${val})`);
-          else if (type === 'email') rcLines.push(`campocorreo(${currentId})(${val})`);
-          else if (type === 'password') rcLines.push(`campocontrasena(${currentId})`);
-          else if (type === 'date') rcLines.push(`campofecha(${currentId})`);
-          recordElementMeta(node, currentId, parentId);
-          parseStyleString(styleAttr, rcLines);
-          break;
-
-        case 'select':
-          currentId = getOrGenId(node, 'sel');
-          rcLines.push(`desplegable(${currentId})`);
-          recordElementMeta(node, currentId, parentId);
-          parseStyleString(styleAttr, rcLines);
-          break;
-
-        case 'progress':
-          currentId = getOrGenId(node, 'prog');
-          rcLines.push(`cargando[${currentId}]`);
-          recordElementMeta(node, currentId, parentId);
-          parseStyleString(styleAttr, rcLines);
-          break;
-
-        case 'script':
-          const scriptText = node.textContent.trim();
-          if (scriptText) {
-            const lines = scriptText.split('\n');
-            const unhandledLines = [];
-            lines.forEach(rawL => {
-              const l = rawL.trim();
-              if (!l) return;
-              const rcBefore = rcLines.length;
-              parseScriptContent(l, rcLines);
-              if (rcLines.length === rcBefore) {
-                // Not recognized as a standard RC command
-                unhandledLines.push(l);
-              }
-            });
-            if (unhandledLines.length > 0) {
-              meta.scripts.push(unhandledLines.join('\n'));
-            }
-          }
-          break;
-
-        default:
-          node.childNodes.forEach(child => traverse(child, parentId));
-          break;
-      }
-    }
-
-    if (body) {
-      body.childNodes.forEach(child => traverse(child, null));
-    }
-
-    const metaEncoded = encodeMeta(meta);
-    if (metaEncoded) {
-      rcLines.push(`// [rc-meta: ${metaEncoded}]`);
-    }
-
-    return rcLines.join('\n') + '\n';
-  }
-
-  const initialRc = `// calculadora moderna en rapid code (rc)
+  // ==========================================
+  // CALCULADORA OFICIAL DE EJEMPLO EN RC
+  // ==========================================
+  const initialCalculatorRc = `// calculadora profesional en rapid code (rc)
 titulo(calculadora rc studio)
+
 seccion(sec_calc)
 contenedor(calc_card)
 ancho(340px)
-fondo(#1e222d)
+fondo(#181a20)
 color(#ffffff)
 relleno(20px)
 radio(16px)
-borde(1px solid #323846)
+borde(1px solid #2d3240)
 sombra(4)
 centrar
 
@@ -1670,14 +1227,14 @@ color(#68b5ff)
 tamano(20px)
 
 contenedor(pantalla_box)
-fondo(#0e1015)
-relleno(14px)
+fondo(#0d0f14)
+relleno(12px)
 radio(10px)
 margen(12px)
-borde(1px solid #282c37)
+borde(1px solid #252a36)
 
-etiqueta(lbl_resultado)(0)
-tamano(28px)
+entrada(inp_disp)()
+tamano(24px)
 color(#50fa7b)
 alinearderecha
 fincontenedor
@@ -1686,50 +1243,72 @@ rejilla(4)
 gap(8px)
 margen(10px)
 
+// Fila 1
 boton(btn_7)(7)
 boton(btn_8)(8)
 boton(btn_9)(9)
-boton(btn_sum)(+)
+boton(btn_div)(/)
 
+// Fila 2
 boton(btn_4)(4)
 boton(btn_5)(5)
 boton(btn_6)(6)
-boton(btn_res)(-)
+boton(btn_mul)(*)
 
+// Fila 3
 boton(btn_1)(1)
 boton(btn_2)(2)
 boton(btn_3)(3)
-boton(btn_mul)(*)
+boton(btn_res)(-)
 
-boton(btn_clr)(c)
+// Fila 4
+boton(btn_clr)(C)
 boton(btn_0)(0)
 boton(btn_eq)(=)
-boton(btn_div)(/)
+boton(btn_sum)(+)
 
-entrada(inp_a)(10)
+// Campos de memoria para operandos
+entrada(inp_a)(0)
 ocultar(inp_a)
-entrada(inp_b)(5)
+entrada(inp_b)(0)
 ocultar(inp_b)
+
 finrejilla
 fincontenedor
 finseccion
 
-sumar(btn_sum)(inp_a)(inp_b)(lbl_resultado)
-restar(btn_res)(inp_a)(inp_b)(lbl_resultado)
-multiplicar(btn_mul)(inp_a)(inp_b)(lbl_resultado)
-dividir(btn_div)(inp_a)(inp_b)(lbl_resultado)
-limpiar(btn_clr)(inp_a)`;
+// Lógica de dígitos
+incrementar(btn_7)(inp_disp)(7)
+incrementar(btn_8)(inp_disp)(8)
+incrementar(btn_9)(inp_disp)(9)
+
+incrementar(btn_4)(inp_disp)(4)
+incrementar(btn_5)(inp_disp)(5)
+incrementar(btn_6)(inp_disp)(6)
+
+incrementar(btn_1)(inp_disp)(1)
+incrementar(btn_2)(inp_disp)(2)
+incrementar(btn_3)(inp_disp)(3)
+incrementar(btn_0)(inp_disp)(0)
+
+// Operaciones aritméticas oficiales RC
+sumar(btn_sum)(inp_disp)(inp_a)(inp_disp)
+restar(btn_res)(inp_disp)(inp_a)(inp_disp)
+multiplicar(btn_mul)(inp_disp)(inp_a)(inp_disp)
+dividir(btn_div)(inp_disp)(inp_a)(inp_disp)
+
+limpiar(btn_clr)(inp_disp)`;
 
   const STORAGE_KEY = "rc_studio_state";
   const files = new Map();
-  const active = { rc: null, html: null };
+  let activeFile = "main.rc";
   const panelSel = document.getElementById("panelSelector");
 
   function saveState() {
     try {
       const state = {
         files: Array.from(files.entries()),
-        active: { rc: active.rc, html: active.html },
+        activeFile: activeFile,
         panelMode: panelSel ? panelSel.value : "rc-preview"
       };
       localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
@@ -1747,21 +1326,25 @@ limpiar(btn_clr)(inp_a)`;
 
       files.clear();
       for (const [name, fileObj] of parsed.files) {
-        if (name && fileObj && fileObj.type && fileObj.content !== undefined) {
-          files.set(name, fileObj);
+        if (name && fileObj && fileObj.content !== undefined) {
+          if (name.endsWith('.html') && fileObj.type !== 'rc') continue;
+          const fileName = name.endsWith('.rc') ? name : name + '.rc';
+          files.set(fileName, { type: 'rc', content: fileObj.content });
         }
       }
 
-      if (parsed.active) {
-        if (parsed.active.rc && files.has(parsed.active.rc)) active.rc = parsed.active.rc;
-        else active.rc = [...files.keys()].find(n => files.get(n).type === "rc") || null;
+      if (files.size === 0) return false;
 
-        if (parsed.active.html && files.has(parsed.active.html)) active.html = parsed.active.html;
-        else active.html = [...files.keys()].find(n => files.get(n).type === "html") || null;
+      if (parsed.activeFile && files.has(parsed.activeFile)) {
+        activeFile = parsed.activeFile;
+      } else if (parsed.active && parsed.active.rc && files.has(parsed.active.rc)) {
+        activeFile = parsed.active.rc;
+      } else {
+        activeFile = [...files.keys()][0] || "main.rc";
       }
 
       if (parsed.panelMode && panelSel) {
-        panelSel.value = parsed.panelMode;
+        panelSel.value = (parsed.panelMode === 'rc-html' || parsed.panelMode === 'all') ? 'rc-preview' : parsed.panelMode;
       }
 
       return files.size > 0;
@@ -1772,21 +1355,19 @@ limpiar(btn_clr)(inp_a)`;
   }
 
   function initDefaultFiles() {
-    files.set("main.rc", {type:"rc", content: initialRc});
-    files.set("index.html", {type:"html", content: rcToHtml(initialRc)});
-    active.rc = "main.rc";
-    active.html = "index.html";
+    files.set("main.rc", { type: "rc", content: initialCalculatorRc });
+    activeFile = "main.rc";
   }
 
   if (!loadState()) {
     initDefaultFiles();
   }
 
-  const editors = {rc:document.getElementById("rcEditor"), html:document.getElementById("htmlEditor")};
-  const gutters = {rc:document.getElementById("rcGutter"), html:document.getElementById("htmlGutter")};
-  const tabs = {rc:document.getElementById("rcTabs"), html:document.getElementById("htmlTabs")};
-  const list = document.getElementById("fileList");
-  const explorer = document.getElementById("explorer");
+  const editorEl = document.getElementById("rcEditor");
+  const gutterEl = document.getElementById("rcGutter");
+  const tabsEl = document.getElementById("rcTabs");
+  const listEl = document.getElementById("fileList");
+  const explorerEl = document.getElementById("explorer");
   let toastTimer;
   let isTranslating = false;
   let translateTimer = null;
@@ -1794,37 +1375,26 @@ limpiar(btn_clr)(inp_a)`;
 
   function updateLivePreview(htmlContent) {
     const frame = document.getElementById("previewFrame");
-    if (frame && htmlContent) {
-      frame.srcdoc = htmlContent;
+    if (frame) {
+      frame.srcdoc = htmlContent || '';
     }
   }
 
   function applyPanelMode(mode) {
     const rcSec = document.getElementById("rcEditorSection");
-    const htmlSec = document.getElementById("htmlEditorSection");
     const prevSec = document.getElementById("previewPaneSection");
 
     if (rcSec) rcSec.style.display = (mode === "preview" ? "none" : "flex");
-    if (htmlSec) htmlSec.style.display = (mode === "rc-html" || mode === "all" ? "flex" : "none");
-    if (prevSec) prevSec.style.display = (mode === "rc-preview" || mode === "preview" || mode === "all" ? "flex" : "none");
-  }
-
-
-  function escapeHtml(str) {
-    if (!str) return "";
-    return str
-      .replace(/&/g, "&amp;")
-      .replace(/</g, "&lt;")
-      .replace(/>/g, "&gt;");
+    if (prevSec) prevSec.style.display = (mode === "rc" ? "none" : "flex");
   }
 
   function highlightRc(code) {
     if (!code) return "";
     const lines = code.split("\n");
     const standaloneCmds = new Set([
-      "linea","centrar","alinearizquierda","alinearderecha","desplazamiento","cargando",
-      "listadesordenada","listaordenada","tabla","filatabla","fin","finseccion",
-      "fincontenedor","finrejilla","finlista","fintabla","finfilatabla"
+      "linea", "centrar", "alinearizquierda", "alinearderecha", "desplazamiento", "cargando",
+      "listadesordenada", "listaordenada", "tabla", "filatabla", "fin", "finseccion",
+      "fincontenedor", "finrejilla", "finlista", "fintabla", "finfilatabla"
     ]);
 
     return lines.map(line => {
@@ -1846,7 +1416,7 @@ limpiar(btn_clr)(inp_a)`;
         } else if (cmdWithParen) {
           result += `<span class="hl-cmd">${escapeHtml(cmdWithParen)}</span>`;
         } else if (word) {
-          if (standaloneCmds.has(word.toLowerCase())) {
+          if (standaloneCmds.has(word.toLowerCase()) || RC_COMMANDS_SPEC[word.toLowerCase()]) {
             result += `<span class="hl-cmd">${escapeHtml(word)}</span>`;
           } else {
             result += escapeHtml(word);
@@ -1864,349 +1434,269 @@ limpiar(btn_clr)(inp_a)`;
     }).join("\n");
   }
 
-  function highlightHtml(code) {
-    if (!code) return "";
-    const htmlRegex = /(<!--[\s\S]*?-->)|(<\/?[a-zA-Z0-9\-]+|<!DOCTYPE[^>]*>)|("[^"]*"|'[^']*')|(\b[a-zA-Z\-]+(?==))|(>|\/)|([^<"'>\/a-zA-Z\-]+|[a-zA-Z\-]+)/g;
+  function updateHighlight() {
+    const codeEl = document.getElementById("rcHighlightCode");
+    const layer = document.getElementById("rcHighlight");
+    if (!editorEl || !codeEl || !layer) return;
 
-    let result = "";
-    let match;
-    while ((match = htmlRegex.exec(code)) !== null) {
-      const [full, comment, tag, str, attr, bracket, rest] = match;
-      if (comment) {
-        result += `<span class="hl-comment">${escapeHtml(comment)}</span>`;
-      } else if (tag) {
-        result += `<span class="hl-tag">${escapeHtml(tag)}</span>`;
-      } else if (str) {
-        result += `<span class="hl-string">${escapeHtml(str)}</span>`;
-      } else if (attr) {
-        result += `<span class="hl-attr">${escapeHtml(attr)}</span>`;
-      } else if (bracket) {
-        result += `<span class="hl-tag">${escapeHtml(bracket)}</span>`;
-      } else if (rest) {
-        result += escapeHtml(rest);
-      } else {
-        result += escapeHtml(full);
-      }
-    }
-
-    return result || escapeHtml(code);
+    const val = editorEl.value || "";
+    codeEl.innerHTML = highlightRc(val) + (val.endsWith("\n") ? "\n " : "");
+    layer.scrollTop = editorEl.scrollTop;
+    layer.scrollLeft = editorEl.scrollLeft;
   }
 
-  function updateHighlight(type) {
-    const editor = editors[type];
-    const codeEl = document.getElementById(type + "HighlightCode");
-    const layer = document.getElementById(type + "Highlight");
-    if (!editor || !codeEl || !layer) return;
-
-    const val = editor.value || "";
-    const highlighted = type === "rc" ? highlightRc(val) : highlightHtml(val);
-    codeEl.innerHTML = highlighted + (val.endsWith("\n") ? "\n " : "");
-    layer.scrollTop = editor.scrollTop;
-    layer.scrollLeft = editor.scrollLeft;
-  }
-
-  function updateLineNumbers(type) {
-    if (!editors[type] || !gutters[type]) return;
-    const lines = editors[type].value.split("\n").length;
+  function updateLineNumbers() {
+    if (!editorEl || !gutterEl) return;
+    const lines = editorEl.value.split("\n").length;
     let nums = "";
     for (let i = 1; i <= lines; i++) {
       nums += i + "\n";
     }
-    gutters[type].textContent = nums;
-    gutters[type].scrollTop = editors[type].scrollTop;
+    gutterEl.textContent = nums;
+    gutterEl.scrollTop = editorEl.scrollTop;
   }
-
-  function autoTranslate(sourceType) {
-    if (isTranslating) return;
-    isTranslating = true;
-    try {
-      if (sourceType === "rc") {
-        const rcName = active.rc;
-        if (rcName && files.has(rcName)) {
-          const rcVal = editors.rc.value;
-          files.get(rcName).content = rcVal;
-
-          if (!rcVal.trim()) {
-            lastValidHtml = "";
-            const htmlName = active.html;
-            if (htmlName && files.has(htmlName)) {
-              files.get(htmlName).content = "";
-              editors.html.value = "";
-            }
-            updateLivePreview("");
-            return;
-          }
-
-          const generatedHtml = rcToHtml(rcVal);
-          if (generatedHtml && rootNodeHasContent(rcVal)) {
-            lastValidHtml = generatedHtml;
-            let htmlName = active.html;
-            if (!htmlName || !files.has(htmlName)) {
-              htmlName = "index.html";
-              files.set(htmlName, {type: "html", content: generatedHtml});
-              active.html = htmlName;
-              renderTabs("html");
-            } else {
-              files.get(htmlName).content = generatedHtml;
-            }
-            const htmlEl = editors.html;
-            const start = htmlEl.selectionStart, end = htmlEl.selectionEnd;
-            htmlEl.value = generatedHtml;
-            if (document.activeElement === htmlEl) {
-              htmlEl.setSelectionRange(start, end);
-            }
-            updateLineNumbers("html");
-            document.getElementById("htmlStatusName").textContent = active.html;
-          }
-        }
-      } else if (sourceType === "html") {
-        const htmlName = active.html;
-        if (htmlName && files.has(htmlName)) {
-          const htmlVal = editors.html.value;
-          files.get(htmlName).content = htmlVal;
-
-          if (!htmlVal.trim()) {
-            lastValidHtml = "";
-            const rcName = active.rc;
-            if (rcName && files.has(rcName)) {
-              files.get(rcName).content = "";
-              editors.rc.value = "";
-            }
-            updateLivePreview("");
-            return;
-          }
-
-          const generatedRc = htmlToRc(htmlVal);
-          let rcName = active.rc;
-          if (!rcName || !files.has(rcName)) {
-            rcName = "main.rc";
-            files.set(rcName, {type: "rc", content: generatedRc});
-            active.rc = rcName;
-            renderTabs("rc");
-          } else {
-            files.get(rcName).content = generatedRc;
-          }
-          const rcEl = editors.rc;
-          const start = rcEl.selectionStart, end = rcEl.selectionEnd;
-          rcEl.value = generatedRc;
-          if (document.activeElement === rcEl) {
-            rcEl.setSelectionRange(start, end);
-          }
-          updateLineNumbers("rc");
-          document.getElementById("rcStatusName").textContent = active.rc;
-
-          const renderedHtml = rcToHtml(generatedRc);
-          if (renderedHtml) lastValidHtml = renderedHtml;
-        }
-      }
-    } catch (e) {
-      console.warn("Error interpretando:", e);
-    } finally {
-      isTranslating = false;
-      saveState();
-      updateHighlight("rc");
-      updateHighlight("html");
-      if (lastValidHtml !== undefined) {
-        updateLivePreview(lastValidHtml);
-      }
-    }
-  }
-
-  const VALID_RC_COMMANDS = new Set([
-    'incluir', 'titulo', 'seccion', 'contenedor', 'rejilla', 'linea', 'texto',
-    'encabezado', 'parrafo', 'negrita', 'cursiva', 'subrayado', 'etiqueta', 'bloque',
-    'cita', 'codigo', 'enlace', 'imagen', 'listadesordenada', 'listaordenada',
-    'elementolista', 'tabla', 'filatabla', 'encabezadotabla', 'celdatabla', 'boton',
-    'etiquetacampo', 'cargando', 'lienzo', 'areatexto', 'fondo', 'color', 'letra',
-    'tamano', 'ancho', 'alto', 'gap', 'margen', 'relleno', 'radio', 'centrar',
-    'alinearizquierda', 'alinearderecha', 'borde', 'sombra', 'transparencia',
-    'ocultar', 'mostrar', 'flotante', 'desplazamiento', 'entrada', 'camponumero',
-    'campocorreo', 'campocontrasena', 'campofecha', 'campochequeo', 'desplegable',
-    'avisar', 'ira', 'ocultarboton', 'mostrarboton', 'alternar', 'limpiar',
-    'limpiarlienzo', 'deshabilitar', 'habilitar', 'copiartexto', 'sumar', 'restar',
-    'multiplicar', 'dividir', 'incrementar', 'decrementar', 'guardarlocal', 'cargarlocal',
-    'fin', 'finseccion', 'fincontenedor', 'finrejilla', 'finlista', 'fintabla', 'finfilatabla'
-  ]);
 
   function rootNodeHasContent(rcCode) {
     if (!rcCode || !rcCode.trim()) return false;
     const lines = rcCode.split('\n');
     return lines.some(l => {
       const parsed = parseRcLine(l);
-      return parsed && parsed.cmd && VALID_RC_COMMANDS.has(parsed.cmd) && !['titulo', 'incluir'].includes(parsed.cmd);
+      return parsed && parsed.cmd && (RC_COMMANDS_SPEC[parsed.cmd] || CLOSING_COMMANDS.has(parsed.cmd));
     });
   }
 
-  function debounceTranslate(sourceType) {
+  function autoTranslate() {
+    if (isTranslating) return;
+    isTranslating = true;
+    try {
+      if (activeFile && files.has(activeFile)) {
+        const rcVal = editorEl.value;
+        files.get(activeFile).content = rcVal;
+
+        if (!rcVal.trim()) {
+          lastValidHtml = "";
+          updateLivePreview("");
+          return;
+        }
+
+        const generatedHtml = rcToHtml(rcVal);
+        if (generatedHtml && rootNodeHasContent(rcVal)) {
+          lastValidHtml = generatedHtml;
+        }
+      }
+    } catch (e) {
+      console.warn("Error interpretando RC:", e);
+    } finally {
+      isTranslating = false;
+      saveState();
+      updateHighlight();
+      if (lastValidHtml !== undefined) {
+        updateLivePreview(lastValidHtml);
+      }
+    }
+  }
+
+  function debounceTranslate() {
     clearTimeout(translateTimer);
-    translateTimer = setTimeout(() => {
-      autoTranslate(sourceType);
-    }, 180);
+    translateTimer = setTimeout(autoTranslate, 180);
   }
 
   function notify(message) {
     const el = document.getElementById("toast");
-    el.textContent = message; el.style.display = "block";
-    clearTimeout(toastTimer); toastTimer = setTimeout(() => el.style.display = "none", 2200);
+    if (!el) return;
+    el.textContent = message;
+    el.style.display = "block";
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => el.style.display = "none", 2200);
   }
-  function paneFor(name) { return files.get(name).type; }
-  function saveCurrentContent(type) {
-    const name = active[type];
-    if (name && files.has(name)) {
-      files.get(name).content = editors[type].value;
-      saveState();
-    }
-  }
-  function renderTabs(type) {
-    tabs[type].innerHTML = "";
-    const visibleFiles = [...files.keys()].filter(name => paneFor(name) === type);
-    visibleFiles.forEach(name => {
+
+  function renderTabs() {
+    if (!tabsEl) return;
+    tabsEl.innerHTML = "";
+    [...files.keys()].forEach(name => {
       const b = document.createElement("button");
-      b.className = "tab" + (active[type] === name ? " active" : "");
+      b.className = "tab" + (activeFile === name ? " active" : "");
       b.textContent = name;
       b.title = "Abrir " + name;
       b.onclick = () => openFile(name);
-      tabs[type].appendChild(b);
+      tabsEl.appendChild(b);
     });
   }
+
   function renderExplorer() {
-    list.innerHTML = "";
-    if (!files.size) { list.innerHTML = '<div class="empty">No hay archivos.</div>'; return; }
+    if (!listEl) return;
+    listEl.innerHTML = "";
+    if (!files.size) {
+      listEl.innerHTML = '<div class="empty">No hay archivos.</div>';
+      return;
+    }
     [...files.keys()].sort((a,b) => a.localeCompare(b)).forEach(name => {
-      const file = files.get(name), type = file.type;
       const row = document.createElement("div");
-      row.className = "file-row" + (active[type] === name ? " active" : "");
+      row.className = "file-row" + (activeFile === name ? " active" : "");
       const label = document.createElement("span");
       label.className = "filename";
       label.textContent = name;
       label.title = "Abrir " + name;
       label.onclick = () => openFile(name);
+
       const ext = document.createElement("span");
-      ext.className = "ext"; ext.textContent = type === "rc" ? ".rc" : "HTML";
-      const rename = document.createElement("button");
-      rename.className = "mini"; rename.textContent = "✎"; rename.title = "Cambiar nombre";
-      rename.onclick = () => renameFile(name);
-      const del = document.createElement("button");
-      del.className = "mini"; del.textContent = "×"; del.title = "Eliminar archivo";
-      del.onclick = () => deleteFile(name);
-      row.append(label, ext, rename, del); list.appendChild(row);
-    });
-  }
-  function renderAll() {
-    for (const type of ["rc","html"]) {
-      renderTabs(type);
-      const name = active[type];
-      if (name && files.has(name)) {
-        editors[type].value = files.get(name).content;
-        document.getElementById(type + "StatusName").textContent = name;
-      } else {
-        editors[type].value = "";
-        document.getElementById(type + "StatusName").textContent = "Sin archivo abierto";
-      }
-      updateCursor(type);
-      updateLineNumbers(type);
-      updateHighlight(type);
-    }
-    renderExplorer();
-  }
-  function openFile(name) {
-    for (const type of ["rc","html"]) saveCurrentContent(type);
-    const type = paneFor(name); active[type] = name;
-    if (panelSel) applyPanelMode(panelSel.value);
-    saveState();
-    renderAll();
-  }
-  function uniqueName(base, type) {
-    const ext = type === "rc" ? ".rc" : ".html";
-    let name = base;
-    if (!name.toLowerCase().endsWith(ext)) name += ext;
-    if (!files.has(name)) return name;
-    let i = 2;
-    while (files.has(name.slice(0, -ext.length) + "-" + i + ext)) i++;
-    return name.slice(0, -ext.length) + "-" + i + ext;
-  }
-  function createFile(type) {
-    saveCurrentContent("rc"); saveCurrentContent("html");
-    const requested = prompt("Nombre del nuevo archivo:", type === "rc" ? "nuevo.rc" : "pagina.html");
-    if (requested === null) return;
-    let base = requested.trim().replace(/[\\\\/:*?"<>|]/g, "");
-    if (!base) { notify("Escribe un nombre válido."); return; }
-    const name = uniqueName(base, type);
-    const content = type === "rc" ? '// nuevo archivo rc\n\n' : '<!DOCTYPE html>\n<html lang="es">\n<head>\n  <meta charset="UTF-8">\n  <title>nuevo documento</title>\n</head>\n<body>\n\n</body>\n</html>\n';
-    files.set(name, {type, content}); active[type] = name;
-    if (panelSel) applyPanelMode(panelSel.value);
-    saveState();
-    renderAll(); editors[type].focus(); notify("Archivo creado: " + name);
-  }
-  function renameFile(oldName) {
-    saveCurrentContent("rc"); saveCurrentContent("html");
-    const file = files.get(oldName);
-    const requested = prompt("Nuevo nombre del archivo:", oldName);
-    if (requested === null) return;
-    let base = requested.trim().replace(/[\\\\/:*?"<>|]/g, "");
-    if (!base) { notify("Escribe un nombre válido."); return; }
-    const ext = file.type === "rc" ? ".rc" : ".html";
-    if (!base.toLowerCase().endsWith(ext)) base += ext;
-    if (base !== oldName && files.has(base)) { notify("Ya existe un archivo con ese nombre."); return; }
-    files.delete(oldName); files.set(base, file);
-    if (active[file.type] === oldName) active[file.type] = base;
-    if (panelSel) applyPanelMode(panelSel.value);
-    saveState();
-    renderAll(); notify("Archivo renombrado.");
-  }
-  function deleteFile(name) {
-    if (!confirm('¿Eliminar "' + name + '"? Esta acción no se me puede deshacer.')) return;
-    saveCurrentContent("rc"); saveCurrentContent("html");
-    const type = paneFor(name); files.delete(name);
-    if (active[type] === name) active[type] = [...files.keys()].find(n => paneFor(n) === type) || null;
-    if (panelSel) applyPanelMode(panelSel.value);
-    saveState();
-    renderAll(); notify("Archivo eliminado.");
-  }
-  function updateCursor(type) {
-    const el = editors[type], before = el.value.slice(0, el.selectionStart);
-    const line = before.split("\n").length;
-    const col = before.length - before.lastIndexOf("\n");
-    document.getElementById(type + "StatusLine").textContent = `Línea ${line}, Col ${col}`;
-  }
-  for (const type of ["rc","html"]) {
-    editors[type].addEventListener("input", () => {
-      saveCurrentContent(type);
-      updateCursor(type);
-      updateLineNumbers(type);
-      updateHighlight(type);
-      debounceTranslate(type);
-    });
-    editors[type].addEventListener("scroll", () => {
-      gutters[type].scrollTop = editors[type].scrollTop;
-      const layer = document.getElementById(type + "Highlight");
-      if (layer) {
-        layer.scrollTop = editors[type].scrollTop;
-        layer.scrollLeft = editors[type].scrollLeft;
-      }
-    });
-    editors[type].addEventListener("click", () => updateCursor(type));
-    editors[type].addEventListener("keyup", () => updateCursor(type));
-    editors[type].addEventListener("keydown", e => {
-      if (e.key === "Tab") {
-        e.preventDefault();
-        const start = editors[type].selectionStart, end = editors[type].selectionEnd;
-        editors[type].setRangeText("  ", start, end, "end");
-        saveCurrentContent(type); updateCursor(type); updateLineNumbers(type); updateHighlight(type); debounceTranslate(type);
-      }
+      ext.className = "ext";
+      ext.textContent = "⭐ .RC";
+
+      const renameBtn = document.createElement("button");
+      renameBtn.className = "mini";
+      renameBtn.textContent = "✎";
+      renameBtn.title = "Cambiar nombre";
+      renameBtn.onclick = () => renameFile(name);
+
+      const delBtn = document.createElement("button");
+      delBtn.className = "mini";
+      delBtn.textContent = "×";
+      delBtn.title = "Eliminar archivo";
+      delBtn.onclick = () => deleteFile(name);
+
+      row.append(label, ext, renameBtn, delBtn);
+      listEl.appendChild(row);
     });
   }
 
-  document.getElementById("newRc").onclick = () => createFile("rc");
-  document.getElementById("newHtml").onclick = () => createFile("html");
+  function renderAll() {
+    renderTabs();
+    if (activeFile && files.has(activeFile)) {
+      editorEl.value = files.get(activeFile).content;
+      document.getElementById("rcStatusName").textContent = activeFile;
+    } else {
+      editorEl.value = "";
+      document.getElementById("rcStatusName").textContent = "Sin archivo abierto";
+    }
+    updateCursor();
+    updateLineNumbers();
+    updateHighlight();
+    renderExplorer();
+    autoTranslate();
+  }
+
+  function openFile(name) {
+    if (activeFile && files.has(activeFile)) {
+      files.get(activeFile).content = editorEl.value;
+    }
+    activeFile = name;
+    saveState();
+    renderAll();
+  }
+
+  function uniqueName(base) {
+    let name = base;
+    if (!name.toLowerCase().endsWith('.rc')) name += '.rc';
+    if (!files.has(name)) return name;
+    let i = 2;
+    while (files.has(name.slice(0, -3) + "-" + i + ".rc")) i++;
+    return name.slice(0, -3) + "-" + i + ".rc";
+  }
+
+  function createFile() {
+    if (activeFile && files.has(activeFile)) {
+      files.get(activeFile).content = editorEl.value;
+    }
+    const requested = prompt("Nombre del nuevo archivo RC:", "modulo.rc");
+    if (requested === null) return;
+    let base = requested.trim().replace(/[\\/:*?"<>|]/g, "");
+    if (!base) { notify("Escribe un nombre válido."); return; }
+    const name = uniqueName(base);
+    files.set(name, { type: "rc", content: `// nuevo archivo rc\n\n` });
+    activeFile = name;
+    saveState();
+    renderAll();
+    editorEl.focus();
+    notify("Archivo creado: " + name);
+  }
+
+  function renameFile(oldName) {
+    if (activeFile && files.has(activeFile)) {
+      files.get(activeFile).content = editorEl.value;
+    }
+    const requested = prompt("Nuevo nombre del archivo RC:", oldName);
+    if (requested === null) return;
+    let base = requested.trim().replace(/[\\/:*?"<>|]/g, "");
+    if (!base) { notify("Escribe un nombre válido."); return; }
+    if (!base.toLowerCase().endsWith('.rc')) base += '.rc';
+    if (base !== oldName && files.has(base)) { notify("Ya existe un archivo con ese nombre."); return; }
+    const file = files.get(oldName);
+    files.delete(oldName);
+    files.set(base, file);
+    if (activeFile === oldName) activeFile = base;
+    saveState();
+    renderAll();
+    notify("Archivo renombrado.");
+  }
+
+  function deleteFile(name) {
+    if (files.size <= 1) {
+      notify("Debe existir al menos un archivo en el proyecto.");
+      return;
+    }
+    if (!confirm(`¿Eliminar "${name}"?`)) return;
+    files.delete(name);
+    if (activeFile === name) activeFile = [...files.keys()][0];
+    saveState();
+    renderAll();
+    notify("Archivo eliminado.");
+  }
+
+  function updateCursor() {
+    const before = editorEl.value.slice(0, editorEl.selectionStart);
+    const line = before.split("\n").length;
+    const col = before.length - before.lastIndexOf("\n");
+    document.getElementById("rcStatusLine").textContent = `Línea ${line}, Col ${col}`;
+  }
+
+  // Listeners del editor RC
+  editorEl.addEventListener("input", () => {
+    if (activeFile && files.has(activeFile)) {
+      files.get(activeFile).content = editorEl.value;
+    }
+    updateCursor();
+    updateLineNumbers();
+    updateHighlight();
+    debounceTranslate();
+  });
+
+  editorEl.addEventListener("scroll", () => {
+    gutterEl.scrollTop = editorEl.scrollTop;
+    const layer = document.getElementById("rcHighlight");
+    if (layer) {
+      layer.scrollTop = editorEl.scrollTop;
+      layer.scrollLeft = editorEl.scrollLeft;
+    }
+  });
+
+  editorEl.addEventListener("click", updateCursor);
+  editorEl.addEventListener("keyup", updateCursor);
+  editorEl.addEventListener("keydown", e => {
+    if (e.key === "Tab") {
+      e.preventDefault();
+      const start = editorEl.selectionStart, end = editorEl.selectionEnd;
+      editorEl.setRangeText("  ", start, end, "end");
+      if (activeFile && files.has(activeFile)) {
+        files.get(activeFile).content = editorEl.value;
+      }
+      updateCursor();
+      updateLineNumbers();
+      updateHighlight();
+      debounceTranslate();
+    }
+  });
+
+  document.getElementById("newRc").onclick = createFile;
   document.getElementById("toggleExplorer").onclick = () => {
-    explorer.classList.toggle("hidden");
-    document.getElementById("toggleExplorer").setAttribute("aria-expanded", String(!explorer.classList.contains("hidden")));
+    explorerEl.classList.toggle("hidden");
+    document.getElementById("toggleExplorer").setAttribute("aria-expanded", String(!explorerEl.classList.contains("hidden")));
   };
   document.getElementById("closeExplorer").onclick = () => {
-    explorer.classList.add("hidden");
+    explorerEl.classList.add("hidden");
     document.getElementById("toggleExplorer").setAttribute("aria-expanded", "false");
   };
+
   function downloadFile(filename, content, type = "text/plain;charset=utf-8") {
     const blob = new Blob([content], { type });
     const url = URL.createObjectURL(blob);
@@ -2265,7 +1755,10 @@ limpiar(btn_clr)(inp_a)`;
   }
 
   document.getElementById("saveBtn").onclick = () => {
-    saveCurrentContent("rc");
+    if (activeFile && files.has(activeFile)) {
+      files.get(activeFile).content = editorEl.value;
+      saveState();
+    }
     showExportModal();
   };
 
@@ -2278,25 +1771,25 @@ limpiar(btn_clr)(inp_a)`;
 
   document.getElementById("exportRcBtn").onclick = () => {
     hideExportModal();
-    const name = active.rc || "main.rc";
-    const content = editors.rc.value;
+    const name = activeFile || "main.rc";
+    const content = editorEl.value;
     downloadFile(name.endsWith('.rc') ? name : name + '.rc', content);
   };
 
   document.getElementById("exportHtmlBtn").onclick = () => {
     hideExportModal();
-    const baseName = (active.rc || "app.rc").replace(/\.rc$/i, '');
-    const content = rcToHtml(editors.rc.value);
+    const baseName = (activeFile || "app.rc").replace(/\.rc$/i, '');
+    const content = rcToHtml(editorEl.value);
     downloadFile(`${baseName}.html`, content, "text/html;charset=utf-8");
   };
 
   document.getElementById("exportCssBtn").onclick = () => {
     hideExportModal();
-    const baseName = (active.rc || "app.rc").replace(/\.rc$/i, '');
-    const content = extractCssFromRc(editors.rc.value);
+    const baseName = (activeFile || "app.rc").replace(/\.rc$/i, '');
+    const content = extractCssFromRc(editorEl.value);
     downloadFile(`${baseName}.css`, content, "text/css;charset=utf-8");
   };
-  
+
   if (panelSel) {
     panelSel.addEventListener("change", e => {
       applyPanelMode(e.target.value);
@@ -2305,7 +1798,7 @@ limpiar(btn_clr)(inp_a)`;
     applyPanelMode(panelSel.value);
   }
 
-  // Diccionario Modal Handlers
+  // Modal Diccionario RC
   const dictModal = document.getElementById("dictModal");
   const dictBtn = document.getElementById("dictBtn");
   const closeDictModal = document.getElementById("closeDictModal");
@@ -2322,10 +1815,7 @@ limpiar(btn_clr)(inp_a)`;
     if (dictModal) dictModal.classList.add("hidden");
   }
 
-  if (closeDictModal) {
-    closeDictModal.addEventListener("click", hideDictModal);
-  }
-
+  if (closeDictModal) closeDictModal.addEventListener("click", hideDictModal);
   if (dictModal) {
     dictModal.addEventListener("click", (e) => {
       if (e.target === dictModal) hideDictModal();
@@ -2333,8 +1823,9 @@ limpiar(btn_clr)(inp_a)`;
   }
 
   document.addEventListener("keydown", (e) => {
-    if (e.key === "Escape" && dictModal && !dictModal.classList.contains("hidden")) {
+    if (e.key === "Escape") {
       hideDictModal();
+      hideExportModal();
     }
   });
 
@@ -2359,11 +1850,12 @@ limpiar(btn_clr)(inp_a)`;
     });
   }
 
-  window.htmlToRc = htmlToRc;
+  // Exportar funciones globalmente para pruebas
   window.rcToHtml = rcToHtml;
+  window.parseRcLine = parseRcLine;
+  window.RC_COMMANDS_SPEC = RC_COMMANDS_SPEC;
 
   renderAll();
-  updateLivePreview(editors.html ? editors.html.value : "");
 })();
 </script>
 </body>
