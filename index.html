@@ -878,20 +878,30 @@
           break;
 
         case 'centrar':
-          const target = currentTargetForStyle();
-          if (target.isContainer) {
-            target.styles.push(`margin-left: auto; margin-right: auto; text-align: center;`);
+          const targetCentrar = currentTargetForStyle();
+          if (targetCentrar.isContainer) {
+            targetCentrar.styles.push(`margin-left: auto; margin-right: auto; text-align: center; justify-content: center; align-items: center;`);
           } else {
-            target.styles.push(`text-align: center;`);
+            targetCentrar.styles.push(`display: block; margin-left: auto; margin-right: auto; text-align: center;`);
           }
           break;
 
         case 'alinearizquierda':
-          currentTargetForStyle().styles.push(`text-align: left;`);
+          const targetIzq = currentTargetForStyle();
+          if (targetIzq.isContainer) {
+            targetIzq.styles.push(`text-align: left; justify-content: flex-start; align-items: flex-start;`);
+          } else {
+            targetIzq.styles.push(`text-align: left;`);
+          }
           break;
 
         case 'alinearderecha':
-          currentTargetForStyle().styles.push(`text-align: right;`);
+          const targetDer = currentTargetForStyle();
+          if (targetDer.isContainer) {
+            targetDer.styles.push(`text-align: right; justify-content: flex-end; align-items: flex-end;`);
+          } else {
+            targetDer.styles.push(`text-align: right;`);
+          }
           break;
 
         case 'borde':
@@ -909,7 +919,18 @@
           break;
 
         case 'flotante':
-          currentTargetForStyle().styles.push(`position: ${a1};`);
+          const flotVal = cleanParam(a1).toLowerCase();
+          if (['flex', 'inline-flex', 'grid', 'inline-grid', 'block', 'inline-block', 'none'].includes(flotVal)) {
+            currentTargetForStyle().styles.push(`display: ${flotVal};`);
+          } else if (flotVal === 'column' || flotVal === 'column-reverse' || flotVal === 'row' || flotVal === 'row-reverse') {
+            currentTargetForStyle().styles.push(`flex-direction: ${flotVal};`);
+          } else if (flotVal === 'izquierda' || flotVal === 'left') {
+            currentTargetForStyle().styles.push(`float: left;`);
+          } else if (flotVal === 'derecha' || flotVal === 'right') {
+            currentTargetForStyle().styles.push(`float: right;`);
+          } else {
+            currentTargetForStyle().styles.push(`position: ${flotVal};`);
+          }
           break;
 
         case 'desplazamiento':
@@ -1082,7 +1103,7 @@
 ${extraStyles}  <style>
     body { font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; margin: 16px; box-sizing: border-box; }
     *, *:before, *:after { box-sizing: inherit; }
-    button { cursor: pointer; padding: 10px 14px; font-size: 15px; border-radius: 8px; border: 1px solid #3d4454; background: #272c38; color: #ffffff; display: inline-block; vertical-align: middle; box-sizing: border-box; transition: background 0.15s ease; }
+    button { cursor: pointer; padding: 10px 14px; font-size: 15px; border-radius: 8px; border: 1px solid #3d4454; background: #272c38; color: #ffffff; display: inline-block; vertical-align: middle; box-sizing: border-box; transition: background 0.15s ease; margin: 4px; }
     button:hover { background: #383f50; }
     button:active { background: #1e222c; }
     input[type="text"], input[type="number"], input[type="email"], input[type="password"], input[type="date"], textarea, select { width: 100%; padding: 10px; font-size: 15px; border-radius: 8px; border: 1px solid #3d4454; background: #151821; color: #ffffff; outline: none; box-sizing: border-box; }
@@ -1135,7 +1156,19 @@ ${bodyChildren}${scriptBlock}
         const num = Math.round(parseFloat(val) * 10) || 10;
         rcLines.push(`transparencia(${num})`);
       }
-      else if (prop === 'position') rcLines.push(`flotante(${val.toLowerCase()})`);
+      else if (prop === 'position' || prop === 'display') rcLines.push(`flotante(${val.toLowerCase()})`);
+      else if (prop === 'flex-direction') rcLines.push(`flotante(${val.toLowerCase()})`);
+      else if (prop === 'justify-content' || prop === 'align-items') {
+        const valLower = val.toLowerCase();
+        if (valLower.includes('center')) rcLines.push('centrar');
+        else if (valLower.includes('right') || valLower.includes('end')) rcLines.push('alinearderecha');
+        else if (valLower.includes('left') || valLower.includes('start')) rcLines.push('alinearizquierda');
+      }
+      else if (prop === 'float') {
+        const valLower = val.toLowerCase();
+        if (valLower === 'left') rcLines.push('flotante(izquierda)');
+        else if (valLower === 'right') rcLines.push('flotante(derecha)');
+      }
       else if (prop === 'overflow' && val.toLowerCase() === 'auto') rcLines.push('desplazamiento');
     });
   }
@@ -1892,6 +1925,18 @@ limpiar(btn_clr)(inp_a)`;
         if (rcName && files.has(rcName)) {
           const rcVal = editors.rc.value;
           files.get(rcName).content = rcVal;
+
+          if (!rcVal.trim()) {
+            lastValidHtml = "";
+            const htmlName = active.html;
+            if (htmlName && files.has(htmlName)) {
+              files.get(htmlName).content = "";
+              editors.html.value = "";
+            }
+            updateLivePreview("");
+            return;
+          }
+
           const generatedHtml = rcToHtml(rcVal);
           if (generatedHtml && rootNodeHasContent(rcVal)) {
             lastValidHtml = generatedHtml;
@@ -1919,6 +1964,18 @@ limpiar(btn_clr)(inp_a)`;
         if (htmlName && files.has(htmlName)) {
           const htmlVal = editors.html.value;
           files.get(htmlName).content = htmlVal;
+
+          if (!htmlVal.trim()) {
+            lastValidHtml = "";
+            const rcName = active.rc;
+            if (rcName && files.has(rcName)) {
+              files.get(rcName).content = "";
+              editors.rc.value = "";
+            }
+            updateLivePreview("");
+            return;
+          }
+
           const generatedRc = htmlToRc(htmlVal);
           let rcName = active.rc;
           if (!rcName || !files.has(rcName)) {
@@ -1949,7 +2006,7 @@ limpiar(btn_clr)(inp_a)`;
       saveState();
       updateHighlight("rc");
       updateHighlight("html");
-      if (lastValidHtml) {
+      if (lastValidHtml !== undefined) {
         updateLivePreview(lastValidHtml);
       }
     }
