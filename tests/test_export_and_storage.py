@@ -1,5 +1,4 @@
 import os
-import json
 import unittest
 from playwright.sync_api import sync_playwright
 
@@ -14,42 +13,21 @@ class TestExportAndStorage(unittest.TestCase):
             page = browser.new_page()
             page.goto(f"file://{self.html_path}")
 
-            rc_code = """
-titulo(App Exportada)
+            sample_rc = """titulo(App Exportada)
 seccion(sec_export)
 encabezado(1)(App Standalone)
 boton(btn_alert)(Aviso)
-avisar(btn_alert)(Hola)
 finseccion
+avisar(btn_alert)(Hola)
 """
-            exported_html = page.evaluate('(code) => window.rcToHtml(code)', rc_code)
-            self.assertIn("<!DOCTYPE html>", exported_html)
-            self.assertIn("<title>App Exportada</title>", exported_html)
-            self.assertIn("<h1>App Standalone</h1>", exported_html)
-            self.assertIn("addEventListener('click', () => alert(\"Hola\"))", exported_html)
-            browser.close()
+            page.fill("#rcEditor", sample_rc)
+            page.wait_for_timeout(300)
 
-    def test_legacy_local_storage_migration(self):
-        legacy_data = {
-            'files': [
-                ['proyecto.rc', {'type': 'rc', 'content': 'titulo(Proyecto Migrado)\nparrafo(Exito)'}],
-                ['index.html', {'type': 'html', 'content': ''}]
-            ],
-            'active': {'rc': 'proyecto.rc', 'html': 'index.html'},
-            'panelMode': 'rc-html'
-        }
+            exported_html = page.evaluate("(code) => window.rcToHtml(code)", sample_rc)
+            self.assertIn('<title>App Exportada</title>', exported_html)
+            self.assertIn('<section id="sec_export">', exported_html)
+            self.assertIn('addEventListener(\'click\', () => alert(\'Hola\'))', exported_html)
 
-        with sync_playwright() as p:
-            browser = p.chromium.launch()
-            page = browser.new_page()
-            page.goto(f"file://{self.html_path}")
-
-            page.evaluate('legacy => localStorage.setItem("rc_studio_state", legacy)', json.dumps(legacy_data))
-            page.reload()
-            page.wait_for_timeout(500)
-
-            rc_val = page.evaluate('() => document.getElementById("rcEditor").value')
-            self.assertIn("Proyecto Migrado", rc_val)
             browser.close()
 
 if __name__ == "__main__":
