@@ -357,17 +357,64 @@
     return { cmd, bracketId, args };
   }
 
-  function rcToHtml(rcCode, visitedFiles = new Set()) {
-    if (!rcCode) return '';
-    const lines = rcCode.split('\n');
-    let title = 'Aplicación RC';
-    const scriptLines = [];
+  function encodeMeta(obj) {
+    try {
+      const str = JSON.stringify(obj);
+      return btoa(encodeURIComponent(str));
+    } catch (e) {
+      return '';
+    }
+  }
 
-    function createNode(tag, id = '', className = '', isContainer = false) {
-      return { tag, id, className, isContainer, styles: [], children: [], rawHtml: '' };
+  function decodeMeta(str) {
+    try {
+      const json = decodeURIComponent(atob(str.trim()));
+      return JSON.parse(json);
+    } catch (e) {
+      return null;
+    }
+  }
+
+  function rcToHtml(rcCode, visitedFiles = new Set()) {
+    if (!rcCode || !rcCode.trim()) return '';
+
+    let meta = null;
+    const metaMatch = rcCode.match(/\/\/\s*\[rc-meta:\s*([A-Za-z0-9+/=]+)\]/);
+    if (metaMatch) {
+      meta = decodeMeta(metaMatch[1]);
     }
 
-    const rootNode = createNode('body', '', '', true);
+    const cleanRcCode = rcCode.replace(/\/\/\s*\[rc-meta:\s*([A-Za-z0-9+/=]+)\]/g, '');
+    const lines = cleanRcCode.split('\n');
+
+    let title = (meta && meta.title) ? meta.title : 'Aplicación RC';
+    const scriptLines = [];
+
+    const nodesById = new Map();
+
+    function createNode(tag, id = '', className = '', isContainer = false) {
+      const node = {
+        tag,
+        id,
+        className,
+        isContainer,
+        styles: [],
+        children: [],
+        attrs: {},
+        innerText: '',
+        rawHtml: ''
+      };
+      if (id) {
+        nodesById.set(id, node);
+      }
+      return node;
+    }
+
+    const rootNode = createNode('body', 'body_root', meta && meta.bodyClass ? meta.bodyClass : '', true);
+    if (meta && meta.bodyStyle) {
+      rootNode.styles.push(meta.bodyStyle);
+    }
+
     const nodeStack = [rootNode];
     let lastCreatedNode = null;
 
@@ -385,9 +432,40 @@
       return currentContainer();
     }
 
+    function applyMetaToNode(node) {
+      if (!meta || !meta.elements || !node.id) return;
+      const elMeta = meta.elements[node.id];
+      if (!elMeta) return;
+
+      if (elMeta.className && !node.className) {
+        node.className = elMeta.className;
+      } else if (elMeta.className && node.className && !node.className.includes(elMeta.className)) {
+        node.className = (node.className + ' ' + elMeta.className).trim();
+      }
+
+      if (elMeta.style && !node.styles.includes(elMeta.style)) {
+        node.styles.unshift(elMeta.style);
+      }
+
+      if (elMeta.attrs) {
+        Object.assign(node.attrs, elMeta.attrs);
+      }
+    }
+
     function addChild(node) {
-      currentContainer().children.push(node);
+      let targetContainer = currentContainer();
+
+      if (meta && meta.elements && node.id && meta.elements[node.id]) {
+        const pId = meta.elements[node.id].parentId;
+        if (pId && nodesById.has(pId)) {
+          targetContainer = nodesById.get(pId);
+        }
+      }
+
+      applyMetaToNode(node);
+      targetContainer.children.push(node);
       lastCreatedNode = node;
+
       if (node.isContainer) {
         nodeStack.push(node);
       }
@@ -434,21 +512,6 @@
         'campofecha', 'campochequeo', 'desplegable', 'areatexto', 'lienzo',
         'cargando', 'tabla', 'listadesordenada', 'listaordenada'
       ];
-
-      const styleCmds = [
-        'fondo', 'color', 'letra', 'tamano', 'ancho', 'alto', 'gap', 'margen',
-        'relleno', 'radio', 'centrar', 'alinearizquierda', 'alinearderecha',
-        'borde', 'sombra', 'transparencia', 'flotante', 'desplazamiento'
-      ];
-
-      if (elementCmds.includes(cmd) && cmd !== 'contenedor' && cmd !== 'seccion' && cmd !== 'rejilla') {
-        if (nodeStack.length > 1) {
-          const top = nodeStack[nodeStack.length - 1];
-          if (top.tag === 'div' && top.children.length === 0 && top.isAutoShapeContainer) {
-            nodeStack.pop();
-          }
-        }
-      }
 
       if (elementCmds.includes(cmd)) {
         lastCreatedNode = null;
@@ -520,23 +583,26 @@
           break;
 
         case 'titulo':
-          title = a1;
+          title = cleanParam(a1);
           break;
 
         case 'seccion':
-          closeContainerTag(['section']);
-          const secNode = createNode('section', bracketId || a1, '', true);
+          if (!meta) closeContainerTag(['section']);
+          const secId = bracketId || cleanParam(a1);
+          const secNode = createNode('section', secId, '', true);
           addChild(secNode);
           break;
 
         case 'contenedor':
-          const divNode = createNode('div', bracketId || a1, '', true);
+          const divId = bracketId || cleanParam(a1);
+          const divNode = createNode('div', divId, '', true);
           addChild(divNode);
           break;
 
         case 'rejilla':
+          const gridId = bracketId || cleanParam(a2 || '');
           const cols = parseInt(a1, 10) || 1;
-          const gridNode = createNode('div', '', 'rejilla', true);
+          const gridNode = createNode('div', gridId, 'rejilla', true);
           gridNode.styles.push('display: grid;');
           gridNode.styles.push(`grid-template-columns: repeat(${cols}, 1fr);`);
           addChild(gridNode);
@@ -548,103 +614,105 @@
 
         case 'texto':
         case 'parrafo':
-          const pNode = createNode('p');
+          const pNode = createNode('p', bracketId);
           pNode.innerText = cleanParam(a1);
           addChild(pNode);
           break;
 
         case 'encabezado':
           const level = Math.max(1, Math.min(6, parseInt(a1, 10) || 1));
-          const hNode = createNode(`h${level}`);
+          const hNode = createNode(`h${level}`, bracketId);
           hNode.innerText = cleanParam(a2);
           addChild(hNode);
           break;
 
         case 'negrita':
-          const bNode = createNode('b');
+          const bNode = createNode('b', bracketId);
           bNode.innerText = cleanParam(a1);
           addChild(bNode);
           break;
 
         case 'cursiva':
-          const iNode = createNode('i');
+          const iNode = createNode('i', bracketId);
           iNode.innerText = cleanParam(a1);
           addChild(iNode);
           break;
 
         case 'subrayado':
-          const uNode = createNode('u');
+          const uNode = createNode('u', bracketId);
           uNode.innerText = cleanParam(a1);
           addChild(uNode);
           break;
 
         case 'etiqueta':
-          const lblNode = createNode('span', bracketId || a1);
-          lblNode.innerText = cleanParam(a2 || a1);
+          const lblId = bracketId || cleanParam(a1);
+          const lblText = cleanParam(bracketId ? a1 : (a2 || a1));
+          const lblNode = createNode('span', lblId);
+          lblNode.innerText = lblText;
           addChild(lblNode);
           break;
 
         case 'bloque':
-          const blkNode = createNode('div');
+          const blkNode = createNode('div', bracketId);
           blkNode.innerText = cleanParam(a1);
           addChild(blkNode);
           break;
 
         case 'cita':
-          const qNode = createNode('blockquote');
+          const qNode = createNode('blockquote', bracketId);
           qNode.innerText = cleanParam(a1);
           addChild(qNode);
           break;
 
         case 'codigo':
-          const codeNode = createNode('code');
+          const codeNode = createNode('code', bracketId);
           codeNode.innerText = cleanParam(a1);
           addChild(codeNode);
           break;
 
         case 'enlace':
-          const aNode = createNode('a');
+          const aNode = createNode('a', bracketId);
           aNode.innerText = cleanParam(a2);
           aNode.href = cleanParam(a1);
           addChild(aNode);
           break;
 
         case 'imagen':
-          const imgNode = createNode('img');
+          const imgNode = createNode('img', bracketId);
           imgNode.src = cleanParam(a1);
           addChild(imgNode);
           break;
 
         case 'listadesordenada':
-          addChild(createNode('ul', '', '', true));
+          addChild(createNode('ul', bracketId, '', true));
           break;
 
         case 'listaordenada':
-          addChild(createNode('ol', '', '', true));
+          addChild(createNode('ol', bracketId, '', true));
           break;
 
         case 'elementolista':
-          const liNode = createNode('li');
+          const liNode = createNode('li', bracketId);
           liNode.innerText = cleanParam(a1);
           addChild(liNode);
           break;
 
         case 'tabla':
-          addChild(createNode('table', '', '', true));
+          addChild(createNode('table', bracketId, '', true));
           break;
 
         case 'filatabla':
-          addChild(createNode('tr', '', '', true));
+          addChild(createNode('tr', bracketId, '', true));
           break;
 
         case 'encabezadotabla':
-          const thNode = createNode('th');
+          const thNode = createNode('th', bracketId);
           thNode.innerText = cleanParam(a1);
           addChild(thNode);
           break;
 
         case 'celdatabla':
-          const tdNode = createNode('td');
+          const tdNode = createNode('td', bracketId);
           tdNode.innerText = cleanParam(a1);
           addChild(tdNode);
           break;
@@ -667,73 +735,80 @@
           break;
 
         case 'etiquetacampo':
-          const lblField = createNode('label');
+          const lblField = createNode('label', bracketId);
           lblField.innerText = cleanParam(a1);
           addChild(lblField);
           break;
 
         case 'cargando':
-          const loadNode = createNode('div', '', 'cargando');
+          const loadNode = createNode('div', bracketId, 'cargando');
           loadNode.innerText = 'Cargando...';
           addChild(loadNode);
           break;
 
         case 'lienzo':
-          addChild(createNode('canvas', a1));
+          addChild(createNode('canvas', bracketId || cleanParam(a1)));
           break;
 
         case 'areatexto':
-          const areaNode = createNode('textarea', a1);
+          const areaId = bracketId || cleanParam(a1);
+          const areaNode = createNode('textarea', areaId);
           areaNode.innerText = cleanParam(a2);
           addChild(areaNode);
           break;
 
         case 'entrada':
-          const inTxt = createNode('input', a1);
+          const inTxtId = bracketId || cleanParam(a1);
+          const inTxt = createNode('input', inTxtId);
           inTxt.inputType = 'text';
           inTxt.val = cleanParam(a2);
           addChild(inTxt);
           break;
 
         case 'camponumero':
-          const inNum = createNode('input', a1);
+          const inNumId = bracketId || cleanParam(a1);
+          const inNum = createNode('input', inNumId);
           inNum.inputType = 'number';
           inNum.val = cleanParam(a2);
           addChild(inNum);
           break;
 
         case 'campocorreo':
-          const inMail = createNode('input', a1);
+          const inMailId = bracketId || cleanParam(a1);
+          const inMail = createNode('input', inMailId);
           inMail.inputType = 'email';
           inMail.val = cleanParam(a2);
           addChild(inMail);
           break;
 
         case 'campocontrasena':
-          const inPass = createNode('input', a1);
+          const inPassId = bracketId || cleanParam(a1);
+          const inPass = createNode('input', inPassId);
           inPass.inputType = 'password';
           addChild(inPass);
           break;
 
         case 'campofecha':
-          const inDate = createNode('input', a1);
+          const inDateId = bracketId || cleanParam(a1);
+          const inDate = createNode('input', inDateId);
           inDate.inputType = 'date';
           addChild(inDate);
           break;
 
         case 'campochequeo':
-          const chkNode = createNode('label');
-          chkNode.rawHtml = `<label><input type="checkbox" id="${a1}"> ${cleanParam(a2)}</label>`;
+          const chkId = bracketId || cleanParam(a1);
+          const chkNode = createNode('label', chkId);
+          chkNode.rawHtml = `<label><input type="checkbox" id="${chkId}"> ${cleanParam(a2)}</label>`;
           addChild(chkNode);
           break;
 
         case 'desplegable':
-          addChild(createNode('select', a1));
+          const selId = bracketId || cleanParam(a1);
+          addChild(createNode('select', selId));
           break;
 
         case 'fondo':
-          const bgTarget = currentTargetForStyle();
-          bgTarget.styles.push(`background-color: ${formatColor(a1)};`);
+          currentTargetForStyle().styles.push(`background-color: ${formatColor(a1)};`);
           break;
 
         case 'color':
@@ -771,9 +846,6 @@
         case 'radio':
           const radTarget = currentTargetForStyle();
           radTarget.styles.push(`border-radius: ${formatUnit(a1)};`);
-          if (radTarget.tag === 'div' && radTarget.isContainer) {
-            radTarget.isAutoShapeContainer = true;
-          }
           break;
 
         case 'centrar':
@@ -904,9 +976,6 @@
         case 'finlista':
         case 'fintabla':
         case 'finfilatabla':
-          if (nodeStack.length > 1) {
-            nodeStack[nodeStack.length - 1].hasExplicitClose = true;
-          }
           closeContainerTag();
           break;
       }
@@ -921,9 +990,18 @@
       if (node.id) attrs += ` id="${node.id}"`;
       if (node.className) attrs += ` class="${node.className}"`;
       if (node.inputType) attrs += ` type="${node.inputType}"`;
-      if (node.val !== undefined) attrs += ` value="${node.val}"`;
+      if (node.val !== undefined && node.val !== '') attrs += ` value="${node.val}"`;
       if (node.href) attrs += ` href="${node.href}"`;
       if (node.src) attrs += ` src="${node.src}" alt="imagen"`;
+
+      if (node.attrs) {
+        for (const [k, v] of Object.entries(node.attrs)) {
+          if (!['id', 'class', 'type', 'value', 'href', 'src', 'style'].includes(k.toLowerCase())) {
+            attrs += ` ${k}="${escapeHtml(v)}"`;
+          }
+        }
+      }
+
       if (node.styles.length > 0) attrs += ` style="${node.styles.join(' ')}"`;
 
       const selfClosing = ['hr', 'img', 'input'];
@@ -937,7 +1015,7 @@
       }
 
       const childrenHtml = node.children.map(c => renderNode(c, depth + 1)).join('\n');
-      return `${indent}<${node.tag}${attrs}>\n${childrenHtml}\n${indent}</${node.tag}>`;
+      return `${indent}<${node.tag}${attrs}>${textContent ? textContent + '\n' : ''}${childrenHtml}\n${indent}</${node.tag}>`;
     }
 
     const bodyChildren = rootNode.children.map(c => renderNode(c, 1)).join('\n');
@@ -945,10 +1023,26 @@
     if (rootNode.styles.length > 0) {
       bodyStyleAttr = ` style="${rootNode.styles.join(' ')}"`;
     }
+    let bodyClassAttr = '';
+    if (rootNode.className) {
+      bodyClassAttr = ` class="${rootNode.className}"`;
+    }
+
+    let extraStyles = '';
+    if (meta && meta.styles && meta.styles.length > 0) {
+      extraStyles = meta.styles.map(s => `  <style>\n${s}\n  </style>`).join('\n') + '\n';
+    }
+
+    let combinedScripts = [...scriptLines];
+    if (meta && meta.scripts && meta.scripts.length > 0) {
+      meta.scripts.forEach(s => {
+        if (!combinedScripts.includes(s)) combinedScripts.push(s);
+      });
+    }
 
     let scriptBlock = '';
-    if (scriptLines.length > 0) {
-      scriptBlock = `\n  <script>\n    ${scriptLines.join('\n    ')}\n  <\/script>`;
+    if (combinedScripts.length > 0) {
+      scriptBlock = `\n  <script>\n    ${combinedScripts.join('\n    ')}\n  <\/script>`;
     }
 
     return `<!DOCTYPE html>
@@ -956,7 +1050,7 @@
 <head>
   <meta charset="UTF-8">
   <title>${title}</title>
-  <style>
+${extraStyles}  <style>
     body { font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; margin: 16px; box-sizing: border-box; }
     *, *:before, *:after { box-sizing: inherit; }
     button { cursor: pointer; padding: 10px 14px; font-size: 15px; border-radius: 8px; border: 1px solid #3d4454; background: #272c38; color: #ffffff; display: inline-block; box-sizing: border-box; transition: background 0.15s ease; }
@@ -966,12 +1060,12 @@
     .rejilla { display: grid; width: 100%; gap: 10px; }
   </style>
 </head>
-<body${bodyStyleAttr}>
+<body${bodyClassAttr}${bodyStyleAttr}>
 ${bodyChildren}${scriptBlock}
 </body>
 </html>
 `;
-}
+  }
 
 
   function parseStyleString(styleStr, rcLines) {
@@ -1106,37 +1200,37 @@ ${bodyChildren}${scriptBlock}
     if (!htmlCode) return '';
     const rcLines = [];
 
+    const meta = {
+      v: 1,
+      title: '',
+      styles: [],
+      bodyStyle: '',
+      bodyClass: '',
+      elements: {},
+      scripts: []
+    };
+
     const parser = new DOMParser();
     const doc = parser.parseFromString(htmlCode, 'text/html');
 
     const titleEl = doc.querySelector('title');
     if (titleEl && titleEl.textContent.trim()) {
-      rcLines.push(`titulo(${cleanParam(titleEl.textContent)})`);
+      meta.title = cleanParam(titleEl.textContent);
+      rcLines.push(`titulo(${meta.title})`);
     }
 
-    // Parse internal <style> blocks and apply CSS rules to element inline styles
     doc.querySelectorAll('style').forEach(styleEl => {
-      const cssText = styleEl.textContent || '';
-      const ruleRegex = /([^{]+)\{([^}]+)\}/g;
-      let match;
-      while ((match = ruleRegex.exec(cssText)) !== null) {
-        const selector = match[1].trim();
-        const decls = match[2].trim();
-        if (!selector || !decls || selector.startsWith('@')) continue;
-        try {
-          doc.querySelectorAll(selector).forEach(el => {
-            const existingStyle = el.getAttribute('style') || '';
-            el.setAttribute('style', existingStyle ? `${existingStyle}; ${decls}` : decls);
-          });
-        } catch (e) {
-          // Ignore invalid selectors
-        }
+      const cssText = styleEl.textContent ? styleEl.textContent.trim() : '';
+      if (cssText) {
+        meta.styles.push(cssText);
       }
     });
 
     const body = doc.body;
     if (body) {
-      parseStyleString(body.getAttribute('style') || '', rcLines);
+      meta.bodyStyle = body.getAttribute('style') || '';
+      meta.bodyClass = body.getAttribute('class') || '';
+      parseStyleString(meta.bodyStyle, rcLines);
     }
 
     let idCounters = {};
@@ -1149,11 +1243,31 @@ ${bodyChildren}${scriptBlock}
       return id;
     }
 
-    function traverse(node) {
+    function recordElementMeta(node, id, parentId) {
+      const attrs = {};
+      if (node.attributes) {
+        for (let i = 0; i < node.attributes.length; i++) {
+          const attr = node.attributes[i];
+          if (!['id', 'class', 'style', 'onclick'].includes(attr.name.toLowerCase())) {
+            attrs[attr.name] = attr.value;
+          }
+        }
+      }
+      meta.elements[id] = {
+        tag: node.tagName.toLowerCase(),
+        className: node.getAttribute('class') || '',
+        style: node.getAttribute('style') || '',
+        attrs: attrs,
+        parentId: parentId || null
+      };
+    }
+
+    function traverse(node, parentId = null) {
       if (!node) return;
 
       if (node.nodeType === 8) { // Comment
         const commentText = cleanParam(node.textContent);
+        if (commentText.startsWith('rc-meta:')) return;
         if (commentText.startsWith('incluir:')) {
           const file = commentText.replace('incluir:', '').trim();
           rcLines.push(`incluir(${file})`);
@@ -1184,33 +1298,34 @@ ${bodyChildren}${scriptBlock}
         if (m) rcLines.push(`mostrarboton(${id})(${cleanParam(m[1])})`);
       }
 
+      let currentId = null;
+
       switch (tag) {
         case 'section':
+          currentId = getOrGenId(node, 'sec');
+          rcLines.push(`seccion[${currentId}]`);
+          recordElementMeta(node, currentId, parentId);
+          parseStyleString(styleAttr, rcLines);
+          node.childNodes.forEach(child => traverse(child, currentId));
+          break;
+
         case 'form':
         case 'main':
         case 'article':
         case 'header':
         case 'footer':
         case 'nav':
-          if (tag === 'section') {
-            const id = getOrGenId(node, 'sec');
-            rcLines.push(`seccion(${id})`);
-          } else {
-            const id = getOrGenId(node, 'box');
-            rcLines.push(`contenedor(${id})`);
-          }
+          currentId = getOrGenId(node, 'box');
+          rcLines.push(`contenedor[${currentId}]`);
+          recordElementMeta(node, currentId, parentId);
           parseStyleString(styleAttr, rcLines);
-          node.childNodes.forEach(traverse);
-          if (tag === 'section') {
-            rcLines.push(`finseccion`);
-          } else {
-            rcLines.push(`fincontenedor`);
-          }
+          node.childNodes.forEach(child => traverse(child, currentId));
           break;
 
         case 'div':
           const cls = node.getAttribute('class') || '';
           if (cls.includes('rejilla') || styleAttr.includes('grid-template-columns') || styleAttr.includes('display: grid') || styleAttr.includes('display:grid')) {
+            currentId = getOrGenId(node, 'grid');
             let cols = '2';
             const repMatch = styleAttr.match(/grid-template-columns\s*:\s*repeat\((\d+)/i);
             if (repMatch) {
@@ -1224,19 +1339,21 @@ ${bodyChildren}${scriptBlock}
                 cols = '4';
               }
             }
-            rcLines.push(`rejilla(${cols})`);
+            rcLines.push(`rejilla[${currentId}](${cols})`);
+            recordElementMeta(node, currentId, parentId);
             parseStyleString(styleAttr, rcLines);
-            node.childNodes.forEach(traverse);
-            rcLines.push(`finrejilla`);
+            node.childNodes.forEach(child => traverse(child, currentId));
           } else if (cls.includes('cargando')) {
-            rcLines.push('cargando');
+            currentId = getOrGenId(node, 'load');
+            rcLines.push(`cargando[${currentId}]`);
+            recordElementMeta(node, currentId, parentId);
             parseStyleString(styleAttr, rcLines);
           } else {
-            const id = getOrGenId(node, 'div');
-            rcLines.push(`contenedor(${id})`);
+            currentId = getOrGenId(node, 'div');
+            rcLines.push(`contenedor[${currentId}]`);
+            recordElementMeta(node, currentId, parentId);
             parseStyleString(styleAttr, rcLines);
-            node.childNodes.forEach(traverse);
-            rcLines.push(`fincontenedor`);
+            node.childNodes.forEach(child => traverse(child, currentId));
           }
           break;
 
@@ -1245,109 +1362,135 @@ ${bodyChildren}${scriptBlock}
           break;
 
         case 'p':
-          rcLines.push(`parrafo(${cleanParam(node.textContent)})`);
+          currentId = getOrGenId(node, 'p');
+          rcLines.push(`parrafo[${currentId}](${cleanParam(node.textContent)})`);
+          recordElementMeta(node, currentId, parentId);
           parseStyleString(styleAttr, rcLines);
           break;
 
         case 'h1': case 'h2': case 'h3': case 'h4': case 'h5': case 'h6':
+          currentId = getOrGenId(node, 'h');
           const lvl = tag.slice(1);
-          rcLines.push(`encabezado(${lvl})(${cleanParam(node.textContent)})`);
+          rcLines.push(`encabezado[${currentId}](${lvl})(${cleanParam(node.textContent)})`);
+          recordElementMeta(node, currentId, parentId);
           parseStyleString(styleAttr, rcLines);
           break;
 
         case 'b': case 'strong':
-          rcLines.push(`negrita(${cleanParam(node.textContent)})`);
+          currentId = getOrGenId(node, 'b');
+          rcLines.push(`negrita[${currentId}](${cleanParam(node.textContent)})`);
+          recordElementMeta(node, currentId, parentId);
           parseStyleString(styleAttr, rcLines);
           break;
 
         case 'i': case 'em':
-          rcLines.push(`cursiva(${cleanParam(node.textContent)})`);
+          currentId = getOrGenId(node, 'i');
+          rcLines.push(`cursiva[${currentId}](${cleanParam(node.textContent)})`);
+          recordElementMeta(node, currentId, parentId);
           parseStyleString(styleAttr, rcLines);
           break;
 
         case 'u':
-          rcLines.push(`subrayado(${cleanParam(node.textContent)})`);
+          currentId = getOrGenId(node, 'u');
+          rcLines.push(`subrayado[${currentId}](${cleanParam(node.textContent)})`);
+          recordElementMeta(node, currentId, parentId);
           parseStyleString(styleAttr, rcLines);
           break;
 
         case 'span':
-          const spanId = cleanParam(node.getAttribute('id') || '');
-          if (spanId) {
-            rcLines.push(`etiqueta(${spanId})(${cleanParam(node.textContent)})`);
-          } else {
-            rcLines.push(`texto(${cleanParam(node.textContent)})`);
-          }
+          currentId = getOrGenId(node, 'lbl');
+          rcLines.push(`etiqueta(${currentId})(${cleanParam(node.textContent)})`);
+          recordElementMeta(node, currentId, parentId);
           parseStyleString(styleAttr, rcLines);
           break;
 
         case 'blockquote':
-          rcLines.push(`cita(${cleanParam(node.textContent)})`);
+          currentId = getOrGenId(node, 'q');
+          rcLines.push(`cita[${currentId}](${cleanParam(node.textContent)})`);
+          recordElementMeta(node, currentId, parentId);
           parseStyleString(styleAttr, rcLines);
           break;
 
         case 'code':
-          rcLines.push(`codigo(${cleanParam(node.textContent)})`);
+          currentId = getOrGenId(node, 'code');
+          rcLines.push(`codigo[${currentId}](${cleanParam(node.textContent)})`);
+          recordElementMeta(node, currentId, parentId);
           parseStyleString(styleAttr, rcLines);
           break;
 
         case 'a':
+          currentId = getOrGenId(node, 'link');
           const href = cleanParam(node.getAttribute('href') || '#');
-          rcLines.push(`enlace(${href})(${cleanParam(node.textContent)})`);
+          rcLines.push(`enlace[${currentId}](${href})(${cleanParam(node.textContent)})`);
+          recordElementMeta(node, currentId, parentId);
           parseStyleString(styleAttr, rcLines);
           break;
 
         case 'img':
+          currentId = getOrGenId(node, 'img');
           const src = cleanParam(node.getAttribute('src') || '');
-          rcLines.push(`imagen(${src})`);
+          rcLines.push(`imagen[${currentId}](${src})`);
+          recordElementMeta(node, currentId, parentId);
           parseStyleString(styleAttr, rcLines);
           break;
 
         case 'ul':
-          rcLines.push('listadesordenada');
+          currentId = getOrGenId(node, 'ul');
+          rcLines.push(`listadesordenada[${currentId}]`);
+          recordElementMeta(node, currentId, parentId);
           parseStyleString(styleAttr, rcLines);
-          node.childNodes.forEach(traverse);
-          rcLines.push('finlista');
+          node.childNodes.forEach(child => traverse(child, currentId));
           break;
 
         case 'ol':
-          rcLines.push('listaordenada');
+          currentId = getOrGenId(node, 'ol');
+          rcLines.push(`listaordenada[${currentId}]`);
+          recordElementMeta(node, currentId, parentId);
           parseStyleString(styleAttr, rcLines);
-          node.childNodes.forEach(traverse);
-          rcLines.push('finlista');
+          node.childNodes.forEach(child => traverse(child, currentId));
           break;
 
         case 'li':
-          rcLines.push(`elementolista(${cleanParam(node.textContent)})`);
+          currentId = getOrGenId(node, 'li');
+          rcLines.push(`elementolista[${currentId}](${cleanParam(node.textContent)})`);
+          recordElementMeta(node, currentId, parentId);
           parseStyleString(styleAttr, rcLines);
           break;
 
         case 'table':
-          rcLines.push('tabla');
+          currentId = getOrGenId(node, 'tbl');
+          rcLines.push(`tabla[${currentId}]`);
+          recordElementMeta(node, currentId, parentId);
           parseStyleString(styleAttr, rcLines);
-          node.childNodes.forEach(traverse);
-          rcLines.push('fintabla');
+          node.childNodes.forEach(child => traverse(child, currentId));
           break;
 
         case 'tr':
-          rcLines.push('filatabla');
+          currentId = getOrGenId(node, 'tr');
+          rcLines.push(`filatabla[${currentId}]`);
+          recordElementMeta(node, currentId, parentId);
           parseStyleString(styleAttr, rcLines);
-          node.childNodes.forEach(traverse);
-          rcLines.push('finfilatabla');
+          node.childNodes.forEach(child => traverse(child, currentId));
           break;
 
         case 'th':
-          rcLines.push(`encabezadotabla(${cleanParam(node.textContent)})`);
+          currentId = getOrGenId(node, 'th');
+          rcLines.push(`encabezadotabla[${currentId}](${cleanParam(node.textContent)})`);
+          recordElementMeta(node, currentId, parentId);
           parseStyleString(styleAttr, rcLines);
           break;
 
         case 'td':
-          rcLines.push(`celdatabla(${cleanParam(node.textContent)})`);
+          currentId = getOrGenId(node, 'td');
+          rcLines.push(`celdatabla[${currentId}](${cleanParam(node.textContent)})`);
+          recordElementMeta(node, currentId, parentId);
           parseStyleString(styleAttr, rcLines);
           break;
 
         case 'button':
-          const btnId = getOrGenId(node, 'btn');
-          rcLines.push(`boton(${btnId})(${cleanParam(node.textContent)})`);
+          currentId = getOrGenId(node, 'btn');
+          rcLines.push(`boton(${currentId})(${cleanParam(node.textContent)})`);
+          recordElementMeta(node, currentId, parentId);
           parseStyleString(styleAttr, rcLines);
           break;
 
@@ -1355,61 +1498,93 @@ ${bodyChildren}${scriptBlock}
           const chk = node.querySelector('input[type="checkbox"]');
           if (chk) {
             const chkId = getOrGenId(chk, 'chk');
+            currentId = chkId;
             const txt = cleanParam(node.textContent);
             rcLines.push(`campochequeo(${chkId})(${txt})`);
+            recordElementMeta(node, currentId, parentId);
           } else {
-            rcLines.push(`etiquetacampo(${cleanParam(node.textContent)})`);
+            currentId = getOrGenId(node, 'lblfield');
+            rcLines.push(`etiquetacampo[${currentId}](${cleanParam(node.textContent)})`);
+            recordElementMeta(node, currentId, parentId);
           }
           parseStyleString(styleAttr, rcLines);
           break;
 
         case 'canvas':
-          const cnvId = getOrGenId(node, 'lienzo');
-          rcLines.push(`lienzo(${cnvId})`);
+          currentId = getOrGenId(node, 'lienzo');
+          rcLines.push(`lienzo(${currentId})`);
+          recordElementMeta(node, currentId, parentId);
           parseStyleString(styleAttr, rcLines);
           break;
 
         case 'textarea':
-          const areaId = getOrGenId(node, 'txt');
-          rcLines.push(`areatexto(${areaId})(${cleanParam(node.value || node.textContent)})`);
+          currentId = getOrGenId(node, 'txt');
+          rcLines.push(`areatexto(${currentId})(${cleanParam(node.value || node.textContent)})`);
+          recordElementMeta(node, currentId, parentId);
           parseStyleString(styleAttr, rcLines);
           break;
 
         case 'input':
-          const inpId = getOrGenId(node, 'inp');
+          currentId = getOrGenId(node, 'inp');
           const type = (node.getAttribute('type') || 'text').toLowerCase();
           const val = cleanParam(node.getAttribute('value') || '');
-          if (type === 'text') rcLines.push(`entrada(${inpId})(${val})`);
-          else if (type === 'number') rcLines.push(`camponumero(${inpId})(${val})`);
-          else if (type === 'email') rcLines.push(`campocorreo(${inpId})(${val})`);
-          else if (type === 'password') rcLines.push(`campocontrasena(${inpId})`);
-          else if (type === 'date') rcLines.push(`campofecha(${inpId})`);
+          if (type === 'text') rcLines.push(`entrada(${currentId})(${val})`);
+          else if (type === 'number') rcLines.push(`camponumero(${currentId})(${val})`);
+          else if (type === 'email') rcLines.push(`campocorreo(${currentId})(${val})`);
+          else if (type === 'password') rcLines.push(`campocontrasena(${currentId})`);
+          else if (type === 'date') rcLines.push(`campofecha(${currentId})`);
+          recordElementMeta(node, currentId, parentId);
           parseStyleString(styleAttr, rcLines);
           break;
 
         case 'select':
-          const selId = getOrGenId(node, 'sel');
-          rcLines.push(`desplegable(${selId})`);
+          currentId = getOrGenId(node, 'sel');
+          rcLines.push(`desplegable(${currentId})`);
+          recordElementMeta(node, currentId, parentId);
           parseStyleString(styleAttr, rcLines);
           break;
 
         case 'progress':
-          rcLines.push('cargando');
+          currentId = getOrGenId(node, 'prog');
+          rcLines.push(`cargando[${currentId}]`);
+          recordElementMeta(node, currentId, parentId);
           parseStyleString(styleAttr, rcLines);
           break;
 
         case 'script':
-          parseScriptContent(node.textContent, rcLines);
+          const scriptText = node.textContent.trim();
+          if (scriptText) {
+            const lines = scriptText.split('\n');
+            const unhandledLines = [];
+            lines.forEach(rawL => {
+              const l = rawL.trim();
+              if (!l) return;
+              const rcBefore = rcLines.length;
+              parseScriptContent(l, rcLines);
+              if (rcLines.length === rcBefore) {
+                // Not recognized as a standard RC command
+                unhandledLines.push(l);
+              }
+            });
+            if (unhandledLines.length > 0) {
+              meta.scripts.push(unhandledLines.join('\n'));
+            }
+          }
           break;
 
         default:
-          node.childNodes.forEach(traverse);
+          node.childNodes.forEach(child => traverse(child, parentId));
           break;
       }
     }
 
     if (body) {
-      body.childNodes.forEach(traverse);
+      body.childNodes.forEach(child => traverse(child, null));
+    }
+
+    const metaEncoded = encodeMeta(meta);
+    if (metaEncoded) {
+      rcLines.push(`// [rc-meta: ${metaEncoded}]`);
     }
 
     return rcLines.join('\n') + '\n';
@@ -1595,7 +1770,7 @@ limpiar(btn_clr)(inp_a)`;
         return `<span class="hl-comment">${escapeHtml(line)}</span>`;
       }
 
-      const tokenRegex = /(#[0-9a-fA-F]{3,8}\b)|(\b\d+(?:px|rem|em|%)?\b)|(\b[a-z0-9_]+\b)(?=\()|(\b[a-z0-9_]+\b)|([\(\)\[\]=])|([^\(\)\[\]=#a-zA-Z0-9_]+)/g;
+      const tokenRegex = /(#[0-9a-fA-F]{3,8}\b)|(\b\d+(?:px|rem|em|%)?\b)|([\u00C0-\u024F\u1E00-\u1EFFa-zA-Z0-9_]+)(?=\()|([\u00C0-\u024F\u1E00-\u1EFFa-zA-Z0-9_]+)|([\(\)\[\]=])|([^\(\)\[\]=#\u00C0-\u024F\u1E00-\u1EFFa-zA-Z0-9_]+)/g;
 
       let result = "";
       let match;
@@ -1984,6 +2159,9 @@ limpiar(btn_clr)(inp_a)`;
       });
     });
   }
+
+  window.htmlToRc = htmlToRc;
+  window.rcToHtml = rcToHtml;
 
   renderAll();
   updateLivePreview(editors.html ? editors.html.value : "");
