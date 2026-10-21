@@ -1126,8 +1126,26 @@
         }
 
         case 'desplegable': {
-          const selId = bracketId || cleanParam(a1);
-          addChild(createNode('select', selId));
+          let selId = bracketId;
+          let optsStr = '';
+          if (bracketId) {
+            optsStr = cleanParam(a1);
+          } else if (args.length >= 2) {
+            selId = cleanParam(a1);
+            optsStr = cleanParam(a2);
+          } else {
+            selId = cleanParam(a1);
+          }
+          const selNode = createNode('select', selId);
+          if (optsStr) {
+            const opts = optsStr.split(',').map(s => s.trim()).filter(Boolean);
+            opts.forEach(optVal => {
+              const optNode = createNode('option');
+              optNode.innerText = optVal;
+              selNode.children.push(optNode);
+            });
+          }
+          addChild(selNode);
           break;
         }
 
