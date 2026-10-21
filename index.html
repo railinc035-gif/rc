@@ -26,6 +26,11 @@
   .highlight-layer code { font: inherit; background: none; padding: 0; display: block; }
   .editor textarea { position: absolute; top: 0; left: 0; right: 0; bottom: 0; width: 100%; height: 100%; margin: 0; padding: 17px; font: 14px/1.75 ui-monospace, SFMono-Regular, Consolas, monospace; tab-size: 2; white-space: pre; word-wrap: normal; overflow: auto; background: transparent; color: transparent; caret-color: #ffffff; border: 0; outline: 0; resize: none; box-sizing: border-box; z-index: 1; }
   .editor textarea::selection { background: rgba(104, 181, 255, 0.35); color: transparent; }
+  .autocomplete-popup { position: absolute; z-index: 2; min-width: 210px; max-width: min(340px, calc(100% - 8px)); max-height: 220px; overflow-y: auto; padding: 4px; background: #191b22; border: 1px solid #454b5a; border-radius: 7px; box-shadow: 0 8px 24px #0009; }
+  .autocomplete-popup[hidden] { display: none; }
+  .autocomplete-popup button { display: flex; align-items: center; width: 100%; gap: 10px; padding: 6px 8px; border: 0; border-radius: 4px; background: transparent; text-align: left; font: 13px ui-monospace, SFMono-Regular, Consolas, monospace; }
+  .autocomplete-popup button:hover, .autocomplete-popup button[aria-selected="true"] { background: #303542; }
+  .autocomplete-popup button span { color: var(--muted); font: 11px system-ui, sans-serif; }
 
   /* Tokens Resaltado de Sintaxis */
   .hl-comment { color: #6272a4; font-style: italic; }
@@ -100,7 +105,8 @@
       <div class="gutter" id="rcGutter">1</div>
       <div class="editor-input-wrap">
         <pre class="highlight-layer" id="rcHighlight" aria-hidden="true"><code id="rcHighlightCode"></code></pre>
-        <textarea id="rcEditor" spellcheck="false" aria-label="Código RC" autocapitalize="off" autocomplete="off"></textarea>
+        <textarea id="rcEditor" spellcheck="false" aria-label="Código RC" aria-controls="rcAutocomplete" aria-expanded="false" autocapitalize="off" autocomplete="off"></textarea>
+        <div id="rcAutocomplete" class="autocomplete-popup" role="listbox" aria-label="Comandos RC" hidden></div>
       </div>
     </div>
     <div class="status"><span id="rcStatusName">main.rc</span><span class="spacer"></span><span id="rcStatusLine">Línea 1, Col 1</span></div>
@@ -419,7 +425,7 @@
 
   function escapeJsString(str) {
     if (str === null || str === undefined) return "''";
-    return JSON.stringify(String(str));
+    return JSON.stringify(String(str)).replace(/</g, '\\u003c').replace(/\u2028/g, '\\u2028').replace(/\u2029/g, '\\u2029');
   }
 
   // ==========================================
@@ -430,7 +436,7 @@
     if (!line || line.startsWith('//')) return null;
 
     // Detectar asignación de variable: var_name = valor
-    const assignMatch = line.match(/^([a-z0-9_]+)\s*=\s*(.+)$/i);
+    const assignMatch = line.match(/^([a-z0-9_]+)\s*=\s*(.+)$/);
     if (assignMatch && !line.includes('(')) {
       return {
         isAssignment: true,
@@ -445,25 +451,28 @@
     let workLine = line;
 
     // Sintaxis de corchetes: comando[id](args) o comando[id]
-    const bracketMatch = workLine.match(/^([a-z0-9_]+)\[([a-z0-9_]+)\](.*)$/i);
+    const bracketMatch = workLine.match(/^([a-z0-9_]+)\[([a-z0-9_]+)\](.*)$/);
     if (bracketMatch) {
-      const baseCmd = bracketMatch[1].toLowerCase();
-      bracketId = bracketMatch[2].toLowerCase();
+      const baseCmd = bracketMatch[1];
+      bracketId = bracketMatch[2];
       const restAfterBracket = bracketMatch[3].trim();
       workLine = baseCmd + restAfterBracket;
+    } else if (workLine.includes('[') || workLine.includes(']')) {
+      return { parseError: 'Sintaxis de corchetes inválida', rawLine: line, lineNum };
     }
 
     const parenIndex = workLine.indexOf('(');
-    let cmd = workLine.toLowerCase();
+    let cmd = workLine;
     let args = [];
 
     if (parenIndex !== -1) {
-      cmd = workLine.slice(0, parenIndex).trim().toLowerCase();
+      cmd = workLine.slice(0, parenIndex).trim();
       const rest = workLine.slice(parenIndex);
 
       let depth = 0;
       let currentArg = '';
       let inArg = false;
+      let invalid = false;
 
       for (let i = 0; i < rest.length; i++) {
         const ch = rest[i];
@@ -476,6 +485,10 @@
           }
           depth++;
         } else if (ch === ')') {
+          if (depth === 0) {
+            invalid = true;
+            break;
+          }
           depth--;
           if (depth === 0) {
             inArg = false;
@@ -486,8 +499,17 @@
           }
         } else {
           if (inArg) currentArg += ch;
+          else if (!/\s/.test(ch)) invalid = true;
         }
       }
+
+      if (invalid || depth !== 0) {
+        return { parseError: 'Paréntesis sin pareja o contenido fuera de los parámetros', rawLine: line, lineNum };
+      }
+    }
+
+    if (!/^[a-z][a-z0-9_]*$/.test(cmd)) {
+      return { parseError: 'Los comandos deben escribirse en minúsculas', rawLine: line, lineNum };
     }
 
     return { cmd, bracketId, args, rawLine: line, lineNum };
@@ -496,7 +518,7 @@
   // ==========================================
   // COMPILADOR Y GENERADOR RC -> HTML/CSS/JS
   // ==========================================
-  function rcToHtml(rcCode, visitedFiles = new Set()) {
+  function rcToHtml(rcCode, visitedFiles = new Set(), sourceFile = activeFile || '') {
     if (!rcCode || !rcCode.trim()) return '';
 
     const lines = rcCode.split('\n');
@@ -504,28 +526,81 @@
     const scriptLines = [];
     const warnings = [];
     const variables = new Map();
+    const referencedIds = [];
+    const sourceLines = [];
+    const rootFile = sourceFile.replace(/\\/g, '/');
+
+    function expandIncludes(source, filename, includeChain) {
+      source.split('\n').forEach((rawLine, index) => {
+        const parsed = parseRcLine(rawLine, index + 1);
+        if (!parsed || parsed.parseError || parsed.cmd !== 'incluir') {
+          sourceLines.push({ rawLine, lineNum: index + 1, filename });
+          return;
+        }
+
+        let requestedName = cleanParam(parsed.args[0] || '').replace(/^['"]|['"]$/g, '').replace(/\\/g, '/');
+        if (!requestedName) {
+          warnings.push(`${filename || 'RC'}:${index + 1}: incluir requiere el nombre de un archivo.`);
+          return;
+        }
+        if (!requestedName.toLowerCase().endsWith('.rc')) requestedName += '.rc';
+        const directory = filename && filename.includes('/') ? filename.slice(0, filename.lastIndexOf('/') + 1) : '';
+        const targetName = (directory + requestedName).split('/').reduce((parts, segment) => {
+          if (segment === '..') parts.pop();
+          else if (segment && segment !== '.') parts.push(segment);
+          return parts;
+        }, []).join('/');
+
+        if (!files.has(targetName)) {
+          warnings.push(`${filename || 'RC'}:${index + 1}: el archivo incluido '${requestedName}' no existe.`);
+          return;
+        }
+        if (includeChain.has(targetName)) {
+          warnings.push(`${filename || 'RC'}:${index + 1}: ciclo de inclusión detectado con '${targetName}'.`);
+          return;
+        }
+
+        const nextChain = new Set(includeChain);
+        nextChain.add(targetName);
+        expandIncludes(files.get(targetName).content, targetName, nextChain);
+      });
+    }
+
+    const initialChain = new Set(visitedFiles);
+    if (rootFile) initialChain.add(rootFile);
+    expandIncludes(rcCode, rootFile, initialChain);
 
     const nodesById = new Map();
+    let currentFilename = rootFile;
+    let currentLineNum = 0;
 
-    function createNode(tag, id = '', className = '', isContainer = false) {
+    function createNode(tag, id = '', className = '', isContainer = false, structureType = '') {
       const node = {
         tag,
         id,
         className,
         isContainer,
+        structureType,
         styles: [],
         children: [],
         attrs: {},
         innerText: '',
-        rawHtml: ''
+        rawHtml: '',
+        parent: null,
+        lineNum: currentLineNum,
+        filename: currentFilename
       };
       if (id) {
-        nodesById.set(id, node);
+        if (nodesById.has(id)) {
+          warnings.push(`${currentFilename || 'RC'}:${currentLineNum}: identificador duplicado '${id}'.`);
+        } else {
+          nodesById.set(id, node);
+        }
       }
       return node;
     }
 
-    const rootNode = createNode('body', 'body_root', '', true);
+    const rootNode = createNode('body', 'body_root', '', true, 'root');
     const nodeStack = [rootNode];
     const containerStack = [];
     let lastCreatedNode = null;
@@ -547,34 +622,43 @@
     function addChild(node) {
       const targetContainer = currentContainer();
       targetContainer.children.push(node);
+      node.parent = targetContainer;
       lastCreatedNode = node;
 
       if (node.isContainer) {
         nodeStack.push(node);
-        containerStack.push({ id: node.id, tag: node.tag, lineNum: node.lineNum || 0 });
+        containerStack.push(node);
       }
     }
 
-    function closeContainerTag(expectedTags) {
-      if (nodeStack.length <= 1) {
+    function popContainer() {
+      if (nodeStack.length <= 1 || containerStack[containerStack.length - 1] !== nodeStack[nodeStack.length - 1]) {
+        warnings.push(`${currentFilename || 'RC'}:${currentLineNum}: no se pudo cerrar la estructura por un error en la pila de contenedores.`);
         return false;
       }
-      while (nodeStack.length > 1) {
-        const top = nodeStack[nodeStack.length - 1];
-        if (!expectedTags || expectedTags.includes(top.tag)) {
-          nodeStack.pop();
-          if (containerStack.length > 0) containerStack.pop();
-          lastCreatedNode = null;
-          return true;
-        }
-        nodeStack.pop();
-        if (containerStack.length > 0) containerStack.pop();
-      }
+      nodeStack.pop();
+      containerStack.pop();
+      lastCreatedNode = null;
       return true;
     }
 
-    lines.forEach((rawLine, idx) => {
-      const lineNum = idx + 1;
+    function closeContainerTag(expectedTypes) {
+      if (nodeStack.length <= 1) {
+        return false;
+      }
+      const top = nodeStack[nodeStack.length - 1];
+      if (expectedTypes && !expectedTypes.includes(top.structureType)) {
+        warnings.push(`${currentFilename || 'RC'}:${currentLineNum}: cierre fuera de orden; '${top.structureType}' sigue abierto desde ${top.filename || 'RC'}:${top.lineNum}.`);
+        return false;
+      }
+      popContainer();
+      return true;
+    }
+
+    sourceLines.forEach(sourceLine => {
+      const { rawLine, lineNum, filename } = sourceLine;
+      currentFilename = filename;
+      currentLineNum = lineNum;
       const line = rawLine.trim();
       if (!line) return;
 
@@ -588,6 +672,10 @@
 
       const parsed = parseRcLine(line, lineNum);
       if (!parsed) return;
+      if (parsed.parseError) {
+        warnings.push(`${filename || 'RC'}:${lineNum}: ${parsed.parseError}.`);
+        return;
+      }
 
       if (parsed.isAssignment) {
         variables.set(parsed.varName, parsed.varVal);
@@ -598,7 +686,11 @@
       const spec = RC_COMMANDS_SPEC[cmd];
 
       if (!spec && !CLOSING_COMMANDS.has(cmd)) {
-        warnings.push(`Línea ${lineNum}: Comando desconocido '${escapeHtml(cmd)}'`);
+        warnings.push(`${filename || 'RC'}:${lineNum}: comando desconocido '${escapeHtml(cmd)}'.`);
+        return;
+      }
+      if (spec && (args.length < spec.minArgs || args.length > spec.params.length)) {
+        warnings.push(`${filename || 'RC'}:${lineNum}: '${cmd}' espera entre ${spec.minArgs} y ${spec.params.length} parámetros; recibió ${args.length}.`);
         return;
       }
 
@@ -615,6 +707,15 @@
       const a3 = resolveArg(args[2] || '');
       const a4 = resolveArg(args[3] || '');
 
+      const idArgs = {
+        ocultar: [a1], mostrar: [a1], deshabilitar: [a1], habilitar: [a1],
+        avisar: [a1], ira: [a1], ocultarboton: [a1, a2], mostrarboton: [a1, a2],
+        alternar: [a1, a2], limpiar: [a1, a2], limpiarlienzo: [a1, a2], copiartexto: [a1, a2],
+        sumar: [a1, a2, a3, a4], restar: [a1, a2, a3, a4], multiplicar: [a1, a2, a3, a4], dividir: [a1, a2, a3, a4],
+        incrementar: [a1, a2], decrementar: [a1, a2], guardarlocal: [a1, a3], cargarlocal: [a2]
+      }[cmd];
+      if (idArgs) referencedIds.push({ ids: idArgs.filter(Boolean), lineNum, filename });
+
       const listCmds = ['elementolista'];
       const tableCmds = ['filatabla', 'encabezadotabla', 'celdatabla'];
       const elementCmds = [
@@ -630,47 +731,42 @@
 
       if (nodeStack.length > 1) {
         const top = nodeStack[nodeStack.length - 1];
-        if ((top.tag === 'ul' || top.tag === 'ol') && !listCmds.includes(cmd)) {
-          nodeStack.pop();
-          if (containerStack.length > 0) containerStack.pop();
+        if ((top.tag === 'ul' || top.tag === 'ol') && !listCmds.includes(cmd) && cmd !== 'finlista' && cmd !== 'fin') {
+          popContainer();
         } else if (top.tag === 'tr' && cmd === 'filatabla') {
-          nodeStack.pop();
-          if (containerStack.length > 0) containerStack.pop();
-        } else if (top.tag === 'tr' && !tableCmds.includes(cmd)) {
-          nodeStack.pop();
-          if (containerStack.length > 0) containerStack.pop();
-          if (nodeStack.length > 1 && nodeStack[nodeStack.length - 1].tag === 'table') {
-            nodeStack.pop();
-            if (containerStack.length > 0) containerStack.pop();
+          popContainer();
+        } else if (top.tag === 'tr' && !tableCmds.includes(cmd) && cmd !== 'finfilatabla' && cmd !== 'fin') {
+          popContainer();
+          if (cmd !== 'fintabla' && cmd !== 'finfilatabla' && cmd !== 'fin' && nodeStack.length > 1 && nodeStack[nodeStack.length - 1].tag === 'table') {
+            popContainer();
           }
         } else if (top.tag === 'table' && !tableCmds.includes(cmd)) {
-          nodeStack.pop();
-          if (containerStack.length > 0) containerStack.pop();
+          if (cmd !== 'fintabla' && cmd !== 'fin') popContainer();
         }
       }
 
       // Procesar cierre de contenedor
       if (CLOSING_COMMANDS.has(cmd)) {
         if (nodeStack.length <= 1) {
-          warnings.push(`Línea ${lineNum}: '${cmd}' sin contenedor abierto.`);
+          warnings.push(`${filename || 'RC'}:${lineNum}: '${cmd}' no tiene una estructura abierta.`);
           return;
         }
 
-        if (cmd === 'fincontenedor') {
-          const closed = closeContainerTag(['div', 'section']);
-          if (!closed) warnings.push(`Línea ${lineNum}: 'fincontenedor' sin contenedor abierto.`);
-        } else if (cmd === 'finseccion') {
-          closeContainerTag(['section']);
-        } else if (cmd === 'finrejilla') {
-          closeContainerTag(['div']);
-        } else if (cmd === 'finlista') {
-          closeContainerTag(['ul', 'ol']);
-        } else if (cmd === 'fintabla') {
-          closeContainerTag(['table']);
-        } else if (cmd === 'finfilatabla') {
-          closeContainerTag(['tr']);
-        } else {
+        const closingTypes = {
+          fincontenedor: ['contenedor'],
+          finseccion: ['seccion'],
+          finrejilla: ['rejilla'],
+          finlista: ['lista'],
+          fintabla: ['tabla'],
+          finfilatabla: ['fila']
+        };
+        if (cmd === 'fin') {
           closeContainerTag();
+        } else {
+          const closed = closeContainerTag(closingTypes[cmd]);
+          if (!closed && nodeStack.length <= 1) {
+            warnings.push(`${filename || 'RC'}:${lineNum}: '${cmd}' no tiene una estructura abierta compatible.`);
+          }
         }
         return;
       }
@@ -718,9 +814,8 @@
           break;
 
         case 'seccion': {
-          closeContainerTag(['section']);
           const secId = bracketId || cleanParam(a1);
-          const secNode = createNode('section', secId, '', true);
+          const secNode = createNode('section', secId, '', true, 'seccion');
           secNode.lineNum = lineNum;
           addChild(secNode);
           break;
@@ -728,7 +823,7 @@
 
         case 'contenedor': {
           const divId = bracketId || cleanParam(a1);
-          const divNode = createNode('div', divId, '', true);
+          const divNode = createNode('div', divId, '', true, 'contenedor');
           divNode.lineNum = lineNum;
           addChild(divNode);
           break;
@@ -736,8 +831,12 @@
 
         case 'rejilla': {
           const gridId = bracketId || cleanParam(a2 || '');
-          const cols = parseInt(a1, 10) || 1;
-          const gridNode = createNode('div', gridId, 'rejilla', true);
+          const cols = Number(a1);
+          if (!Number.isInteger(cols) || cols < 1) {
+            warnings.push(`${filename || 'RC'}:${lineNum}: 'rejilla' requiere un número entero de columnas mayor que cero.`);
+            break;
+          }
+          const gridNode = createNode('div', gridId, 'rejilla', true, 'rejilla');
           gridNode.lineNum = lineNum;
           gridNode.styles.push('display: grid;');
           gridNode.styles.push(`grid-template-columns: repeat(${cols}, 1fr);`);
@@ -832,11 +931,11 @@
         }
 
         case 'listadesordenada':
-          addChild(createNode('ul', bracketId, '', true));
+          addChild(createNode('ul', bracketId, '', true, 'lista'));
           break;
 
         case 'listaordenada':
-          addChild(createNode('ol', bracketId, '', true));
+          addChild(createNode('ol', bracketId, '', true, 'lista'));
           break;
 
         case 'elementolista': {
@@ -847,11 +946,11 @@
         }
 
         case 'tabla':
-          addChild(createNode('table', bracketId, '', true));
+          addChild(createNode('table', bracketId, '', true, 'tabla'));
           break;
 
         case 'filatabla':
-          addChild(createNode('tr', bracketId, '', true));
+          addChild(createNode('tr', bracketId, '', true, 'fila'));
           break;
 
         case 'encabezadotabla': {
@@ -1012,7 +1111,12 @@
         case 'centrar': {
           const targetCentrar = currentTargetForStyle();
           if (targetCentrar.isContainer) {
-            targetCentrar.styles.push(`margin-left: auto; margin-right: auto; text-align: center; justify-content: center; align-items: center;`);
+            targetCentrar.styles.push('text-align: center;');
+            if (targetCentrar.className === 'rejilla') {
+              targetCentrar.styles.push('justify-items: center; align-items: center;');
+            } else {
+              targetCentrar.styles.push('display: flex; flex-direction: column; align-items: center;');
+            }
           } else {
             targetCentrar.styles.push(`display: block; margin-left: auto; margin-right: auto; text-align: center;`);
           }
@@ -1022,7 +1126,9 @@
         case 'alinearizquierda': {
           const targetIzq = currentTargetForStyle();
           if (targetIzq.isContainer) {
-            targetIzq.styles.push(`text-align: left; justify-content: flex-start; align-items: flex-start;`);
+            targetIzq.styles.push('text-align: left;');
+            if (targetIzq.className === 'rejilla') targetIzq.styles.push('justify-items: start; align-items: start;');
+            else targetIzq.styles.push('display: flex; flex-direction: column; align-items: flex-start;');
           } else {
             targetIzq.styles.push(`text-align: left;`);
           }
@@ -1032,7 +1138,9 @@
         case 'alinearderecha': {
           const targetDer = currentTargetForStyle();
           if (targetDer.isContainer) {
-            targetDer.styles.push(`text-align: right; justify-content: flex-end; align-items: flex-end;`);
+            targetDer.styles.push('text-align: right;');
+            if (targetDer.className === 'rejilla') targetDer.styles.push('justify-items: end; align-items: end;');
+            else targetDer.styles.push('display: flex; flex-direction: column; align-items: flex-end;');
           } else {
             targetDer.styles.push(`text-align: right;`);
           }
@@ -1075,12 +1183,27 @@
           currentTargetForStyle().styles.push(`overflow: auto;`);
           break;
 
-        case 'ocultar':
+        case 'ocultar': {
+          const hiddenNode = nodesById.get(a1);
+          if (hiddenNode) {
+            hiddenNode.styles.push('display: none;');
+            if (['INPUT', 'TEXTAREA', 'SELECT'].includes(hiddenNode.tag.toUpperCase()) && hiddenNode.parent?.className === 'rejilla') {
+              const gridParent = hiddenNode.parent;
+              const outerParent = gridParent.parent;
+              const childIndex = gridParent.children.indexOf(hiddenNode);
+              if (outerParent && childIndex !== -1) {
+                gridParent.children.splice(childIndex, 1);
+                outerParent.children.push(hiddenNode);
+                hiddenNode.parent = outerParent;
+              }
+            }
+          }
           scriptLines.push(`document.getElementById(${escapeJsString(a1)})?.style.setProperty('display', 'none');`);
           break;
+        }
 
         case 'mostrar':
-          scriptLines.push(`document.getElementById(${escapeJsString(a1)})?.style.setProperty('display', 'block');`);
+          scriptLines.push(`document.getElementById(${escapeJsString(a1)})?.style.removeProperty('display');`);
           break;
 
         case 'avisar':
@@ -1096,19 +1219,19 @@
           break;
 
         case 'mostrarboton':
-          scriptLines.push(`document.getElementById(${escapeJsString(a1)})?.addEventListener('click', () => { const el = document.getElementById(${escapeJsString(a2)}); if(el) el.style.display = 'block'; });`);
+          scriptLines.push(`document.getElementById(${escapeJsString(a1)})?.addEventListener('click', () => { const el = document.getElementById(${escapeJsString(a2)}); if(el) el.style.removeProperty('display'); });`);
           break;
 
         case 'alternar':
-          scriptLines.push(`document.getElementById(${escapeJsString(a1)})?.addEventListener('click', () => { const el = document.getElementById(${escapeJsString(a2)}); if(el) el.style.display = (el.style.display === 'none' ? 'block' : 'none'); });`);
+          scriptLines.push(`document.getElementById(${escapeJsString(a1)})?.addEventListener('click', () => { const el = document.getElementById(${escapeJsString(a2)}); if(el) { if(el.style.display === 'none') el.style.removeProperty('display'); else el.style.setProperty('display', 'none'); } });`);
           break;
 
         case 'limpiar':
-          scriptLines.push(`document.getElementById(${escapeJsString(a1)})?.addEventListener('click', () => { const el = document.getElementById(${escapeJsString(a2)}); if(el) { if('value' in el) el.value = ''; else el.innerText = ''; } });`);
+          scriptLines.push(`document.getElementById(${escapeJsString(a1)})?.addEventListener('click', () => { const el = document.getElementById(${escapeJsString(a2)}); if(el) { if(['INPUT', 'TEXTAREA', 'SELECT'].includes(el.tagName)) el.value = ''; else el.innerText = ''; } });`);
           break;
 
         case 'limpiarlienzo':
-          scriptLines.push(`document.getElementById(${escapeJsString(a1)})?.addEventListener('click', () => { const c = document.getElementById(${escapeJsString(a2)}); if(c && c.getContext) c.getContext('2d').clearRect(0, 0, c.width, c.height); });`);
+          scriptLines.push(`document.getElementById(${escapeJsString(a1)})?.addEventListener('click', () => { const c = document.getElementById(${escapeJsString(a2)}); const ctx = c?.getContext?.('2d'); if(ctx) ctx.clearRect(0, 0, c.width, c.height); });`);
           break;
 
         case 'deshabilitar':
@@ -1120,7 +1243,7 @@
           break;
 
         case 'copiartexto':
-          scriptLines.push(`document.getElementById(${escapeJsString(a1)})?.addEventListener('click', () => { const el = document.getElementById(${escapeJsString(a2)}); if(el) navigator.clipboard.writeText(el.value || el.innerText); });`);
+          scriptLines.push(`document.getElementById(${escapeJsString(a1)})?.addEventListener('click', () => { const el = document.getElementById(${escapeJsString(a2)}); if(el) navigator.clipboard.writeText(['INPUT', 'TEXTAREA', 'SELECT'].includes(el.tagName) ? el.value : el.innerText); });`);
           break;
 
         case 'sumar':
@@ -1133,22 +1256,35 @@
             const el2 = document.getElementById(${escapeJsString(a3)});
             const lbl = document.getElementById(${escapeJsString(a4)});
             if(!el1 || !el2 || !lbl) return;
-            const v1 = parseFloat(el1.value !== undefined ? el1.value : el1.innerText) || 0;
-            const v2 = parseFloat(el2.value !== undefined ? el2.value : el2.innerText) || 0;
+            const raw1 = ['INPUT', 'TEXTAREA', 'SELECT'].includes(el1.tagName) ? el1.value : el1.innerText;
+            const raw2 = ['INPUT', 'TEXTAREA', 'SELECT'].includes(el2.tagName) ? el2.value : el2.innerText;
+            const setLabelValue = value => {
+              if(['INPUT', 'TEXTAREA', 'SELECT'].includes(lbl.tagName)) lbl.value = value;
+              else lbl.innerText = value;
+            };
+            const v1 = Number(raw1 === '' ? 0 : raw1);
+            const v2 = Number(raw2 === '' ? 0 : raw2);
+            if(!Number.isFinite(v1) || !Number.isFinite(v2)) {
+              setLabelValue('Error: Entrada no válida');
+              return;
+            }
             let res = 0;
             if('${opChar}' === '+') res = v1 + v2;
             else if('${opChar}' === '-') res = v1 - v2;
             else if('${opChar}' === '*') res = v1 * v2;
             else if('${opChar}' === '/') {
               if(v2 === 0) {
-                if('value' in lbl) lbl.value = 'Error: División por cero'; else lbl.innerText = 'Error: División por cero';
+                setLabelValue('Error: División por cero');
                 return;
               }
               res = v1 / v2;
             }
+            if(!Number.isFinite(res)) {
+              setLabelValue('Error: Resultado no válido');
+              return;
+            }
             res = Number(res.toFixed(8)) / 1;
-            if('value' in lbl && lbl.tagName !== 'SPAN' && lbl.tagName !== 'P' && lbl.tagName !== 'DIV') lbl.value = res.toString();
-            else lbl.innerText = res.toString();
+            setLabelValue(res.toString());
           });`);
           break;
         }
@@ -1156,18 +1292,19 @@
         case 'incrementar':
         case 'decrementar': {
           const isInc = cmd === 'incrementar';
-          const stepVal = a3 || '1';
+          const stepVal = Number(a3 || '1');
+          if (!Number.isFinite(stepVal)) {
+            warnings.push(`${filename || 'RC'}:${lineNum}: '${cmd}' requiere un paso numérico.`);
+            break;
+          }
+          const delta = isInc ? stepVal : -stepVal;
           scriptLines.push(`document.getElementById(${escapeJsString(a1)})?.addEventListener('click', () => {
             const el = document.getElementById(${escapeJsString(a2)});
             if(!el) return;
-            const stepStr = ${escapeJsString(stepVal)};
-            if('value' in el && el.tagName !== 'SPAN' && el.tagName !== 'P' && el.tagName !== 'DIV') {
-              if (el.value === '' || el.value === 'Error: División por cero') el.value = stepStr;
-              else el.value = el.value + stepStr;
-            } else {
-              if (el.innerText === '' || el.innerText === 'Error: División por cero') el.innerText = stepStr;
-              else el.innerText = el.innerText + stepStr;
-            }
+            const current = Number(['INPUT', 'TEXTAREA', 'SELECT'].includes(el.tagName) ? el.value : el.innerText);
+            const next = (Number.isFinite(current) ? current : 0) + (${delta});
+            if(['INPUT', 'TEXTAREA', 'SELECT'].includes(el.tagName)) el.value = String(next);
+            else el.innerText = String(next);
           });`);
           break;
         }
@@ -1175,7 +1312,7 @@
         case 'guardarlocal':
           scriptLines.push(`document.getElementById(${escapeJsString(a1)})?.addEventListener('click', () => {
             const el = document.getElementById(${escapeJsString(a3)});
-            if(el) localStorage.setItem(${escapeJsString(a2)}, el.value !== undefined ? el.value : el.innerText);
+            if(el) localStorage.setItem(${escapeJsString(a2)}, ['INPUT', 'TEXTAREA', 'SELECT'].includes(el.tagName) ? el.value : el.innerText);
           });`);
           break;
 
@@ -1183,16 +1320,24 @@
           scriptLines.push(`{
             const val = localStorage.getItem(${escapeJsString(a1)}) || '';
             const lbl = document.getElementById(${escapeJsString(a2)});
-            if(lbl) { if('value' in lbl && lbl.tagName !== 'SPAN' && lbl.tagName !== 'P') lbl.value = val; else lbl.innerText = val; }
+            if(lbl) { if(['INPUT', 'TEXTAREA', 'SELECT'].includes(lbl.tagName)) lbl.value = val; else lbl.innerText = val; }
           }`);
           break;
       }
     });
 
-    // Detectar contenedores sin cerrar al final del archivo
+    referencedIds.forEach(reference => {
+      reference.ids.forEach(id => {
+        if (!nodesById.has(id)) {
+          warnings.push(`${reference.filename || 'RC'}:${reference.lineNum}: el identificador '${id}' no existe en el proyecto.`);
+        }
+      });
+    });
+
+    // Detectar estructuras sin cerrar al final del archivo
     if (containerStack.length > 0) {
       containerStack.forEach(c => {
-        warnings.push(`Línea ${c.lineNum || '?'}: Contenedor '${escapeHtml(c.id || c.tag)}' sin cerrar (falta 'fincontenedor').`);
+        warnings.push(`${c.filename || 'RC'}:${c.lineNum || '?'}: '${c.id || c.tag}' sigue abierto; falta su comando de cierre.`);
       });
     }
 
@@ -1216,7 +1361,7 @@
         }
       }
 
-      if (node.styles.length > 0) attrs += ` style="${node.styles.join(' ')}"`;
+      if (node.styles.length > 0) attrs += ` style="${escapeHtml(node.styles.join(' '))}"`;
 
       const selfClosing = ['hr', 'img', 'input'];
       if (selfClosing.includes(node.tag)) {
@@ -1237,7 +1382,7 @@
     let warningBlock = '';
     if (warnings.length > 0) {
       warningBlock = `  <div style="background: #2a1b1b; color: #ff8080; border: 1px solid #662222; padding: 10px; margin: 10px 0; border-radius: 6px; font-family: monospace; font-size: 12px;">\n` +
-        warnings.map(w => `    <div>⚠️ ${w}</div>`).join('\n') + `\n  </div>\n`;
+        warnings.map(w => `    <div>⚠️ ${escapeHtml(w)}</div>`).join('\n') + `\n  </div>\n`;
     }
 
     let scriptBlock = '';
@@ -1330,13 +1475,14 @@ boton(btn_0)(0)
 boton(btn_eq)(=)
 boton(btn_sum)(+)
 
+finrejilla
+
 // Campos de memoria para operandos
 entrada(inp_a)(0)
 ocultar(inp_a)
 entrada(inp_b)(0)
 ocultar(inp_b)
 
-finrejilla
 fincontenedor
 finseccion
 
@@ -1427,6 +1573,7 @@ limpiar(btn_clr)(inp_disp)`;
   }
 
   const editorEl = document.getElementById("rcEditor");
+  const autocompleteEl = document.getElementById("rcAutocomplete");
   const gutterEl = document.getElementById("rcGutter");
   const tabsEl = document.getElementById("rcTabs");
   const listEl = document.getElementById("fileList");
@@ -1543,12 +1690,14 @@ limpiar(btn_clr)(inp_disp)`;
         }
 
         const generatedHtml = rcToHtml(rcVal);
-        if (generatedHtml && rootNodeHasContent(rcVal)) {
+        if (generatedHtml) {
           lastValidHtml = generatedHtml;
         }
       }
     } catch (e) {
       console.warn("Error interpretando RC:", e);
+      const errorMessage = e instanceof Error ? e.message : String(e);
+      lastValidHtml = `<!DOCTYPE html><html lang="es"><meta charset="UTF-8"><body style="font:14px system-ui;background:#2a1b1b;color:#ff8080;padding:16px"><strong>Error de compilación</strong><pre>${escapeHtml(errorMessage)}</pre></body></html>`;
     } finally {
       isTranslating = false;
       saveState();
@@ -1713,6 +1862,109 @@ limpiar(btn_clr)(inp_disp)`;
     document.getElementById("rcStatusLine").textContent = `Línea ${line}, Col ${col}`;
   }
 
+  let autocompleteSuggestions = [];
+  let autocompleteIndex = 0;
+  let autocompleteRange = null;
+
+  function hideAutocomplete() {
+    autocompleteSuggestions = [];
+    autocompleteRange = null;
+    autocompleteEl.hidden = true;
+    autocompleteEl.replaceChildren();
+    editorEl.setAttribute("aria-expanded", "false");
+    editorEl.removeAttribute("aria-activedescendant");
+  }
+
+  function updateAutocomplete() {
+    if (editorEl.selectionStart !== editorEl.selectionEnd) {
+      hideAutocomplete();
+      return;
+    }
+
+    const caret = editorEl.selectionStart;
+    const before = editorEl.value.slice(0, caret);
+    const prefix = (before.match(/[A-Za-z0-9_]*$/) || [""])[0];
+    const start = caret - prefix.length;
+    const suffix = (editorEl.value.slice(caret).match(/^[A-Za-z0-9_]*/) || [""])[0];
+    const end = caret + suffix.length;
+    const lineStart = editorEl.value.lastIndexOf("\n", start - 1) + 1;
+    if (prefix.length < 2 || editorEl.value[end] === "(" || editorEl.value.slice(lineStart, start).trim()) {
+      hideAutocomplete();
+      return;
+    }
+
+    const query = prefix.toLowerCase();
+    autocompleteSuggestions = Object.values(RC_COMMANDS_SPEC)
+      .filter(command => command.name.startsWith(query));
+    if (!autocompleteSuggestions.length) {
+      hideAutocomplete();
+      return;
+    }
+
+    autocompleteRange = { start, end };
+    autocompleteIndex = 0;
+    autocompleteEl.replaceChildren();
+    autocompleteSuggestions.forEach((command, index) => {
+      const option = document.createElement("button");
+      option.type = "button";
+      option.id = `rcAutocompleteOption${index}`;
+      option.setAttribute("role", "option");
+      option.setAttribute("aria-selected", String(index === autocompleteIndex));
+      option.dataset.command = command.name;
+      option.textContent = command.name;
+      const description = document.createElement("span");
+      description.textContent = command.desc;
+      option.appendChild(description);
+      autocompleteEl.appendChild(option);
+    });
+
+    autocompleteEl.hidden = false;
+    editorEl.setAttribute("aria-expanded", "true");
+    editorEl.setAttribute("aria-activedescendant", "rcAutocompleteOption0");
+
+    const style = getComputedStyle(editorEl);
+    const canvas = updateAutocomplete.canvas || (updateAutocomplete.canvas = document.createElement("canvas"));
+    const context = canvas.getContext("2d");
+    context.font = style.font;
+    const lineText = before.slice(before.lastIndexOf("\n") + 1).replace(/\t/g, "  ");
+    const lineHeight = parseFloat(style.lineHeight) || 24.5;
+    const paddingLeft = parseFloat(style.paddingLeft) || 0;
+    const paddingTop = parseFloat(style.paddingTop) || 0;
+    const lineNumber = before.split("\n").length - 1;
+    const left = paddingLeft + context.measureText(lineText).width - editorEl.scrollLeft;
+    const caretTop = paddingTop + lineNumber * lineHeight - editorEl.scrollTop;
+    const popupWidth = autocompleteEl.offsetWidth;
+    const popupHeight = autocompleteEl.offsetHeight;
+    autocompleteEl.style.left = `${Math.max(4, Math.min(left, editorEl.clientWidth - popupWidth - 4))}px`;
+    autocompleteEl.style.top = `${caretTop + lineHeight + popupHeight > editorEl.clientHeight
+      ? Math.max(4, caretTop - popupHeight)
+      : caretTop + lineHeight}px`;
+  }
+
+  function acceptAutocomplete(commandName) {
+    if (!autocompleteRange) return;
+    const { start, end } = autocompleteRange;
+    const insertion = `${commandName}()`;
+    editorEl.setRangeText(insertion, start, end, "end");
+    const caret = start + commandName.length + 1;
+    editorEl.setSelectionRange(caret, caret);
+    hideAutocomplete();
+    editorEl.dispatchEvent(new Event("input", { bubbles: true }));
+    editorEl.focus();
+    updateCursor();
+  }
+
+  autocompleteEl.addEventListener("mousedown", event => event.preventDefault());
+  autocompleteEl.addEventListener("click", event => {
+    const option = event.target.closest("[data-command]");
+    if (option) acceptAutocomplete(option.dataset.command);
+  });
+  editorEl.addEventListener("blur", () => {
+    setTimeout(() => {
+      if (document.activeElement !== editorEl) hideAutocomplete();
+    }, 0);
+  });
+
   // Listeners del editor RC
   editorEl.addEventListener("input", () => {
     if (activeFile && files.has(activeFile)) {
@@ -1721,6 +1973,7 @@ limpiar(btn_clr)(inp_disp)`;
     updateCursor();
     updateLineNumbers();
     updateHighlight();
+    updateAutocomplete();
     debounceTranslate();
   });
 
@@ -1731,11 +1984,41 @@ limpiar(btn_clr)(inp_disp)`;
       layer.scrollTop = editorEl.scrollTop;
       layer.scrollLeft = editorEl.scrollLeft;
     }
+    if (!autocompleteEl.hidden) updateAutocomplete();
   });
 
-  editorEl.addEventListener("click", updateCursor);
-  editorEl.addEventListener("keyup", updateCursor);
+  editorEl.addEventListener("click", () => {
+    updateCursor();
+    updateAutocomplete();
+  });
+  editorEl.addEventListener("keyup", () => {
+    updateCursor();
+    updateAutocomplete();
+  });
   editorEl.addEventListener("keydown", e => {
+    if (!autocompleteEl.hidden) {
+      if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+        e.preventDefault();
+        const direction = e.key === "ArrowDown" ? 1 : -1;
+        autocompleteIndex = (autocompleteIndex + direction + autocompleteSuggestions.length) % autocompleteSuggestions.length;
+        autocompleteEl.querySelectorAll("[role='option']").forEach((option, index) => {
+          option.setAttribute("aria-selected", String(index === autocompleteIndex));
+        });
+        editorEl.setAttribute("aria-activedescendant", `rcAutocompleteOption${autocompleteIndex}`);
+        autocompleteEl.querySelector(`#rcAutocompleteOption${autocompleteIndex}`)?.scrollIntoView({ block: "nearest" });
+        return;
+      }
+      if (e.key === "Enter") {
+        e.preventDefault();
+        acceptAutocomplete(autocompleteSuggestions[autocompleteIndex].name);
+        return;
+      }
+      if (e.key === "Escape") {
+        hideAutocomplete();
+        return;
+      }
+    }
+
     if (e.key === "Tab") {
       e.preventDefault();
       const start = editorEl.selectionStart, end = editorEl.selectionEnd;
@@ -1746,6 +2029,7 @@ limpiar(btn_clr)(inp_disp)`;
       updateCursor();
       updateLineNumbers();
       updateHighlight();
+      updateAutocomplete();
       debounceTranslate();
     }
   });
