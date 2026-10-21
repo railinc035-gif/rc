@@ -417,6 +417,22 @@
     'fin', 'finseccion', 'fincontenedor', 'finrejilla', 'finlista', 'fintabla', 'finfilatabla', 'finmodal'
   ]);
 
+  const FORM_CONTROL_TAGS = ['INPUT', 'TEXTAREA', 'SELECT'];
+  const FORM_CONTROL_TAGS_EXPRESSION = `[${FORM_CONTROL_TAGS.map(tag => `'${tag}'`).join(', ')}]`;
+
+  function isFormControlExpression(elementName) {
+    return `${FORM_CONTROL_TAGS_EXPRESSION}.includes(${elementName}.tagName)`;
+  }
+
+  function readElementValueExpression(elementName) {
+    return `${isFormControlExpression(elementName)} ? ${elementName}.value : ${elementName}.innerText`;
+  }
+
+  function writeElementValueStatements(elementName, valueExpression, breakElse = false, indentation = '') {
+    const separator = breakElse ? `\n${indentation}` : ' ';
+    return `if(${isFormControlExpression(elementName)}) ${elementName}.value = ${valueExpression};${separator}else ${elementName}.innerText = ${valueExpression};`;
+  }
+
   // Auxiliares de formato
   function cleanParam(val) {
     if (val === null || val === undefined) return '';
@@ -1382,7 +1398,7 @@
           const hiddenNode = nodesById.get(a1);
           if (hiddenNode) {
             hiddenNode.styles.push('display: none;');
-            if (['INPUT', 'TEXTAREA', 'SELECT'].includes(hiddenNode.tag.toUpperCase()) && hiddenNode.parent?.className === 'rejilla') {
+            if (FORM_CONTROL_TAGS.includes(hiddenNode.tag.toUpperCase()) && hiddenNode.parent?.className === 'rejilla') {
               const gridParent = hiddenNode.parent;
               const outerParent = gridParent.parent;
               const childIndex = gridParent.children.indexOf(hiddenNode);
@@ -1471,7 +1487,7 @@
           break;
 
         case 'limpiar':
-          scriptLines.push(`document.getElementById(${escapeJsString(a1)})?.addEventListener('click', () => { const el = document.getElementById(${escapeJsString(a2)}); if(el) { if(['INPUT', 'TEXTAREA', 'SELECT'].includes(el.tagName)) el.value = ''; else el.innerText = ''; } });`);
+          scriptLines.push(`document.getElementById(${escapeJsString(a1)})?.addEventListener('click', () => { const el = document.getElementById(${escapeJsString(a2)}); if(el) { ${writeElementValueStatements('el', "''")} } });`);
           break;
 
         case 'limpiarlienzo':
@@ -1487,7 +1503,7 @@
           break;
 
         case 'copiartexto':
-          scriptLines.push(`document.getElementById(${escapeJsString(a1)})?.addEventListener('click', () => { const el = document.getElementById(${escapeJsString(a2)}); if(el) navigator.clipboard.writeText(['INPUT', 'TEXTAREA', 'SELECT'].includes(el.tagName) ? el.value : el.innerText); });`);
+          scriptLines.push(`document.getElementById(${escapeJsString(a1)})?.addEventListener('click', () => { const el = document.getElementById(${escapeJsString(a2)}); if(el) navigator.clipboard.writeText(${readElementValueExpression('el')}); });`);
           break;
 
         case 'sumar':
@@ -1500,11 +1516,10 @@
             const el2 = document.getElementById(${escapeJsString(a3)});
             const lbl = document.getElementById(${escapeJsString(a4)});
             if(!el1 || !el2 || !lbl) return;
-            const raw1 = ['INPUT', 'TEXTAREA', 'SELECT'].includes(el1.tagName) ? el1.value : el1.innerText;
-            const raw2 = ['INPUT', 'TEXTAREA', 'SELECT'].includes(el2.tagName) ? el2.value : el2.innerText;
+            const raw1 = ${readElementValueExpression('el1')};
+            const raw2 = ${readElementValueExpression('el2')};
             const setLabelValue = value => {
-              if(['INPUT', 'TEXTAREA', 'SELECT'].includes(lbl.tagName)) lbl.value = value;
-              else lbl.innerText = value;
+              ${writeElementValueStatements('lbl', 'value', true, '              ')}
             };
             const v1 = Number(raw1 === '' ? 0 : raw1);
             const v2 = Number(raw2 === '' ? 0 : raw2);
@@ -1545,10 +1560,9 @@
           scriptLines.push(`document.getElementById(${escapeJsString(a1)})?.addEventListener('click', () => {
             const el = document.getElementById(${escapeJsString(a2)});
             if(!el) return;
-            const current = Number(['INPUT', 'TEXTAREA', 'SELECT'].includes(el.tagName) ? el.value : el.innerText);
+            const current = Number(${readElementValueExpression('el')});
             const next = (Number.isFinite(current) ? current : 0) + (${delta});
-            if(['INPUT', 'TEXTAREA', 'SELECT'].includes(el.tagName)) el.value = String(next);
-            else el.innerText = String(next);
+            ${writeElementValueStatements('el', 'String(next)', true, '            ')}
           });`);
           break;
         }
@@ -1556,7 +1570,7 @@
         case 'guardarlocal':
           scriptLines.push(`document.getElementById(${escapeJsString(a1)})?.addEventListener('click', () => {
             const el = document.getElementById(${escapeJsString(a3)});
-            if(el) localStorage.setItem(${escapeJsString(a2)}, ['INPUT', 'TEXTAREA', 'SELECT'].includes(el.tagName) ? el.value : el.innerText);
+            if(el) localStorage.setItem(${escapeJsString(a2)}, ${readElementValueExpression('el')});
           });`);
           break;
 
@@ -1564,7 +1578,7 @@
           scriptLines.push(`{
             const val = localStorage.getItem(${escapeJsString(a1)}) || '';
             const lbl = document.getElementById(${escapeJsString(a2)});
-            if(lbl) { if(['INPUT', 'TEXTAREA', 'SELECT'].includes(lbl.tagName)) lbl.value = val; else lbl.innerText = val; }
+            if(lbl) { ${writeElementValueStatements('lbl', 'val')} }
           }`);
           break;
       }
@@ -1725,101 +1739,6 @@ ${warningBlock}${bodyChildren}${scriptBlock}
 `;
   }
 
-  // ==========================================
-  // CALCULADORA OFICIAL DE EJEMPLO EN RC
-  // ==========================================
-  const initialCalculatorRc = `// calculadora profesional en rapid code (rc)
-titulo(calculadora rc studio)
-
-seccion(sec_calc)
-contenedor(calc_card)
-ancho(340px)
-fondo(#181a20)
-color(#ffffff)
-relleno(20px)
-radio(16px)
-borde(1px solid #2d3240)
-sombra(4)
-centrar
-
-encabezado(2)(calculadora rc)
-color(#68b5ff)
-tamano(20px)
-
-contenedor(pantalla_box)
-fondo(#0d0f14)
-relleno(12px)
-radio(10px)
-margen(12px)
-borde(1px solid #252a36)
-
-entrada(inp_disp)()
-tamano(24px)
-color(#50fa7b)
-alinearderecha
-fincontenedor
-
-rejilla(4)
-gap(8px)
-margen(10px)
-
-// Fila 1
-boton(btn_7)(7)
-boton(btn_8)(8)
-boton(btn_9)(9)
-boton(btn_div)(/)
-
-// Fila 2
-boton(btn_4)(4)
-boton(btn_5)(5)
-boton(btn_6)(6)
-boton(btn_mul)(*)
-
-// Fila 3
-boton(btn_1)(1)
-boton(btn_2)(2)
-boton(btn_3)(3)
-boton(btn_res)(-)
-
-// Fila 4
-boton(btn_clr)(C)
-boton(btn_0)(0)
-boton(btn_eq)(=)
-boton(btn_sum)(+)
-
-finrejilla
-
-// Campos de memoria para operandos
-entrada(inp_a)(0)
-ocultar(inp_a)
-entrada(inp_b)(0)
-ocultar(inp_b)
-
-fincontenedor
-finseccion
-
-// Lógica de dígitos
-incrementar(btn_7)(inp_disp)(7)
-incrementar(btn_8)(inp_disp)(8)
-incrementar(btn_9)(inp_disp)(9)
-
-incrementar(btn_4)(inp_disp)(4)
-incrementar(btn_5)(inp_disp)(5)
-incrementar(btn_6)(inp_disp)(6)
-
-incrementar(btn_1)(inp_disp)(1)
-incrementar(btn_2)(inp_disp)(2)
-incrementar(btn_3)(inp_disp)(3)
-incrementar(btn_0)(inp_disp)(0)
-
-// Operaciones aritméticas oficiales RC
-sumar(btn_sum)(inp_disp)(inp_a)(inp_disp)
-restar(btn_res)(inp_disp)(inp_a)(inp_disp)
-multiplicar(btn_mul)(inp_disp)(inp_a)(inp_disp)
-dividir(btn_div)(inp_disp)(inp_a)(inp_disp)
-
-limpiar(btn_clr)(inp_disp)`;
-
   const STORAGE_KEY = "rc_studio_state";
   const files = new Map();
   let activeFile = "main.rc";
@@ -1864,6 +1783,18 @@ limpiar(btn_clr)(inp_disp)`;
         activeFile = [...files.keys()][0] || "main.rc";
       }
 
+      const mainFile = files.get("main.rc");
+      const mainContent = typeof mainFile?.content === "string" ? mainFile.content.trim() : "";
+      const hasLegacyCalculatorDemo = mainContent.startsWith(
+        "// calculadora profesional en rapid code (rc)\ntitulo(calculadora rc studio)"
+      ) && mainContent.endsWith("limpiar(btn_clr)(inp_disp)")
+        && mainContent.includes("seccion(sec_calc)")
+        && mainContent.includes("sumar(btn_sum)(inp_disp)(inp_a)(inp_disp)");
+      if (hasLegacyCalculatorDemo) {
+        mainFile.content = "";
+        saveState();
+      }
+
       if (parsed.panelMode && panelSel) {
         panelSel.value = (parsed.panelMode === 'rc-html' || parsed.panelMode === 'all') ? 'rc-preview' : parsed.panelMode;
       }
@@ -1876,7 +1807,7 @@ limpiar(btn_clr)(inp_disp)`;
   }
 
   function initDefaultFiles() {
-    files.set("main.rc", { type: "rc", content: initialCalculatorRc });
+    files.set("main.rc", { type: "rc", content: "" });
     activeFile = "main.rc";
   }
 
