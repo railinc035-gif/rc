@@ -265,8 +265,8 @@
         <div class="dict-category" data-command-category="2">
           <h4>II. Estilo y Diseño Visual (Comandos 31 - 50)</h4>
           <div class="cmd-list">
-            <div class="cmd-item"><code>fondo(color)</code><span>Establece el color de fondo del elemento</span></div>
-            <div class="cmd-item"><code>color(color)</code><span>Establece el color del texto</span></div>
+            <div class="cmd-item"><code>fondo(color) / fondo(idbtn)(color)</code><span>Establece el fondo del elemento activo o cambia el fondo global al pulsar un botón</span></div>
+            <div class="cmd-item"><code>color(color) / color(idbtn)(color)</code><span>Establece el color del elemento activo o cambia el color global del texto al pulsar un botón</span></div>
             <div class="cmd-item"><code>letra(fuente)</code><span>Establece la familia tipográfica / fuente</span></div>
             <div class="cmd-item"><code>tamano(px)</code><span>Establece el tamaño de letra en píxeles</span></div>
             <div class="cmd-item"><code>ancho(px)</code><span>Establece el ancho del elemento</span></div>
@@ -338,7 +338,7 @@
             <div class="cmd-item"><code>notificacion(idbtn)(mensaje)</code><span>Muestra un aviso flotante al pulsar un botón</span></div>
             <div class="cmd-item"><code>modal(id)</code><span>Inicia una ventana modal reutilizable</span></div>
             <div class="cmd-item"><code>finmodal</code><span>Cierra la estructura modal abierta</span></div>
-            <div class="cmd-item"><code>tema(modo)</code><span>Configura el tema global claro u oscuro</span></div>
+            <div class="cmd-item"><code>tema(modo) / tema(idbtn)(modo)</code><span>Configura el tema global directamente o al pulsar un botón</span></div>
           </div>
         </div>
         <!-- Categorías V - VIII -->
@@ -411,8 +411,8 @@
     areatexto: { cat: 1, name: 'areatexto', params: ['id', 'texto'], minArgs: 1, type: 'element', tag: 'textarea', desc: 'Crea un área de texto multilínea (<textarea>)' },
 
     // Categoría II: Estilo y Diseño Visual (Comandos 31 - 50)
-    fondo: { cat: 2, name: 'fondo', params: ['color'], minArgs: 1, type: 'style', prop: 'background-color', desc: 'Establece el color de fondo del elemento' },
-    color: { cat: 2, name: 'color', params: ['color'], minArgs: 1, type: 'style', prop: 'color', desc: 'Establece el color del texto' },
+    fondo: { cat: 2, name: 'fondo', params: ['color'], eventSignature: 'fondo(idbtn)(color)', minArgs: 1, maxArgs: 2, type: 'style', prop: 'background-color', desc: 'Establece el fondo o lo cambia al pulsar un botón' },
+    color: { cat: 2, name: 'color', params: ['color'], eventSignature: 'color(idbtn)(color)', minArgs: 1, maxArgs: 2, type: 'style', prop: 'color', desc: 'Establece el color del texto o lo cambia al pulsar un botón' },
     letra: { cat: 2, name: 'letra', params: ['fuente'], minArgs: 1, type: 'style', prop: 'font-family', desc: 'Establece la familia tipográfica / fuente' },
     tamano: { cat: 2, name: 'tamano', params: ['px'], minArgs: 1, type: 'style', prop: 'font-size', desc: 'Establece el tamaño de letra en píxeles' },
     ancho: { cat: 2, name: 'ancho', params: ['px'], minArgs: 1, type: 'style', prop: 'width', desc: 'Establece el ancho del elemento' },
@@ -474,7 +474,7 @@
     notificacion: { cat: 4, name: 'notificacion', params: ['idbtn', 'mensaje'], minArgs: 2, type: 'event', desc: 'Muestra una notificación flotante al pulsar' },
     modal: { cat: 4, name: 'modal', params: ['id'], minArgs: 1, type: 'container', tag: 'div', desc: 'Inicia una ventana modal reutilizable' },
     finmodal: { cat: 4, name: 'finmodal', params: [], minArgs: 0, type: 'closing', desc: 'Cierra la estructura modal abierta' },
-    tema: { cat: 4, name: 'tema', params: ['modo'], minArgs: 1, type: 'theme', desc: 'Configura el tema global claro u oscuro' },
+    tema: { cat: 4, name: 'tema', params: ['modo'], eventSignature: 'tema(idbtn)(modo)', minArgs: 1, maxArgs: 2, type: 'theme', desc: 'Configura el tema directamente o al pulsar un botón' },
 
     // Categoría V: Espacio 3D, cámaras y motores geométricos (91 - 105)
     escena3d: { cat: 5, name: 'escena3d', params: ['id'], minArgs: 1, type: 'scene3d', desc: 'Crea una escena geométrica 3D interactiva en Canvas' },
@@ -543,7 +543,8 @@
       const item = document.createElement('div');
       item.className = 'cmd-item';
       const signature = document.createElement('code');
-      signature.textContent = spec.name + spec.params.map(param => `(${param})`).join('');
+      signature.textContent = spec.name + spec.params.map(param => `(${param})`).join('') +
+        (spec.eventSignature ? ` / ${spec.eventSignature}` : '');
       const description = document.createElement('span');
       description.textContent = spec.desc;
       item.append(signature, description);
@@ -923,8 +924,9 @@
         warnings.push(`${filename || 'RC'}:${lineNum}: comando desconocido '${escapeHtml(cmd)}'.`);
         return;
       }
-      if (spec && (args.length < spec.minArgs || args.length > spec.params.length)) {
-        warnings.push(`${filename || 'RC'}:${lineNum}: '${cmd}' espera entre ${spec.minArgs} y ${spec.params.length} parámetros; recibió ${args.length}.`);
+      const maxArgs = spec?.maxArgs ?? spec?.params.length ?? 0;
+      if (spec && (args.length < spec.minArgs || args.length > maxArgs)) {
+        warnings.push(`${filename || 'RC'}:${lineNum}: '${cmd}' espera entre ${spec.minArgs} y ${maxArgs} parámetros; recibió ${args.length}.`);
         return;
       }
 
@@ -941,13 +943,21 @@
       const a3 = resolveArg(args[2] || '');
       const a4 = resolveArg(args[3] || '');
 
+      if (['fondo', 'color', 'tema'].includes(cmd) && args.length === 2 && !a1.trim()) {
+        warnings.push(`${filename || 'RC'}:${lineNum}: '${cmd}' requiere un ID de botón en el primer parámetro.`);
+        return;
+      }
+
       const idArgs = {
         ocultar: [a1], mostrar: [a1], deshabilitar: [a1], habilitar: [a1],
         avisar: [a1], ira: [a1], ocultarboton: [a1, a2], mostrarboton: [a1, a2],
         alternar: [a1, a2], limpiar: [a1, a2], limpiarlienzo: [a1, a2], copiartexto: [a1, a2],
         sumar: [a1, a2, a3, a4], restar: [a1, a2, a3, a4], multiplicar: [a1, a2, a3, a4], dividir: [a1, a2, a3, a4],
         incrementar: [a1, a2], decrementar: [a1, a2], guardarlocal: [a1, a3], cargarlocal: [a2],
-        exportarcanvas: [a1], luz: [a1], notificacion: [a1]
+        exportarcanvas: [a1], luz: [a1], notificacion: [a1],
+        fondo: args.length === 2 ? [a1] : [],
+        color: args.length === 2 ? [a1] : [],
+        tema: args.length === 2 ? [a1] : []
       }[cmd];
       if (idArgs) referencedIds.push({ ids: idArgs.filter(Boolean), lineNum, filename });
 
@@ -1989,11 +1999,19 @@
         }
 
         case 'fondo':
-          currentTargetForStyle().styles.push(`background-color: ${formatColor(a1)};`);
+          if (args.length === 2) {
+            scriptLines.push(`document.getElementById(${escapeJsString(a1)})?.addEventListener('click', () => { document.body.style.setProperty('background-color', ${escapeJsString(formatColor(a2))}); });`);
+          } else {
+            currentTargetForStyle().styles.push(`background-color: ${formatColor(a1)};`);
+          }
           break;
 
         case 'color':
-          currentTargetForStyle().styles.push(`color: ${formatColor(a1)};`);
+          if (args.length === 2) {
+            scriptLines.push(`document.getElementById(${escapeJsString(a1)})?.addEventListener('click', () => { document.body.style.setProperty('color', ${escapeJsString(formatColor(a2))}); });`);
+          } else {
+            currentTargetForStyle().styles.push(`color: ${formatColor(a1)};`);
+          }
           break;
 
         case 'letra':
@@ -2180,12 +2198,18 @@
         }
 
         case 'tema': {
-          const theme = cleanParam(a1).toLowerCase();
+          const triggerId = args.length === 2 ? a1 : '';
+          const theme = cleanParam(args.length === 2 ? a2 : a1).toLowerCase();
           if (!['oscuro', 'claro'].includes(theme)) {
             warnings.push(`${filename || 'RC'}:${lineNum}: 'tema' admite los modos oscuro o claro.`);
             break;
           }
-          scriptLines.push(`document.documentElement.dataset.rcTheme = ${escapeJsString(theme)};`);
+          const setTheme = `document.documentElement.dataset.rcTheme = ${escapeJsString(theme)};`;
+          if (triggerId) {
+            scriptLines.push(`document.getElementById(${escapeJsString(triggerId)})?.addEventListener('click', () => { ${setTheme} });`);
+          } else {
+            scriptLines.push(setTheme);
+          }
           break;
         }
 
