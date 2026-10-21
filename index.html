@@ -19,12 +19,12 @@
   .tabs{height:43px;display:flex;align-items:stretch;gap:4px;padding:5px 7px 0;background:#191b22;border-bottom:1px solid var(--line);overflow:auto}
   .tab{white-space:nowrap;border:0;border-radius:6px 6px 0 0;background:transparent;color:var(--muted);padding:8px 12px}
   .tab.active{background:#272b36;color:var(--text);border:1px solid var(--line);border-bottom-color:#272b36}
-  .editor-body{display:flex;flex:1;min-height:0;position:relative;overflow:hidden;background:#0e1015}
-  .gutter{width:42px;flex:0 0 42px;padding:17px 8px 17px 0;background:#15171e;color:#5a6275;font:14px/1.75 ui-monospace,SFMono-Regular,Consolas,monospace;text-align:right;user-select:none;border-right:1px solid var(--line);overflow:hidden;white-space:pre}
+  .editor-body{--editor-font:14px;--editor-line-height:24.5px;--editor-pad-y:17px;--editor-pad-x:17px;display:flex;flex:1;min-height:0;position:relative;overflow:hidden;background:#0e1015}
+  .gutter{width:42px;flex:0 0 42px;padding:var(--editor-pad-y) 8px;background:#15171e;color:#5a6275;font:var(--editor-font)/var(--editor-line-height) ui-monospace,SFMono-Regular,Consolas,monospace;text-align:right;user-select:none;border:0;border-right:1px solid var(--line);overflow:hidden;white-space:pre;box-sizing:border-box}
   .editor-input-wrap { position: relative; flex: 1; min-width: 0; height: 100%; overflow: hidden; background: #0e1015; }
-  .highlight-layer { position: absolute; top: 0; left: 0; right: 0; bottom: 0; margin: 0; padding: 17px; font: 14px/1.75 ui-monospace, SFMono-Regular, Consolas, monospace; tab-size: 2; white-space: pre; word-wrap: normal; overflow: hidden; pointer-events: none; background: transparent; box-sizing: border-box; color: #d9e2f2; }
+  .highlight-layer { position: absolute; top: 0; left: 0; right: 0; bottom: 0; margin: 0; padding: var(--editor-pad-y) var(--editor-pad-x); border: 0; font: 400 var(--editor-font)/var(--editor-line-height) ui-monospace,SFMono-Regular,Consolas,monospace; letter-spacing: normal; word-spacing: normal; tab-size: 2; white-space: pre; word-wrap: normal; overflow: hidden; pointer-events: none; background: transparent; box-sizing: border-box; color: #d9e2f2; }
   .highlight-layer code { font: inherit; background: none; padding: 0; display: block; }
-  .editor textarea { position: absolute; top: 0; left: 0; right: 0; bottom: 0; width: 100%; height: 100%; margin: 0; padding: 17px; font: 14px/1.75 ui-monospace, SFMono-Regular, Consolas, monospace; tab-size: 2; white-space: pre; word-wrap: normal; overflow: auto; background: transparent; color: transparent; caret-color: #ffffff; border: 0; outline: 0; resize: none; box-sizing: border-box; z-index: 1; }
+  .editor textarea { position: absolute; top: 0; left: 0; right: 0; bottom: 0; width: 100%; height: 100%; margin: 0; padding: var(--editor-pad-y) var(--editor-pad-x); font: 400 var(--editor-font)/var(--editor-line-height) ui-monospace,SFMono-Regular,Consolas,monospace; letter-spacing: normal; word-spacing: normal; tab-size: 2; white-space: pre; word-wrap: normal; overflow: auto; background: transparent; color: transparent; caret-color: #ffffff; border: 0; outline: 0; resize: none; box-sizing: border-box; z-index: 1; }
   .editor textarea::selection { background: rgba(104, 181, 255, 0.35); color: transparent; }
   .autocomplete-popup { position: absolute; z-index: 2; min-width: 210px; max-width: min(340px, calc(100% - 8px)); max-height: 220px; overflow-y: auto; padding: 4px; background: #191b22; border: 1px solid #454b5a; border-radius: 7px; box-shadow: 0 8px 24px #0009; }
   .autocomplete-popup[hidden] { display: none; }
@@ -58,7 +58,7 @@
   .explorer-note{padding:10px;border-top:1px solid var(--line);font-size:12px;color:var(--muted)}
   .empty{padding:15px;color:var(--muted);text-align:center}
   .toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:#292d38;border:1px solid #454b5a;padding:9px 14px;border-radius:8px;display:none;z-index:99}
-  @media(max-width:720px){.layout{padding:5px;gap:5px}.explorer{width:205px;flex-basis:205px}.editor textarea, .highlight-layer{padding:10px;font-size:12px}.gutter{padding:10px 6px 10px 0;font-size:12px;width:34px;flex-basis:34px}.tab{padding:8px}.topbar{padding:0 7px}}
+  @media(max-width:720px){.layout{padding:5px;gap:5px}.explorer{width:205px;flex-basis:205px}.editor-body{--editor-font:12px;--editor-line-height:21px;--editor-pad-y:10px;--editor-pad-x:10px}.gutter{width:34px;flex-basis:34px;padding-right:6px}.tab{padding:8px}.topbar{padding:0 7px}}
   @media(max-width:560px){.layout{position:relative}.editor{min-width:0}.explorer{position:absolute;z-index:5;right:5px;top:5px;bottom:5px;box-shadow:0 10px 35px #0009}.explorer.hidden{display:none}}
 
   /* Modal Overlay y Contenido Diccionario */
@@ -87,7 +87,7 @@
 <body>
 <header class="topbar">
   <button id="saveBtn" title="Descargar archivo abierto">Guardar archivo</button>
-  <button id="dictBtn" title="Ver Diccionario RC">Ver Diccionario RC 📖</button>
+  <button id="dictBtn" title="Ver Diccionario RC">Ver Diccionario RC </button>
   <div class="spacer"></div>
   <label style="font-size:12px; color:var(--muted);">Paneles:</label>
   <select id="panelSelector" style="background:var(--panel2); color:var(--text); border:1px solid var(--line); border-radius:7px; padding:5px 8px;">
@@ -123,7 +123,7 @@
   <aside class="explorer" id="explorer">
     <div class="explorer-head"><span>Archivos del proyecto</span><button id="closeExplorer" title="Ocultar explorador">×</button></div>
     <div class="new-actions">
-      <button id="newRc" style="width: 100%;">+ Nuevo Archivo .rc</button>
+      <button id="newRc" style="width: 100%;"> +✎ </button>
     </div>
     <div class="file-list" id="fileList"></div>
     <div class="explorer-note">Selecciona un archivo para abrirlo. Usa ✎ para renombrar o × para eliminar.</div>
@@ -144,15 +144,15 @@
       </p>
       <div style="display: flex; flex-direction: column; gap: 10px;">
         <button id="exportRcBtn" style="text-align: left; padding: 12px 16px; border: 1px solid var(--line); border-radius: 8px; background: var(--panel2);">
-          <div style="font-weight: 600; color: var(--blue); font-size: 14px;">⭐ Guardar como RC (.rc)</div>
+          <div style="font-weight: 600; color: var(--blue); font-size: 14px;"> Guardar como RC </div>
           <div style="font-size: 12px; color: var(--muted); margin-top: 4px;">Guarda el código fuente RC original, editable y con todos sus comentarios.</div>
         </button>
         <button id="exportHtmlBtn" style="text-align: left; padding: 12px 16px; border: 1px solid var(--line); border-radius: 8px; background: var(--panel2);">
-          <div style="font-weight: 600; color: var(--orange); font-size: 14px;">🌐 Guardar como HTML (.html)</div>
+          <div style="font-weight: 600; color: var(--orange); font-size: 14px;"> Guardar como HTML </div>
           <div style="font-size: 12px; color: var(--muted); margin-top: 4px;">Exporta un documento HTML standalone funcional con sus estilos CSS y scripts.</div>
         </button>
         <button id="exportCssBtn" style="text-align: left; padding: 12px 16px; border: 1px solid var(--line); border-radius: 8px; background: var(--panel2);">
-          <div style="font-weight: 600; color: #50fa7b; font-size: 14px;">🎨 Guardar como CSS (.css)</div>
+          <div style="font-weight: 600; color: #50fa7b; font-size: 14px;"> Guardar como CSS </div>
           <div style="font-size: 12px; color: var(--muted); margin-top: 4px;">Exporta las reglas y estilos CSS extraídos de las propiedades de diseño de la app RC.</div>
         </button>
       </div>
@@ -281,6 +281,28 @@
             <div class="cmd-item"><code>cargarlocal(clave)(lbl)</code><span>Lee el valor almacenado y lo muestra en la etiqueta de destino</span></div>
           </div>
         </div>
+
+        <!-- Categoría IV -->
+        <div class="dict-category">
+          <h4>IV. Dibujo, Capas, Efectos y Utilidades (Comandos 76 - 90)</h4>
+          <div class="cmd-list">
+            <div class="cmd-item"><code>capa(id)</code><span>Crea una capa canvas superpuesta no interactiva</span></div>
+            <div class="cmd-item"><code>pincel(tipo)(tamano)</code><span>Configura el pincel para los lienzos dibujables</span></div>
+            <div class="cmd-item"><code>opacidad(nivel)</code><span>Ajusta la opacidad activa de 0 a 10</span></div>
+            <div class="cmd-item"><code>exportarcanvas(idbtn)(formato)</code><span>Descarga un lienzo como PNG o JPG al pulsar</span></div>
+            <div class="cmd-item"><code>luz(id)(tipo)</code><span>Aplica iluminación ambiental o direccional a un elemento</span></div>
+            <div class="cmd-item"><code>sombrapro(nivel)(color)</code><span>Aplica una sombra avanzada personalizada</span></div>
+            <div class="cmd-item"><code>filtro(efecto)</code><span>Aplica desenfoque, brillo, contraste o escala de grises</span></div>
+            <div class="cmd-item"><code>rotar(grados)</code><span>Rota el elemento activo</span></div>
+            <div class="cmd-item"><code>escala(porcentaje)</code><span>Escala el elemento activo mediante un porcentaje</span></div>
+            <div class="cmd-item"><code>transicion(milisegundos)</code><span>Define una transición fluida en milisegundos</span></div>
+            <div class="cmd-item"><code>audio(id)(url)</code><span>Inserta un reproductor de audio</span></div>
+            <div class="cmd-item"><code>notificacion(idbtn)(mensaje)</code><span>Muestra un aviso flotante al pulsar un botón</span></div>
+            <div class="cmd-item"><code>modal(id)</code><span>Inicia una ventana modal reutilizable</span></div>
+            <div class="cmd-item"><code>finmodal</code><span>Cierra la estructura modal abierta</span></div>
+            <div class="cmd-item"><code>tema(modo)</code><span>Configura el tema global claro u oscuro</span></div>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -289,7 +311,7 @@
 <script>
 (() => {
   // ==========================================
-  // ESPECIFICACIÓN CENTRAL DE 75 COMANDOS RC
+  // ESPECIFICACIÓN CENTRAL DE 90 COMANDOS RC
   // ==========================================
   const RC_COMMANDS_SPEC = {
     // Categoría I: Estructura y Contenido (Comandos 1 - 30)
@@ -371,11 +393,28 @@
     incrementar: { cat: 3, name: 'incrementar', params: ['idbtn', 'idtarget', 'paso'], minArgs: 2, type: 'math', op: 'inc', desc: 'Incrementa valor en destino según el paso especificado' },
     decrementar: { cat: 3, name: 'decrementar', params: ['idbtn', 'idtarget', 'paso'], minArgs: 2, type: 'math', op: 'dec', desc: 'Decrementa valor en destino según el paso especificado' },
     guardarlocal: { cat: 3, name: 'guardarlocal', params: ['idbtn', 'clave', 'idin'], minArgs: 3, type: 'storage', action: 'save', desc: 'Guarda en localStorage el valor del campo al pulsar el botón' },
-    cargarlocal: { cat: 3, name: 'cargarlocal', params: ['clave', 'lbl'], minArgs: 2, type: 'storage', action: 'load', desc: 'Lee el valor almacenado y lo muestra en la etiqueta de destino' }
+    cargarlocal: { cat: 3, name: 'cargarlocal', params: ['clave', 'lbl'], minArgs: 2, type: 'storage', action: 'load', desc: 'Lee el valor almacenado y lo muestra en la etiqueta de destino' },
+
+    // Categoría IV: Dibujo, efectos y utilidades (Comandos 76 - 90)
+    capa: { cat: 4, name: 'capa', params: ['id'], minArgs: 1, type: 'layer', desc: 'Crea una capa canvas superpuesta y no interactiva' },
+    pincel: { cat: 4, name: 'pincel', params: ['tipo', 'tamano'], minArgs: 2, type: 'brush', desc: 'Configura el tipo y grosor del pincel' },
+    opacidad: { cat: 4, name: 'opacidad', params: ['nivel'], minArgs: 1, type: 'opacity', desc: 'Ajusta la opacidad de 0 a 10' },
+    exportarcanvas: { cat: 4, name: 'exportarcanvas', params: ['idbtn', 'formato'], minArgs: 2, type: 'event', desc: 'Exporta un lienzo en formato PNG o JPG al pulsar' },
+    luz: { cat: 4, name: 'luz', params: ['id', 'tipo'], minArgs: 2, type: 'light', desc: 'Aplica iluminación ambiental o direccional a un elemento' },
+    sombrapro: { cat: 4, name: 'sombrapro', params: ['nivel', 'color'], minArgs: 2, type: 'shadow', desc: 'Aplica una sombra personalizada' },
+    filtro: { cat: 4, name: 'filtro', params: ['efecto'], minArgs: 1, type: 'filter', desc: 'Aplica desenfoque, brillo, contraste o escala de grises' },
+    rotar: { cat: 4, name: 'rotar', params: ['grados'], minArgs: 1, type: 'rotate', desc: 'Rota el elemento activo en grados' },
+    escala: { cat: 4, name: 'escala', params: ['porcentaje'], minArgs: 1, type: 'scale', desc: 'Escala el elemento activo mediante un porcentaje' },
+    transicion: { cat: 4, name: 'transicion', params: ['milisegundos'], minArgs: 1, type: 'transition', desc: 'Define la duración de transición en milisegundos' },
+    audio: { cat: 4, name: 'audio', params: ['id', 'url'], minArgs: 2, type: 'audio', desc: 'Inserta un reproductor de audio' },
+    notificacion: { cat: 4, name: 'notificacion', params: ['idbtn', 'mensaje'], minArgs: 2, type: 'event', desc: 'Muestra una notificación flotante al pulsar' },
+    modal: { cat: 4, name: 'modal', params: ['id'], minArgs: 1, type: 'container', tag: 'div', desc: 'Inicia una ventana modal reutilizable' },
+    finmodal: { cat: 4, name: 'finmodal', params: [], minArgs: 0, type: 'closing', desc: 'Cierra la estructura modal abierta' },
+    tema: { cat: 4, name: 'tema', params: ['modo'], minArgs: 1, type: 'theme', desc: 'Configura el tema global claro u oscuro' }
   };
 
   const CLOSING_COMMANDS = new Set([
-    'fin', 'finseccion', 'fincontenedor', 'finrejilla', 'finlista', 'fintabla', 'finfilatabla'
+    'fin', 'finseccion', 'fincontenedor', 'finrejilla', 'finlista', 'fintabla', 'finfilatabla', 'finmodal'
   ]);
 
   // Auxiliares de formato
@@ -529,6 +568,9 @@
     const referencedIds = [];
     const sourceLines = [];
     const rootFile = sourceFile.replace(/\\/g, '/');
+    let hasDrawingSurface = false;
+    let drawingBrush = { type: 'lapiz', size: 4 };
+    let layerIndex = 0;
 
     function expandIncludes(source, filename, includeChain) {
       source.split('\n').forEach((rawLine, index) => {
@@ -712,7 +754,8 @@
         avisar: [a1], ira: [a1], ocultarboton: [a1, a2], mostrarboton: [a1, a2],
         alternar: [a1, a2], limpiar: [a1, a2], limpiarlienzo: [a1, a2], copiartexto: [a1, a2],
         sumar: [a1, a2, a3, a4], restar: [a1, a2, a3, a4], multiplicar: [a1, a2, a3, a4], dividir: [a1, a2, a3, a4],
-        incrementar: [a1, a2], decrementar: [a1, a2], guardarlocal: [a1, a3], cargarlocal: [a2]
+        incrementar: [a1, a2], decrementar: [a1, a2], guardarlocal: [a1, a3], cargarlocal: [a2],
+        exportarcanvas: [a1], luz: [a1], notificacion: [a1]
       }[cmd];
       if (idArgs) referencedIds.push({ ids: idArgs.filter(Boolean), lineNum, filename });
 
@@ -722,7 +765,7 @@
         'seccion', 'contenedor', 'rejilla', 'boton', 'parrafo', 'texto',
         'encabezado', 'entrada', 'camponumero', 'campocorreo', 'campocontrasena',
         'campofecha', 'campochequeo', 'desplegable', 'areatexto', 'lienzo',
-        'cargando', 'tabla', 'listadesordenada', 'listaordenada'
+        'capa', 'audio', 'modal', 'cargando', 'tabla', 'listadesordenada', 'listaordenada'
       ];
 
       if (elementCmds.includes(cmd)) {
@@ -758,7 +801,8 @@
           finrejilla: ['rejilla'],
           finlista: ['lista'],
           fintabla: ['tabla'],
-          finfilatabla: ['fila']
+          finfilatabla: ['fila'],
+          finmodal: ['modal']
         };
         if (cmd === 'fin') {
           closeContainerTag();
@@ -999,9 +1043,54 @@
           break;
         }
 
-        case 'lienzo':
-          addChild(createNode('canvas', bracketId || cleanParam(a1)));
+        case 'lienzo': {
+          const canvasNode = createNode('canvas', bracketId || cleanParam(a1), 'rc-drawing-surface');
+          canvasNode.attrs.width = '1200';
+          canvasNode.attrs.height = '640';
+          canvasNode.styles.push('touch-action: none;');
+          addChild(canvasNode);
+          hasDrawingSurface = true;
           break;
+        }
+
+        case 'capa': {
+          const layerParent = currentContainer();
+          if (layerParent !== rootNode) layerParent.styles.push('position: relative;');
+          const layerNode = createNode('canvas', cleanParam(a1), 'rc-layer');
+          layerNode.attrs.width = '1200';
+          layerNode.attrs.height = '640';
+          layerNode.styles.push(`position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: ${++layerIndex}; touch-action: none;`);
+          addChild(layerNode);
+          break;
+        }
+
+        case 'audio': {
+          const audioNode = createNode('audio', cleanParam(a1));
+          audioNode.src = cleanParam(a2);
+          audioNode.attrs.controls = 'controls';
+          audioNode.attrs.preload = 'metadata';
+          addChild(audioNode);
+          break;
+        }
+
+        case 'modal': {
+          const modalNode = createNode('div', cleanParam(a1), 'rc-modal-overlay', true, 'modal');
+          modalNode.styles.push('display: none;');
+          modalNode.attrs.role = 'dialog';
+          modalNode.attrs['aria-modal'] = 'true';
+          addChild(modalNode);
+          scriptLines.push(`{
+            const modal = document.getElementById(${escapeJsString(modalNode.id)});
+            if (modal) {
+              const close = modal.querySelector('.rc-modal-close');
+              close?.addEventListener('click', () => { modal.style.display = 'none'; });
+              modal.addEventListener('click', event => {
+                if (event.target === modal) modal.style.display = 'none';
+              });
+            }
+          }`);
+          break;
+        }
 
         case 'areatexto': {
           const areaId = bracketId || cleanParam(a1);
@@ -1163,6 +1252,112 @@
           break;
         }
 
+        case 'opacidad': {
+          const level = Number(a1);
+          if (!Number.isFinite(level) || level < 0 || level > 10) {
+            warnings.push(`${filename || 'RC'}:${lineNum}: 'opacidad' requiere un nivel entre 0 y 10.`);
+            break;
+          }
+          currentTargetForStyle().styles.push(`opacity: ${level / 10};`);
+          break;
+        }
+
+        case 'pincel': {
+          const size = Number(cleanParam(a2).replace(/px$/i, ''));
+          if (!Number.isFinite(size) || size <= 0) {
+            warnings.push(`${filename || 'RC'}:${lineNum}: 'pincel' requiere un grosor numérico mayor que cero.`);
+            break;
+          }
+          drawingBrush = { type: cleanParam(a1).toLowerCase(), size };
+          hasDrawingSurface = true;
+          break;
+        }
+
+        case 'sombrapro': {
+          const level = Number(a1);
+          if (!Number.isFinite(level) || level < 0) {
+            warnings.push(`${filename || 'RC'}:${lineNum}: 'sombrapro' requiere un nivel numérico no negativo.`);
+            break;
+          }
+          currentTargetForStyle().styles.push(`box-shadow: 0 ${level * 2}px ${level * 4}px ${formatColor(a2)};`);
+          break;
+        }
+
+        case 'filtro': {
+          const filters = {
+            desenfoque: 'blur(4px)',
+            brillo: 'brightness(1.25)',
+            contraste: 'contrast(1.25)',
+            grises: 'grayscale(1)',
+            escala_grises: 'grayscale(1)',
+            escala_de_grises: 'grayscale(1)',
+            'escala de grises': 'grayscale(1)'
+          };
+          const filter = filters[cleanParam(a1).toLowerCase()];
+          if (!filter) {
+            warnings.push(`${filename || 'RC'}:${lineNum}: 'filtro' admite desenfoque, brillo, contraste o grises.`);
+            break;
+          }
+          currentTargetForStyle().styles.push(`filter: ${filter};`);
+          break;
+        }
+
+        case 'rotar': {
+          const degrees = Number(a1);
+          if (!Number.isFinite(degrees)) {
+            warnings.push(`${filename || 'RC'}:${lineNum}: 'rotar' requiere un ángulo numérico en grados.`);
+            break;
+          }
+          currentTargetForStyle().styles.push(`transform: rotate(${degrees}deg);`);
+          break;
+        }
+
+        case 'escala': {
+          const percentage = Number(cleanParam(a1).replace(/%$/, ''));
+          if (!Number.isFinite(percentage) || percentage <= 0) {
+            warnings.push(`${filename || 'RC'}:${lineNum}: 'escala' requiere un porcentaje mayor que cero.`);
+            break;
+          }
+          currentTargetForStyle().styles.push(`transform: scale(${percentage / 100});`);
+          break;
+        }
+
+        case 'transicion': {
+          const milliseconds = Number(a1);
+          if (!Number.isFinite(milliseconds) || milliseconds < 0) {
+            warnings.push(`${filename || 'RC'}:${lineNum}: 'transicion' requiere una duración en milisegundos no negativa.`);
+            break;
+          }
+          currentTargetForStyle().styles.push(`transition: all ${milliseconds}ms ease;`);
+          break;
+        }
+
+        case 'luz': {
+          const lightType = cleanParam(a2).toLowerCase();
+          if (!['ambiental', 'direccional'].includes(lightType)) {
+            warnings.push(`${filename || 'RC'}:${lineNum}: 'luz' admite los tipos ambiental o direccional.`);
+            break;
+          }
+          const shadow = lightType === 'ambiental'
+            ? '0 0 24px rgba(255, 244, 190, 0.75)'
+            : '10px 10px 18px rgba(255, 244, 190, 0.65)';
+          scriptLines.push(`{
+            const target = document.getElementById(${escapeJsString(a1)});
+            if (target) target.style.filter = 'drop-shadow(${shadow})';
+          }`);
+          break;
+        }
+
+        case 'tema': {
+          const theme = cleanParam(a1).toLowerCase();
+          if (!['oscuro', 'claro'].includes(theme)) {
+            warnings.push(`${filename || 'RC'}:${lineNum}: 'tema' admite los modos oscuro o claro.`);
+            break;
+          }
+          scriptLines.push(`document.documentElement.dataset.rcTheme = ${escapeJsString(theme)};`);
+          break;
+        }
+
         case 'flotante': {
           const flotVal = cleanParam(a1).toLowerCase();
           if (['flex', 'inline-flex', 'grid', 'inline-grid', 'block', 'inline-block', 'none'].includes(flotVal)) {
@@ -1208,6 +1403,55 @@
 
         case 'avisar':
           scriptLines.push(`document.getElementById(${escapeJsString(a1)})?.addEventListener('click', () => alert(${escapeJsString(a2)}));`);
+          break;
+
+        case 'exportarcanvas': {
+          const format = cleanParam(a2).toLowerCase();
+          const mime = format === 'jpg' || format === 'jpeg' ? 'image/jpeg' : format === 'png' ? 'image/png' : '';
+          if (!mime) {
+            warnings.push(`${filename || 'RC'}:${lineNum}: 'exportarcanvas' admite los formatos png o jpg.`);
+            break;
+          }
+          const extension = mime === 'image/jpeg' ? 'jpg' : 'png';
+          scriptLines.push(`document.getElementById(${escapeJsString(a1)})?.addEventListener('click', () => {
+            const canvas = document.querySelector('canvas.rc-drawing-surface');
+            if (!canvas) return;
+            const exportCanvas = document.createElement('canvas');
+            exportCanvas.width = canvas.width;
+            exportCanvas.height = canvas.height;
+            const context = exportCanvas.getContext('2d');
+            if (!context) return;
+            if (${escapeJsString(mime)} === 'image/jpeg') {
+              context.fillStyle = '#ffffff';
+              context.fillRect(0, 0, exportCanvas.width, exportCanvas.height);
+            }
+            context.drawImage(canvas, 0, 0);
+            canvas.parentElement?.querySelectorAll(':scope > canvas.rc-layer').forEach(layer => {
+              context.drawImage(layer, 0, 0, exportCanvas.width, exportCanvas.height);
+            });
+            const link = document.createElement('a');
+            link.href = exportCanvas.toDataURL(${escapeJsString(mime)});
+            link.download = (canvas.id || 'lienzo') + '.${extension}';
+            link.click();
+          });`);
+          break;
+        }
+
+        case 'notificacion':
+          scriptLines.push(`document.getElementById(${escapeJsString(a1)})?.addEventListener('click', () => {
+            let toast = document.getElementById('rc-generated-toast');
+            if (!toast) {
+              toast = document.createElement('div');
+              toast.id = 'rc-generated-toast';
+              toast.className = 'rc-toast';
+              toast.setAttribute('role', 'status');
+              document.body.appendChild(toast);
+            }
+            toast.textContent = ${escapeJsString(a2)};
+            toast.classList.add('visible');
+            clearTimeout(toast.dismissTimer);
+            toast.dismissTimer = setTimeout(() => toast.classList.remove('visible'), 3000);
+          });`);
           break;
 
         case 'ira':
@@ -1326,6 +1570,59 @@
       }
     });
 
+    if (hasDrawingSurface) {
+      scriptLines.push(`{
+        const brush = { type: ${escapeJsString(drawingBrush.type)}, size: ${drawingBrush.size} };
+        document.querySelectorAll('canvas.rc-drawing-surface').forEach(canvas => {
+          const context = canvas.getContext('2d');
+          if (!context) return;
+          let previousPoint = null;
+          let drawing = false;
+          const pointFrom = event => {
+            const bounds = canvas.getBoundingClientRect();
+            return {
+              x: (event.clientX - bounds.left) * canvas.width / (bounds.width || 1),
+              y: (event.clientY - bounds.top) * canvas.height / (bounds.height || 1)
+            };
+          };
+          canvas.addEventListener('pointerdown', event => {
+            if (event.pointerType === 'mouse' && event.button !== 0) return;
+            event.preventDefault();
+            canvas.setPointerCapture(event.pointerId);
+            drawing = true;
+            previousPoint = pointFrom(event);
+            context.beginPath();
+            context.moveTo(previousPoint.x, previousPoint.y);
+          });
+          canvas.addEventListener('pointermove', event => {
+            if (!drawing || !previousPoint) return;
+            event.preventDefault();
+            const point = pointFrom(event);
+            const pressure = event.pressure > 0 ? event.pressure : 0.5;
+            context.globalCompositeOperation = ['borrador', 'goma', 'eraser'].includes(brush.type) ? 'destination-out' : 'source-over';
+            context.strokeStyle = getComputedStyle(canvas).color || '#111111';
+            context.globalAlpha = brush.type === 'marcador' ? 0.45 : brush.type === 'aerografo' ? 0.25 : 1;
+            const brushFactor = brush.type === 'marcador' ? 2.5 : brush.type === 'aerografo' ? 3 : 2;
+            context.lineWidth = Math.max(0.5, brush.size * pressure * brushFactor);
+            context.lineCap = 'round';
+            context.lineJoin = 'round';
+            context.quadraticCurveTo(previousPoint.x, previousPoint.y, (previousPoint.x + point.x) / 2, (previousPoint.y + point.y) / 2);
+            context.stroke();
+            previousPoint = point;
+          }, { passive: false });
+          const finishStroke = event => {
+            if (!drawing) return;
+            drawing = false;
+            previousPoint = null;
+            if (canvas.hasPointerCapture(event.pointerId)) canvas.releasePointerCapture(event.pointerId);
+          };
+          canvas.addEventListener('pointerup', finishStroke);
+          canvas.addEventListener('pointercancel', finishStroke);
+          canvas.addEventListener('lostpointercapture', () => { drawing = false; previousPoint = null; });
+        });
+      }`);
+    }
+
     referencedIds.forEach(reference => {
       reference.ids.forEach(id => {
         if (!nodesById.has(id)) {
@@ -1351,7 +1648,7 @@
       if (node.inputType) attrs += ` type="${escapeHtml(node.inputType)}"`;
       if (node.val !== undefined && node.val !== '') attrs += ` value="${escapeHtml(node.val)}"`;
       if (node.href) attrs += ` href="${escapeHtml(node.href)}"`;
-      if (node.src) attrs += ` src="${escapeHtml(node.src)}" alt="imagen"`;
+      if (node.src) attrs += ` src="${escapeHtml(node.src)}"${node.tag === 'img' ? ' alt="imagen"' : ''}`;
 
       if (node.attrs) {
         for (const [k, v] of Object.entries(node.attrs)) {
@@ -1369,6 +1666,10 @@
       }
 
       const textContent = escapeHtml(node.innerText || '');
+      if (node.structureType === 'modal') {
+        const modalContent = node.children.map(c => renderNode(c, depth + 2)).join('\n');
+        return `${indent}<${node.tag}${attrs}>\n${indent}  <div class="rc-modal-content">\n${indent}    <button type="button" class="rc-modal-close" aria-label="Cerrar">×</button>${modalContent ? `\n${modalContent}` : ''}\n${indent}  </div>\n${indent}</${node.tag}>`;
+      }
       if (!node.children || node.children.length === 0) {
         return `${indent}<${node.tag}${attrs}>${textContent}</${node.tag}>`;
       }
@@ -1396,7 +1697,7 @@
   <meta charset="UTF-8">
   <title>${escapeHtml(title)}</title>
   <style>
-    body { font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; margin: 16px; box-sizing: border-box; background: #0e1015; color: #ffffff; }
+    body { position: relative; font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; margin: 16px; box-sizing: border-box; background: #0e1015; color: #ffffff; }
     *, *:before, *:after { box-sizing: inherit; }
     button { cursor: pointer; padding: 10px 14px; font-size: 15px; border-radius: 8px; border: 1px solid #3d4454; background: #272c38; color: #ffffff; display: inline-block; vertical-align: middle; box-sizing: border-box; transition: background 0.15s ease; margin: 4px; }
     button:hover { background: #383f50; }
@@ -1404,6 +1705,17 @@
     input[type="text"], input[type="number"], input[type="email"], input[type="password"], input[type="date"], textarea, select { width: 100%; padding: 10px; font-size: 15px; border-radius: 8px; border: 1px solid #3d4454; background: #151821; color: #ffffff; outline: none; box-sizing: border-box; margin: 4px 0; }
     .rejilla { display: grid; width: 100%; gap: 10px; box-sizing: border-box; }
     .cargando { display: inline-block; padding: 10px 20px; background: #222733; color: #68b5ff; border-radius: 6px; border: 1px dashed #68b5ff; }
+    .rc-drawing-surface { position: relative; display: block; width: 100%; height: 320px; touch-action: none; color: #111111; background: #ffffff; border: 1px solid #3d4454; }
+    .rc-layer { display: block; }
+    .rc-modal-overlay { position: fixed; inset: 0; z-index: 1000; display: flex; align-items: center; justify-content: center; padding: 20px; background: rgba(0, 0, 0, 0.72); }
+    .rc-modal-content { position: relative; width: min(100%, 720px); max-height: 85vh; overflow: auto; padding: 28px; border: 1px solid #454b5a; border-radius: 12px; background: #191b22; color: #e8eaf0; box-shadow: 0 16px 40px #0009; }
+    .rc-modal-close { position: absolute; top: 8px; right: 8px; margin: 0; padding: 4px 10px; font-size: 20px; }
+    .rc-toast { position: fixed; z-index: 1100; left: 50%; bottom: 20px; max-width: calc(100% - 32px); padding: 10px 16px; border: 1px solid #454b5a; border-radius: 8px; background: #292d38; color: #ffffff; opacity: 0; pointer-events: none; transform: translate(-50%, 12px); transition: opacity 160ms ease, transform 160ms ease; }
+    .rc-toast.visible { opacity: 1; transform: translate(-50%, 0); }
+    :root[data-rc-theme="claro"] body { background: #f5f6fa; color: #20232b; }
+    :root[data-rc-theme="claro"] button { background: #e8ebf2; color: #20232b; border-color: #c5cad5; }
+    :root[data-rc-theme="claro"] .rc-modal-content { background: #ffffff; color: #20232b; }
+    :root[data-rc-theme="claro"] .rc-toast { background: #ffffff; color: #20232b; border-color: #c5cad5; }
   </style>
 </head>
 <body>
@@ -1581,6 +1893,9 @@ limpiar(btn_clr)(inp_disp)`;
   let toastTimer;
   let isTranslating = false;
   let translateTimer = null;
+  let highlightTimer = null;
+  let highlightFrame = null;
+  let renderedLineCount = 0;
   let lastValidHtml = "";
 
   function updateLivePreview(htmlContent) {
@@ -1644,26 +1959,52 @@ limpiar(btn_clr)(inp_disp)`;
     }).join("\n");
   }
 
-  function updateHighlight() {
+  function renderHighlight() {
     const codeEl = document.getElementById("rcHighlightCode");
     const layer = document.getElementById("rcHighlight");
     if (!editorEl || !codeEl || !layer) return;
 
     const val = editorEl.value || "";
     codeEl.innerHTML = highlightRc(val) + (val.endsWith("\n") ? "\n " : "");
-    layer.scrollTop = editorEl.scrollTop;
-    layer.scrollLeft = editorEl.scrollLeft;
+    syncEditorScroll();
+  }
+
+  function updateHighlight() {
+    clearTimeout(highlightTimer);
+    if (highlightFrame !== null) {
+      cancelAnimationFrame(highlightFrame);
+      highlightFrame = null;
+    }
+    highlightTimer = setTimeout(() => {
+      highlightFrame = requestAnimationFrame(() => {
+        highlightFrame = null;
+        renderHighlight();
+      });
+    }, 50);
+  }
+
+  function syncEditorScroll() {
+    if (!editorEl || !gutterEl) return;
+    const layer = document.getElementById("rcHighlight");
+    gutterEl.scrollTop = editorEl.scrollTop;
+    gutterEl.scrollLeft = editorEl.scrollLeft;
+    if (layer) {
+      layer.scrollTop = editorEl.scrollTop;
+      layer.scrollLeft = editorEl.scrollLeft;
+    }
   }
 
   function updateLineNumbers() {
     if (!editorEl || !gutterEl) return;
     const lines = editorEl.value.split("\n").length;
+    if (lines === renderedLineCount) return;
+    renderedLineCount = lines;
     let nums = "";
     for (let i = 1; i <= lines; i++) {
       nums += i + "\n";
     }
     gutterEl.textContent = nums;
-    gutterEl.scrollTop = editorEl.scrollTop;
+    syncEditorScroll();
   }
 
   function rootNodeHasContent(rcCode) {
@@ -1753,7 +2094,7 @@ limpiar(btn_clr)(inp_disp)`;
 
       const ext = document.createElement("span");
       ext.className = "ext";
-      ext.textContent = "⭐ .RC";
+      ext.textContent = "✎.RC";
 
       const renameBtn = document.createElement("button");
       renameBtn.className = "mini";
@@ -1978,12 +2319,7 @@ limpiar(btn_clr)(inp_disp)`;
   });
 
   editorEl.addEventListener("scroll", () => {
-    gutterEl.scrollTop = editorEl.scrollTop;
-    const layer = document.getElementById("rcHighlight");
-    if (layer) {
-      layer.scrollTop = editorEl.scrollTop;
-      layer.scrollLeft = editorEl.scrollLeft;
-    }
+    syncEditorScroll();
     if (!autocompleteEl.hidden) updateAutocomplete();
   });
 
