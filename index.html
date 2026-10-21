@@ -15,7 +15,11 @@
   .topbar .spacer{flex:1}
   .topbar button{min-width:36px}
   .layout{display:flex;height:calc(100vh - 52px);padding:8px;gap:8px;min-height:0}
-  .editor{display:flex;flex:1;min-width:0;flex-direction:column;border:1px solid var(--line);border-radius:9px;overflow:hidden;background:#0e1015}
+  .editor{display:flex;flex:1 1 0%;min-width:0;flex-direction:column;border:1px solid var(--line);border-radius:9px;overflow:hidden;background:#0e1015}
+  .pane-splitter{position:relative;z-index:1;flex:0 0 8px;min-width:8px;cursor:col-resize;touch-action:none;user-select:none}
+  .pane-splitter::before{content:"";position:absolute;top:0;bottom:0;left:3px;width:2px;border-radius:2px;background:var(--line);transition:background .15s}
+  .pane-splitter:hover::before,.pane-splitter:focus-visible::before,.pane-splitter.dragging::before{background:var(--blue)}
+  .pane-splitter:focus-visible{outline:2px solid var(--blue);outline-offset:-2px}
   .tabs{height:43px;display:flex;align-items:stretch;gap:4px;padding:5px 7px 0;background:#191b22;border-bottom:1px solid var(--line);overflow:auto}
   .tab{white-space:nowrap;border:0;border-radius:6px 6px 0 0;background:transparent;color:var(--muted);padding:8px 12px}
   .tab.active{background:#272b36;color:var(--text);border:1px solid var(--line);border-bottom-color:#272b36}
@@ -25,6 +29,8 @@
   .highlight-layer { position: absolute; top: 0; left: 0; right: 0; bottom: 0; margin: 0; padding: var(--editor-pad-y) var(--editor-pad-x); border: 0; font: 400 var(--editor-font)/var(--editor-line-height) ui-monospace,SFMono-Regular,Consolas,monospace; letter-spacing: normal; word-spacing: normal; tab-size: 2; white-space: pre; word-wrap: normal; overflow: hidden; pointer-events: none; background: transparent; box-sizing: border-box; color: #d9e2f2; }
   .highlight-layer code { font: inherit; background: none; padding: 0; display: block; }
   .editor textarea { position: absolute; top: 0; left: 0; right: 0; bottom: 0; width: 100%; height: 100%; margin: 0; padding: var(--editor-pad-y) var(--editor-pad-x); font: 400 var(--editor-font)/var(--editor-line-height) ui-monospace,SFMono-Regular,Consolas,monospace; letter-spacing: normal; word-spacing: normal; tab-size: 2; white-space: pre; word-wrap: normal; overflow: auto; background: transparent; color: transparent; caret-color: #ffffff; border: 0; outline: 0; resize: none; box-sizing: border-box; z-index: 1; }
+  .editor textarea:disabled { cursor: not-allowed; caret-color: transparent; }
+  .editor textarea:disabled::placeholder { color: var(--muted); opacity: 1; }
   .editor textarea::selection { background: rgba(104, 181, 255, 0.35); color: transparent; }
   .autocomplete-popup { position: absolute; z-index: 2; min-width: 210px; max-width: min(340px, calc(100% - 8px)); max-height: 220px; overflow-y: auto; padding: 4px; background: #191b22; border: 1px solid #454b5a; border-radius: 7px; box-shadow: 0 8px 24px #0009; }
   .autocomplete-popup[hidden] { display: none; }
@@ -82,6 +88,28 @@
   .cmd-item { background: #12141a; border: 1px solid var(--line); border-radius: 6px; padding: 8px 10px; display: flex; flex-direction: column; gap: 4px; }
   .cmd-item code { color: var(--blue); font-family: ui-monospace, SFMono-Regular, Consolas, monospace; font-size: 13px; font-weight: 600; }
   .cmd-item span { color: var(--muted); font-size: 12px; }
+  .dict-libraries { display: flex; flex-direction: column; gap: 18px; }
+  .dict-library-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 10px; }
+  .dict-library-card { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; padding: 12px; border: 1px solid var(--line); border-radius: 8px; background: #12141a; }
+  .dict-library-card h5 { margin: 0; color: var(--blue); font-size: 14px; }
+  .dict-library-card p { margin: 0; color: var(--muted); font-size: 12px; }
+  .dict-library-card code { display: block; width: 100%; overflow-wrap: anywhere; color: var(--orange); font: 11px ui-monospace, SFMono-Regular, Consolas, monospace; }
+  .dict-library-example { white-space: pre-wrap; }
+  .dict-library-card button { margin-top: auto; font-size: 12px; }
+  .dict-category[hidden], .cmd-item[hidden], .palette-color[hidden], .dict-library-card[hidden] { display: none !important; }
+  .dict-tabs { display: flex; gap: 8px; border-bottom: 1px solid var(--line); }
+  .dict-tab { padding: 8px 12px; border: 0; border-bottom: 2px solid transparent; border-radius: 6px 6px 0 0; background: transparent; color: var(--muted); }
+  .dict-tab.active { border-bottom-color: var(--blue); color: var(--text); }
+  .dict-panel[hidden] { display: none; }
+  .color-palette { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 10px; }
+  .palette-color { display: grid; grid-template-columns: 42px 1fr; align-items: center; gap: 10px; width: 100%; padding: 10px; border: 1px solid var(--line); border-radius: 8px; background: #12141a; color: var(--text); text-align: left; }
+  .palette-color:hover { border-color: var(--blue); background: var(--panel2); }
+  .palette-swatch { width: 42px; height: 42px; border: 1px solid #ffffff40; border-radius: 6px; background: var(--swatch-color); }
+  .palette-color strong, .palette-color code { display: block; }
+  .palette-color code { margin-top: 3px; color: var(--muted); font: 12px ui-monospace, SFMono-Regular, Consolas, monospace; }
+  .palette-hint { margin: 0; color: var(--muted); font-size: 12px; }
+  .dict-copy-toast { position: fixed; z-index: 1200; right: 24px; bottom: 24px; padding: 10px 16px; border: 1px solid var(--line); border-radius: 8px; background: var(--panel2); color: var(--text); box-shadow: 0 8px 24px #0009; }
+  .dict-copy-toast[hidden] { display: none; }
 </style>
 </head>
 <body>
@@ -105,12 +133,13 @@
       <div class="gutter" id="rcGutter">1</div>
       <div class="editor-input-wrap">
         <pre class="highlight-layer" id="rcHighlight" aria-hidden="true"><code id="rcHighlightCode"></code></pre>
-        <textarea id="rcEditor" spellcheck="false" aria-label="Código RC" aria-controls="rcAutocomplete" aria-expanded="false" autocapitalize="off" autocomplete="off"></textarea>
+        <textarea id="rcEditor" spellcheck="false" aria-label="Código RC" aria-controls="rcAutocomplete" aria-expanded="false" autocapitalize="off" autocomplete="off" placeholder="Crea o selecciona un archivo para empezar" disabled></textarea>
         <div id="rcAutocomplete" class="autocomplete-popup" role="listbox" aria-label="Comandos RC" hidden></div>
       </div>
     </div>
     <div class="status"><span id="rcStatusName">main.rc</span><span class="spacer"></span><span id="rcStatusLine">Línea 1, Col 1</span></div>
   </section>
+  <div class="pane-splitter" id="paneSplitter" role="separator" aria-label="Redimensionar editor y vista previa" aria-orientation="vertical" aria-valuemin="20" aria-valuemax="80" aria-valuenow="50" tabindex="0"></div>
   <section class="editor" id="previewPaneSection" aria-label="Vista Previa en Vivo">
     <div class="tabs">
       <button class="tab active" style="pointer-events:none;">Vista Previa ▶</button>
@@ -123,10 +152,10 @@
   <aside class="explorer" id="explorer">
     <div class="explorer-head"><span>Archivos del proyecto</span><button id="closeExplorer" title="Ocultar explorador">×</button></div>
     <div class="new-actions">
-      <button id="newRc" style="width: 100%;"> +✎ </button>
+      <button id="newRc" style="width: 100%;"> + </button>
     </div>
     <div class="file-list" id="fileList"></div>
-    <div class="explorer-note">Selecciona un archivo para abrirlo. Usa ✎ para renombrar o × para eliminar.</div>
+    <div class="explorer-note">Explorador de archivos</div>
   </aside>
 </main>
 <div class="toast" id="toast" role="status"></div>
@@ -140,7 +169,7 @@
     </div>
     <div class="modal-body">
       <p style="margin: 0 0 12px 0; color: var(--muted); font-size: 13px;">
-        Selecciona el formato en el que deseas exportar tu aplicación. El código RC original es la fuente de verdad del proyecto.
+        
       </p>
       <div style="display: flex; flex-direction: column; gap: 10px;">
         <button id="exportRcBtn" style="text-align: left; padding: 12px 16px; border: 1px solid var(--line); border-radius: 8px; background: var(--panel2);">
@@ -162,9 +191,10 @@
 
 <!-- Modal Diccionario RC -->
 <div class="modal-overlay hidden" id="dictModal" role="dialog" aria-modal="true" aria-labelledby="dictTitle">
+  <div class="dict-copy-toast" id="dictCopyToast" role="status" aria-live="polite" hidden></div>
   <div class="modal-content">
     <div class="modal-header">
-      <h2 id="dictTitle">Diccionario RC - Documentación y Reglas</h2>
+      <h2 id="dictTitle">Diccionario y Reglas</h2>
       <button class="modal-close" id="closeDictModal" title="Cerrar diccionario">×</button>
     </div>
     <div class="modal-body">
@@ -182,12 +212,20 @@
       </div>
 
       <div class="dict-search-wrap">
-        <input type="text" id="dictSearch" placeholder="Buscar comando por nombre o descripción..." spellcheck="false" autocomplete="off">
+        <input type="text" id="dictSearch" placeholder="Buscar comandos, colores o librerías..." spellcheck="false" autocomplete="off">
       </div>
 
+      <div class="dict-tabs" role="tablist" aria-label="Contenido del diccionario">
+        <button class="dict-tab active" id="dictCommandsTab" type="button" role="tab" aria-selected="true" aria-controls="dictCommandsPanel">Comandos RC</button>
+        <button class="dict-tab" id="dictPaletteTab" type="button" role="tab" aria-selected="false" aria-controls="dictPalettePanel">Paleta de Colores</button>
+        <button class="dict-tab" id="dictLibsTab" type="button" role="tab" aria-selected="false" aria-controls="dictLibsPanel">Librerías (50)</button>
+      </div>
+
+      <section class="dict-panel" id="dictCommandsPanel" role="tabpanel" aria-labelledby="dictCommandsTab">
+      <p id="dictCommandCount" class="palette-hint"></p>
       <div class="dict-categories" id="dictCategories">
         <!-- Categoría I -->
-        <div class="dict-category">
+        <div class="dict-category" data-command-category="1">
           <h4>I. Estructura y Contenido (Comandos 1 - 30)</h4>
           <div class="cmd-list">
             <div class="cmd-item"><code>incluir(archivo)</code><span>Incluye otro archivo RC del proyecto</span></div>
@@ -224,7 +262,7 @@
         </div>
 
         <!-- Categoría II -->
-        <div class="dict-category">
+        <div class="dict-category" data-command-category="2">
           <h4>II. Estilo y Diseño Visual (Comandos 31 - 50)</h4>
           <div class="cmd-list">
             <div class="cmd-item"><code>fondo(color)</code><span>Establece el color de fondo del elemento</span></div>
@@ -251,7 +289,7 @@
         </div>
 
         <!-- Categoría III -->
-        <div class="dict-category">
+        <div class="dict-category" data-command-category="3">
           <h4>III. Campos, Eventos y Lógica (Comandos 51 - 75)</h4>
           <div class="cmd-list">
             <div class="cmd-item"><code>entrada(id)(valor)</code><span>Crea un campo de texto (&lt;input type="text"&gt;)</span></div>
@@ -283,7 +321,7 @@
         </div>
 
         <!-- Categoría IV -->
-        <div class="dict-category">
+        <div class="dict-category" data-command-category="4">
           <h4>IV. Dibujo, Capas, Efectos y Utilidades (Comandos 76 - 90)</h4>
           <div class="cmd-list">
             <div class="cmd-item"><code>capa(id)</code><span>Crea una capa canvas superpuesta no interactiva</span></div>
@@ -303,7 +341,33 @@
             <div class="cmd-item"><code>tema(modo)</code><span>Configura el tema global claro u oscuro</span></div>
           </div>
         </div>
+        <!-- Categorías V - VIII -->
+        <div class="dict-category" data-command-category="5">
+          <h4>V. Espacio 3D, Cámaras y Motores Geométricos (91–105)</h4>
+          <div class="cmd-list"></div>
+        </div>
+        <div class="dict-category" data-command-category="6">
+          <h4>VI. Diseño Moderno, UI Avanzada y Efectos Visuales (106–117)</h4>
+          <div class="cmd-list"></div>
+        </div>
+        <div class="dict-category" data-command-category="7">
+          <h4>VII. Capacidades de Sistema Operativo (OS) y Gestión (118–130)</h4>
+          <div class="cmd-list"></div>
+        </div>
+        <div class="dict-category" data-command-category="8">
+          <h4>VIII. Herramientas Avanzadas de Dibujo 3D y Capas (131–135)</h4>
+          <div class="cmd-list"></div>
+        </div>
       </div>
+      </section>
+      <section class="dict-panel" id="dictPalettePanel" role="tabpanel" aria-labelledby="dictPaletteTab" hidden>
+        <p class="palette-hint">Haz clic en un color para copiar su código hexadecimal.</p>
+        <div class="color-palette" id="colorPalette"></div>
+      </section>
+      <section class="dict-panel" id="dictLibsPanel" role="tabpanel" aria-labelledby="dictLibsTab" hidden>
+        <p class="palette-hint">50 librerías CDN en 8 categorías. Copia una o varias URL para incluirlas en tu proyecto.</p>
+        <div class="dict-libraries" id="dictLibraries"></div>
+      </section>
     </div>
   </div>
 </div>
@@ -311,7 +375,7 @@
 <script>
 (() => {
   // ==========================================
-  // ESPECIFICACIÓN CENTRAL DE 90 COMANDOS RC
+  // ESPECIFICACIÓN CENTRAL DE 135 COMANDOS RC
   // ==========================================
   const RC_COMMANDS_SPEC = {
     // Categoría I: Estructura y Contenido (Comandos 1 - 30)
@@ -410,12 +474,121 @@
     notificacion: { cat: 4, name: 'notificacion', params: ['idbtn', 'mensaje'], minArgs: 2, type: 'event', desc: 'Muestra una notificación flotante al pulsar' },
     modal: { cat: 4, name: 'modal', params: ['id'], minArgs: 1, type: 'container', tag: 'div', desc: 'Inicia una ventana modal reutilizable' },
     finmodal: { cat: 4, name: 'finmodal', params: [], minArgs: 0, type: 'closing', desc: 'Cierra la estructura modal abierta' },
-    tema: { cat: 4, name: 'tema', params: ['modo'], minArgs: 1, type: 'theme', desc: 'Configura el tema global claro u oscuro' }
+    tema: { cat: 4, name: 'tema', params: ['modo'], minArgs: 1, type: 'theme', desc: 'Configura el tema global claro u oscuro' },
+
+    // Categoría V: Espacio 3D, cámaras y motores geométricos (91 - 105)
+    escena3d: { cat: 5, name: 'escena3d', params: ['id'], minArgs: 1, type: 'scene3d', desc: 'Crea una escena geométrica 3D interactiva en Canvas' },
+    finescena3d: { cat: 5, name: 'finescena3d', params: [], minArgs: 0, type: 'closing', desc: 'Cierra la escena 3D activa' },
+    camara3d: { cat: 5, name: 'camara3d', params: ['tipo'], minArgs: 1, type: 'camera3d', desc: 'Configura la cámara 3D en perspectiva u ortográfica' },
+    luz3d: { cat: 5, name: 'luz3d', params: ['tipo', 'color'], minArgs: 2, type: 'light3d', desc: 'Añade iluminación ambiental o direccional a la escena' },
+    plano3d: { cat: 5, name: 'plano3d', params: ['id', 'eje'], minArgs: 2, type: 'plane3d', desc: 'Añade un plano de referencia geométrico a la escena' },
+    posicion3d: { cat: 5, name: 'posicion3d', params: ['id', 'x', 'y', 'z'], minArgs: 4, type: 'transform3d', desc: 'Establece la posición XYZ de un objeto 3D' },
+    rotar3d: { cat: 5, name: 'rotar3d', params: ['id', 'eje', 'grados'], minArgs: 3, type: 'transform3d', desc: 'Rota un objeto alrededor de un eje 3D' },
+    escala3d: { cat: 5, name: 'escala3d', params: ['id', 'x', 'y', 'z'], minArgs: 4, type: 'transform3d', desc: 'Escala un objeto 3D en los ejes XYZ' },
+    orbita: { cat: 5, name: 'orbita', params: ['idbtn'], minArgs: 1, type: 'event', desc: 'Activa o pausa la órbita automática de una escena 3D' },
+    malla3d: { cat: 5, name: 'malla3d', params: ['id', 'tipo'], minArgs: 2, type: 'mesh3d', desc: 'Configura la geometría de un objeto 3D' },
+    material3d: { cat: 5, name: 'material3d', params: ['id', 'color', 'rugosidad'], minArgs: 3, type: 'material3d', desc: 'Configura color y rugosidad del material 3D' },
+    trazocinta: { cat: 5, name: 'trazocinta', params: ['grosor', 'tension'], minArgs: 2, type: 'ribbon3d', desc: 'Configura trazos volumétricos tipo cinta para la escena' },
+    proyeccion: { cat: 5, name: 'proyeccion', params: ['tipo'], minArgs: 1, type: 'projection3d', desc: 'Selecciona proyección en perspectiva u ortográfica' },
+    vertice: { cat: 5, name: 'vertice', params: ['id', 'x', 'y', 'z'], minArgs: 4, type: 'vertex3d', desc: 'Añade un vértice XYZ a la geometría identificada' },
+    render3d: { cat: 5, name: 'render3d', params: ['id'], minArgs: 1, type: 'render3d', desc: 'Renderiza o actualiza la escena 3D indicada' },
+
+    // Categoría VI: Diseño moderno, UI avanzada y efectos visuales (106 - 117)
+    gradiente: { cat: 6, name: 'gradiente', params: ['tipo', 'colores'], minArgs: 2, type: 'gradient', desc: 'Aplica un gradiente lineal o radial con los colores indicados' },
+    glassmorphism: { cat: 6, name: 'glassmorphism', params: ['nivel'], minArgs: 1, type: 'glass', desc: 'Aplica un acabado de vidrio esmerilado configurable' },
+    animacion: { cat: 6, name: 'animacion', params: ['nombre', 'duracion'], minArgs: 2, type: 'animation', desc: 'Anima el elemento activo con una duración en segundos' },
+    filtropro: { cat: 6, name: 'filtropro', params: ['efecto', 'valor'], minArgs: 2, type: 'advancedFilter', desc: 'Aplica un filtro CSS avanzado con su valor' },
+    cursor: { cat: 6, name: 'cursor', params: ['tipo'], minArgs: 1, type: 'cursor', desc: 'Configura el cursor CSS del elemento activo' },
+    icono: { cat: 6, name: 'icono', params: ['nombre'], minArgs: 1, type: 'icon', desc: 'Inserta un icono visual a partir de un nombre común' },
+    badge: { cat: 6, name: 'badge', params: ['texto'], minArgs: 1, type: 'badge', desc: 'Inserta una insignia compacta de texto' },
+    pestana: { cat: 6, name: 'pestana', params: ['id', 'titulo'], minArgs: 2, type: 'tab', desc: 'Inicia un panel de pestaña con título y control accesible' },
+    finpestana: { cat: 6, name: 'finpestana', params: [], minArgs: 0, type: 'closing', desc: 'Cierra el panel de pestaña abierto' },
+    acordeon: { cat: 6, name: 'acordeon', params: ['id', 'titulo'], minArgs: 2, type: 'accordion', desc: 'Inicia un panel desplegable tipo acordeón' },
+    finacordeon: { cat: 6, name: 'finacordeon', params: [], minArgs: 0, type: 'closing', desc: 'Cierra el panel acordeón abierto' },
+    tooltip: { cat: 6, name: 'tooltip', params: ['texto'], minArgs: 1, type: 'tooltip', desc: 'Añade un tooltip accesible al elemento activo' },
+
+    // Categoría VII: Capacidades de sistema operativo y gestión (118 - 130)
+    ventana: { cat: 7, name: 'ventana', params: ['id', 'titulo'], minArgs: 2, type: 'window', desc: 'Crea una ventana flotante arrastrable con controles' },
+    finventana: { cat: 7, name: 'finventana', params: [], minArgs: 0, type: 'closing', desc: 'Cierra el contenido de la ventana flotante' },
+    barraestado: { cat: 7, name: 'barraestado', params: [], minArgs: 0, type: 'statusbar', desc: 'Inserta una barra de estado del sistema simulado' },
+    consola: { cat: 7, name: 'consola', params: ['id'], minArgs: 1, type: 'console', desc: 'Crea una consola local de salida de texto' },
+    proceso: { cat: 7, name: 'proceso', params: ['id', 'accion'], minArgs: 2, type: 'process', desc: 'Inicia o detiene un proceso simulado en la interfaz' },
+    memoria: { cat: 7, name: 'memoria', params: ['clave', 'valor'], minArgs: 2, type: 'memory', desc: 'Guarda un valor en el almacenamiento local de la aplicación' },
+    archivo: { cat: 7, name: 'archivo', params: ['nombre', 'modo'], minArgs: 2, type: 'file', desc: 'Crea una acción local de guardar o leer archivo' },
+    reloj: { cat: 7, name: 'reloj', params: ['id'], minArgs: 1, type: 'clock', desc: 'Muestra un reloj local actualizado en tiempo real' },
+    bateria: { cat: 7, name: 'bateria', params: ['id'], minArgs: 1, type: 'battery', desc: 'Muestra el nivel de batería cuando el navegador lo permite' },
+    red: { cat: 7, name: 'red', params: ['id'], minArgs: 1, type: 'network', desc: 'Muestra el estado de conexión del navegador' },
+    sistema: { cat: 7, name: 'sistema', params: ['parametro'], minArgs: 1, type: 'system', desc: 'Muestra información no sensible del entorno de navegador' },
+    notificacionos: { cat: 7, name: 'notificacionos', params: ['titulo', 'mensaje'], minArgs: 2, type: 'osNotification', desc: 'Muestra una notificación local dentro de la aplicación' },
+    nucleo: { cat: 7, name: 'nucleo', params: [], minArgs: 0, type: 'kernel', desc: 'Inserta un panel de estado del sistema simulado' },
+
+    // Categoría VIII: Herramientas avanzadas de dibujo 3D y capas (131 - 135)
+    sombra3d: { cat: 8, name: 'sombra3d', params: ['id', 'suavizado'], minArgs: 2, type: 'shadow3d', desc: 'Activa sombra suave en un objeto de la escena 3D' },
+    enfocar3d: { cat: 8, name: 'enfocar3d', params: ['id'], minArgs: 1, type: 'focus3d', desc: 'Centra la cámara 3D en el objeto indicado' },
+    exportar3d: { cat: 8, name: 'exportar3d', params: ['idbtn', 'formato'], minArgs: 2, type: 'event', desc: 'Exporta la imagen PNG o geometría JSON de una escena 3D' },
+    capa3d: { cat: 8, name: 'capa3d', params: ['id', 'profundidad'], minArgs: 2, type: 'layer3d', desc: 'Asigna profundidad a una capa u objeto de la escena 3D' },
+    textura3d: { cat: 8, name: 'textura3d', params: ['id', 'url'], minArgs: 2, type: 'texture3d', desc: 'Asocia una textura de imagen a un objeto 3D' }
   };
 
   const CLOSING_COMMANDS = new Set([
-    'fin', 'finseccion', 'fincontenedor', 'finrejilla', 'finlista', 'fintabla', 'finfilatabla', 'finmodal'
+    'fin', 'finseccion', 'fincontenedor', 'finrejilla', 'finlista', 'fintabla', 'finfilatabla', 'finmodal',
+    'finescena3d', 'finpestana', 'finacordeon', 'finventana'
   ]);
+
+  document.querySelectorAll('.dict-category[data-command-category]').forEach(category => {
+    const categoryNumber = Number(category.dataset.commandCategory);
+    const commandList = category.querySelector('.cmd-list');
+    commandList.replaceChildren();
+    Object.values(RC_COMMANDS_SPEC).filter(spec => spec.cat === categoryNumber).forEach(spec => {
+      const item = document.createElement('div');
+      item.className = 'cmd-item';
+      const signature = document.createElement('code');
+      signature.textContent = spec.name + spec.params.map(param => `(${param})`).join('');
+      const description = document.createElement('span');
+      description.textContent = spec.desc;
+      item.append(signature, description);
+      commandList.appendChild(item);
+    });
+  });
+
+  const paletteColors = [
+    { name: 'Blanco puro', value: '#FFFFFF' },
+    { name: 'Negro profundo', value: '#000000' },
+    { name: 'Gris fondo', value: '#1E1E1E' },
+    { name: 'Gris panel', value: '#2D2D30' },
+    { name: 'Gris borde', value: '#3E3E42' },
+    { name: 'Gris texto', value: '#C5C5C5' },
+    { name: 'Azul acento', value: '#68B5FF' },
+    { name: 'Azul enlace', value: '#007ACC' },
+    { name: 'Naranja acento', value: '#FFAD70' },
+    { name: 'Verde éxito', value: '#4CAF50' },
+    { name: 'Rojo alerta', value: '#F44336' },
+    { name: 'Amarillo aviso', value: '#FFC107' },
+    { name: 'Morado creativo', value: '#9C27B0' },
+    { name: 'Cian brillante', value: '#00BCD4' },
+    { name: 'Rosa resaltado', value: '#FF79C6' },
+    { name: 'Verde menta', value: '#50FA7B' }
+  ];
+  const colorPalette = document.getElementById('colorPalette');
+  paletteColors.forEach(({ name, value }) => {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'palette-color';
+    button.dataset.color = value;
+    button.style.setProperty('--swatch-color', value);
+    button.setAttribute('aria-label', `Copiar ${name}, ${value}`);
+    const swatch = document.createElement('span');
+    swatch.className = 'palette-swatch';
+    swatch.setAttribute('aria-hidden', 'true');
+    const label = document.createElement('span');
+    const colorName = document.createElement('strong');
+    colorName.textContent = name;
+    const colorCode = document.createElement('code');
+    colorCode.textContent = value;
+    label.append(colorName, colorCode);
+    button.append(swatch, label);
+    colorPalette.appendChild(button);
+  });
 
   const FORM_CONTROL_TAGS = ['INPUT', 'TEXTAREA', 'SELECT'];
   const FORM_CONTROL_TAGS_EXPRESSION = `[${FORM_CONTROL_TAGS.map(tag => `'${tag}'`).join(', ')}]`;
@@ -587,6 +760,9 @@
     let hasDrawingSurface = false;
     let drawingBrush = { type: 'lapiz', size: 4 };
     let layerIndex = 0;
+    const scenes3d = new Map();
+    let activeScene3d = null;
+    const generatedKeyframes = new Map();
 
     function expandIncludes(source, filename, includeChain) {
       source.split('\n').forEach((rawLine, index) => {
@@ -818,7 +994,11 @@
           finlista: ['lista'],
           fintabla: ['tabla'],
           finfilatabla: ['fila'],
-          finmodal: ['modal']
+          finmodal: ['modal'],
+          finescena3d: ['scene3d'],
+          finpestana: ['tab'],
+          finacordeon: ['accordion'],
+          finventana: ['window']
         };
         if (cmd === 'fin') {
           closeContainerTag();
@@ -828,6 +1008,7 @@
             warnings.push(`${filename || 'RC'}:${lineNum}: '${cmd}' no tiene una estructura abierta compatible.`);
           }
         }
+        if (cmd === 'finescena3d') activeScene3d = null;
         return;
       }
 
@@ -872,6 +1053,638 @@
         case 'titulo':
           title = cleanParam(a1);
           break;
+
+        case 'escena3d': {
+          const sceneId = cleanParam(a1);
+          const sceneNode = createNode('div', sceneId, 'rc-scene3d', true, 'scene3d');
+          sceneNode.lineNum = lineNum;
+          sceneNode.attrs['data-scene3d'] = sceneId;
+          sceneNode.styles.push('position: relative; overflow: hidden; min-height: 320px;');
+          addChild(sceneNode);
+          const canvasNode = createNode('canvas', `${sceneId}_canvas`, 'rc-scene3d-canvas');
+          canvasNode.attrs.width = '1000';
+          canvasNode.attrs.height = '560';
+          canvasNode.attrs['aria-label'] = `Escena 3D ${sceneId}`;
+          addChild(canvasNode);
+          const scene = {
+            id: sceneId,
+            camera: 'perspectiva',
+            projection: 'perspectiva',
+            lights: [],
+            objects: {},
+            vertices: {},
+            ribbon: { width: 0, tension: 0.5 },
+            focus: '',
+            orbit: false
+          };
+          scenes3d.set(sceneId, scene);
+          activeScene3d = scene;
+          break;
+        }
+
+        case 'camara3d':
+          if (!activeScene3d) {
+            warnings.push(`${filename || 'RC'}:${lineNum}: 'camara3d' requiere una escena3d abierta.`);
+            break;
+          }
+          activeScene3d.camera = cleanParam(a1).toLowerCase();
+          if (!['perspectiva', 'ortografica', 'ortográfica'].includes(activeScene3d.camera)) {
+            warnings.push(`${filename || 'RC'}:${lineNum}: 'camara3d' admite perspectiva u ortografica.`);
+            activeScene3d.camera = 'perspectiva';
+          }
+          activeScene3d.projection = activeScene3d.camera;
+          break;
+
+        case 'luz3d':
+          if (!activeScene3d) {
+            warnings.push(`${filename || 'RC'}:${lineNum}: 'luz3d' requiere una escena3d abierta.`);
+            break;
+          }
+          if (!['ambiental', 'direccional'].includes(cleanParam(a1).toLowerCase()) || !/^(#[0-9a-f]{3,8}|[a-z]{1,24})$/i.test(cleanParam(a2))) {
+            warnings.push(`${filename || 'RC'}:${lineNum}: 'luz3d' requiere tipo ambiental/direccional y un color CSS simple.`);
+            break;
+          }
+          activeScene3d.lights.push({ type: cleanParam(a1).toLowerCase(), color: formatColor(a2) });
+          break;
+
+        case 'plano3d': {
+          if (!activeScene3d) {
+            warnings.push(`${filename || 'RC'}:${lineNum}: 'plano3d' requiere una escena3d abierta.`);
+            break;
+          }
+          if (!['x', 'y', 'z'].includes(cleanParam(a2).toLowerCase())) {
+            warnings.push(`${filename || 'RC'}:${lineNum}: 'plano3d' requiere un eje x, y o z.`);
+            break;
+          }
+          activeScene3d.objects[cleanParam(a1)] = {
+            id: cleanParam(a1), type: 'plano', axis: cleanParam(a2).toLowerCase(),
+            color: '#5b8fd1', roughness: 0.8, position: [0, 0, 0],
+            rotation: cleanParam(a2).toLowerCase() === 'x' ? [0, 90, 0] : cleanParam(a2).toLowerCase() === 'z' ? [90, 0, 0] : [0, 0, 0],
+            scale: [1, 1, 1], shadow: 0, depth: 0, texture: ''
+          };
+          break;
+        }
+
+        case 'posicion3d':
+        case 'rotar3d':
+        case 'escala3d':
+        case 'malla3d':
+        case 'material3d':
+        case 'sombra3d':
+        case 'capa3d':
+        case 'textura3d': {
+          if (!activeScene3d) {
+            warnings.push(`${filename || 'RC'}:${lineNum}: '${cmd}' requiere una escena3d abierta.`);
+            break;
+          }
+          const objectId = cleanParam(a1);
+          const object = activeScene3d.objects[objectId] || (activeScene3d.objects[objectId] = {
+            id: objectId, type: 'cubo', color: '#68b5ff', roughness: 0.5,
+            position: [0, 0, 0], rotation: [0, 0, 0], scale: [1, 1, 1],
+            shadow: 0, depth: 0, texture: ''
+          });
+          if (cmd === 'posicion3d') {
+            const values = [a2, a3, a4].map(Number);
+            if (values.some(value => !Number.isFinite(value))) {
+              warnings.push(`${filename || 'RC'}:${lineNum}: 'posicion3d' requiere coordenadas numéricas.`);
+              break;
+            }
+            object.position = values;
+          } else if (cmd === 'rotar3d') {
+            const axis = cleanParam(a2).toLowerCase();
+            const axisIndex = { x: 0, y: 1, z: 2 }[axis];
+            const degrees = Number(a3);
+            if (axisIndex === undefined || !Number.isFinite(degrees)) {
+              warnings.push(`${filename || 'RC'}:${lineNum}: 'rotar3d' requiere eje x, y o z y grados numéricos.`);
+              break;
+            }
+            object.rotation[axisIndex] = degrees;
+          } else if (cmd === 'escala3d') {
+            const values = [a2, a3, a4].map(Number);
+            if (values.some(value => !Number.isFinite(value) || value <= 0)) {
+              warnings.push(`${filename || 'RC'}:${lineNum}: 'escala3d' requiere escalas numéricas mayores que cero.`);
+              break;
+            }
+            object.scale = values;
+          } else if (cmd === 'malla3d') {
+            const meshType = cleanParam(a2).toLowerCase();
+            if (!['cubo', 'cuboide', 'cube', 'piramide', 'pyramid', 'plano', 'plano3d', 'esfera', 'sphere', 'cilindro', 'cylinder'].includes(meshType)) {
+              warnings.push(`${filename || 'RC'}:${lineNum}: 'malla3d' admite cubo, piramide, plano, esfera o cilindro.`);
+              break;
+            }
+            object.type = meshType;
+          } else if (cmd === 'material3d') {
+            const roughness = Number(a3);
+            if (!/^(#[0-9a-f]{3,8}|[a-z]{1,24})$/i.test(cleanParam(a2)) || !Number.isFinite(roughness) || roughness < 0 || roughness > 1) {
+              warnings.push(`${filename || 'RC'}:${lineNum}: 'material3d' requiere color CSS simple y rugosidad entre 0 y 1.`);
+              break;
+            }
+            object.color = formatColor(a2);
+            object.roughness = roughness;
+          } else if (cmd === 'sombra3d') {
+            const softness = Number(a2);
+            if (!Number.isFinite(softness) || softness < 0) {
+              warnings.push(`${filename || 'RC'}:${lineNum}: 'sombra3d' requiere suavizado no negativo.`);
+              break;
+            }
+            object.shadow = softness;
+          } else if (cmd === 'capa3d') {
+            const depth = Number(a2);
+            if (!Number.isFinite(depth)) {
+              warnings.push(`${filename || 'RC'}:${lineNum}: 'capa3d' requiere una profundidad numérica.`);
+              break;
+            }
+            object.depth = depth;
+          } else if (cmd === 'textura3d') {
+            const textureUrl = cleanParam(a2);
+            if (/^(?:https?:\/\/|data:image\/|blob:)/i.test(textureUrl) || !/^[a-z][a-z0-9+.-]*:/i.test(textureUrl)) {
+              object.texture = textureUrl;
+            } else {
+              warnings.push(`${filename || 'RC'}:${lineNum}: 'textura3d' requiere una URL relativa, HTTP(S), blob o data:image.`);
+            }
+          }
+          break;
+        }
+
+        case 'vertice': {
+          if (!activeScene3d) {
+            warnings.push(`${filename || 'RC'}:${lineNum}: 'vertice' requiere una escena3d abierta.`);
+            break;
+          }
+          const coords = [a2, a3, a4].map(Number);
+          if (coords.some(value => !Number.isFinite(value))) {
+            warnings.push(`${filename || 'RC'}:${lineNum}: 'vertice' requiere coordenadas numéricas.`);
+            break;
+          }
+          const vertexId = cleanParam(a1);
+          activeScene3d.vertices[vertexId] = activeScene3d.vertices[vertexId] || [];
+          activeScene3d.vertices[vertexId].push(coords);
+          const vertexObject = activeScene3d.objects[vertexId] || (activeScene3d.objects[vertexId] = {
+            id: vertexId, type: 'vertices', color: '#ffad70', roughness: 0.5,
+            position: [0, 0, 0], rotation: [0, 0, 0], scale: [1, 1, 1],
+            shadow: 0, depth: 0, texture: ''
+          });
+          vertexObject.vertices = activeScene3d.vertices[vertexId];
+          break;
+        }
+
+        case 'proyeccion':
+          if (!activeScene3d) {
+            warnings.push(`${filename || 'RC'}:${lineNum}: 'proyeccion' requiere una escena3d abierta.`);
+          } else if (['perspectiva', 'ortografica', 'ortográfica'].includes(cleanParam(a1).toLowerCase())) {
+            activeScene3d.projection = cleanParam(a1).toLowerCase();
+          } else {
+            warnings.push(`${filename || 'RC'}:${lineNum}: 'proyeccion' admite perspectiva u ortografica.`);
+          }
+          break;
+
+        case 'trazocinta': {
+          if (!activeScene3d) {
+            warnings.push(`${filename || 'RC'}:${lineNum}: 'trazocinta' requiere una escena3d abierta.`);
+            break;
+          }
+          const width = Number(a1);
+          const tension = Number(a2);
+          if (!Number.isFinite(width) || width <= 0 || !Number.isFinite(tension) || tension < 0 || tension > 1) {
+            warnings.push(`${filename || 'RC'}:${lineNum}: 'trazocinta' requiere grosor positivo y tensión entre 0 y 1.`);
+            break;
+          }
+          activeScene3d.ribbon = { width, tension };
+          break;
+        }
+
+        case 'enfocar3d':
+          if (activeScene3d) activeScene3d.focus = cleanParam(a1);
+          else warnings.push(`${filename || 'RC'}:${lineNum}: 'enfocar3d' requiere una escena3d abierta.`);
+          break;
+
+        case 'orbita':
+          if (!activeScene3d) {
+            warnings.push(`${filename || 'RC'}:${lineNum}: 'orbita' requiere una escena3d abierta.`);
+            break;
+          }
+          activeScene3d.orbit = true;
+          referencedIds.push({ ids: [a1].filter(Boolean), lineNum, filename });
+          scriptLines.push(`{
+            const button = document.getElementById(${escapeJsString(a1)});
+            const scene = document.getElementById(${escapeJsString(activeScene3d.id)});
+            if (button && scene) button.addEventListener('click', () => {
+              scene.dataset.orbit = scene.dataset.orbit === 'true' ? 'false' : 'true';
+            });
+          }`);
+          break;
+
+        case 'render3d':
+          if (scenes3d.has(cleanParam(a1))) {
+            scenes3d.get(cleanParam(a1)).renderRequested = true;
+            scriptLines.push(`requestAnimationFrame(() => document.getElementById(${escapeJsString(a1)})?.querySelector('canvas.rc-scene3d-canvas')?.dispatchEvent(new Event('rc:render3d')));`);
+          } else {
+            warnings.push(`${filename || 'RC'}:${lineNum}: la escena '${cleanParam(a1)}' de 'render3d' no existe.`);
+          }
+          break;
+
+        case 'exportar3d': {
+          referencedIds.push({ ids: [a1].filter(Boolean), lineNum, filename });
+          const format = cleanParam(a2).toLowerCase();
+          if (!['png', 'json'].includes(format)) {
+            warnings.push(`${filename || 'RC'}:${lineNum}: 'exportar3d' admite png o json.`);
+            break;
+          }
+          const sceneIds = [...scenes3d.keys()];
+          const sceneId = activeScene3d?.id || sceneIds[sceneIds.length - 1] || '';
+          scriptLines.push(`document.getElementById(${escapeJsString(a1)})?.addEventListener('click', () => {
+            const sceneElement = document.getElementById(${escapeJsString(sceneId)});
+            const canvas = sceneElement?.querySelector('canvas.rc-scene3d-canvas');
+            if (!canvas) return;
+            const link = document.createElement('a');
+            if (${escapeJsString(format)} === 'png') {
+              link.href = canvas.toDataURL('image/png');
+              link.download = ${escapeJsString(sceneId || 'escena3d')} + '.png';
+            } else {
+              const data = sceneElement.dataset.scene || '{}';
+              link.href = URL.createObjectURL(new Blob([data], { type: 'application/json' }));
+              link.download = ${escapeJsString(sceneId || 'escena3d')} + '.json';
+              link.addEventListener('click', () => setTimeout(() => URL.revokeObjectURL(link.href), 1000), { once: true });
+            }
+            link.click();
+          });`);
+          break;
+        }
+
+        case 'gradiente': {
+          const gradientType = cleanParam(a1).toLowerCase();
+          const colors = cleanParam(a2).split(',').map(color => color.trim());
+          const validColor = color => /^(#[0-9a-f]{3,8}|[a-z]{1,24})$/i.test(color);
+          if (!['lineal', 'radial'].includes(gradientType) || colors.length < 2 || colors.some(color => !validColor(color))) {
+            warnings.push(`${filename || 'RC'}:${lineNum}: 'gradiente' requiere tipo lineal/radial y al menos dos colores CSS simples separados por comas.`);
+            break;
+          }
+          currentTargetForStyle().styles.push(`background: ${gradientType === 'radial' ? 'radial' : 'linear'}-gradient(${gradientType === 'radial' ? 'circle, ' : '135deg, '}${colors.map(formatColor).join(', ')});`);
+          break;
+        }
+
+        case 'glassmorphism': {
+          const level = Number(a1);
+          if (!Number.isFinite(level) || level < 0 || level > 10) {
+            warnings.push(`${filename || 'RC'}:${lineNum}: 'glassmorphism' requiere un nivel entre 0 y 10.`);
+            break;
+          }
+          const target = currentTargetForStyle();
+          target.className = `${target.className} rc-glass`.trim();
+          target.styles.push(`--rc-glass-blur: ${level * 2}px;`);
+          target.styles.push(`background: rgba(255, 255, 255, ${0.04 + level * 0.012});`);
+          target.styles.push(`border: 1px solid rgba(255, 255, 255, ${0.12 + level * 0.025});`);
+          target.styles.push('box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);');
+          target.styles.push('backdrop-filter: blur(var(--rc-glass-blur)); -webkit-backdrop-filter: blur(var(--rc-glass-blur));');
+          break;
+        }
+
+        case 'animacion': {
+          const animations = {
+            aparecer: 'from { opacity: 0; } to { opacity: 1; }',
+            flotar: '0%, 100% { transform: translateY(0); } 50% { transform: translateY(-8px); }',
+            pulso: '0%, 100% { transform: scale(1); } 50% { transform: scale(1.05); }',
+            deslizar: 'from { transform: translateX(-12px); opacity: 0; } to { transform: translateX(0); opacity: 1; }',
+            girar: 'from { transform: rotate(0); } to { transform: rotate(360deg); }'
+          };
+          const animationName = cleanParam(a1).toLowerCase();
+          const duration = Number(cleanParam(a2).replace(/s$/, ''));
+          if (!animations[animationName] || !Number.isFinite(duration) || duration <= 0 || duration > 120) {
+            warnings.push(`${filename || 'RC'}:${lineNum}: 'animacion' requiere aparecer, flotar, pulso, deslizar o girar y duración de 0 a 120 segundos.`);
+            break;
+          }
+          generatedKeyframes.set(animationName, animations[animationName]);
+          currentTargetForStyle().styles.push(`animation: rc-${animationName} ${duration}s ease-in-out infinite;`);
+          break;
+        }
+
+        case 'filtropro': {
+          const filterName = cleanParam(a1).toLowerCase();
+          const filterValue = cleanParam(a2);
+          const acceptedFilters = ['blur', 'brightness', 'contrast', 'grayscale', 'sepia', 'saturate', 'hue-rotate'];
+          const valueMatch = filterValue.match(/^(\d+(?:\.\d+)?)(px|deg|%)?$/i);
+          const expectedUnit = filterName === 'blur' ? 'px' : filterName === 'hue-rotate' ? 'deg' : '';
+          const suppliedUnit = valueMatch?.[2]?.toLowerCase() || '';
+          if (!acceptedFilters.includes(filterName) || !valueMatch || (expectedUnit && suppliedUnit !== expectedUnit) || (!expectedUnit && suppliedUnit && suppliedUnit !== '%')) {
+            warnings.push(`${filename || 'RC'}:${lineNum}: 'filtropro' requiere un filtro CSS permitido y un valor numérico con unidad opcional.`);
+            break;
+          }
+          currentTargetForStyle().styles.push(`filter: ${filterName}(${valueMatch[1]}${(valueMatch[2] || '').toLowerCase()});`);
+          break;
+        }
+
+        case 'cursor': {
+          const cursorType = cleanParam(a1).toLowerCase();
+          if (!['auto', 'default', 'pointer', 'move', 'grab', 'grabbing', 'crosshair', 'help', 'wait', 'text', 'not-allowed', 'zoom-in', 'zoom-out'].includes(cursorType)) {
+            warnings.push(`${filename || 'RC'}:${lineNum}: 'cursor' requiere un tipo de cursor CSS permitido.`);
+            break;
+          }
+          currentTargetForStyle().styles.push(`cursor: ${cursorType};`);
+          break;
+        }
+
+        case 'icono': {
+          const icons = { estrella: '*', buscar: '⌕', menu: '☰', usuario: '●', editar: '✎', guardar: '▣', alerta: '!', check: '✓', corazon: '♥', casa: '⌂', ajuste: '⚙' };
+          const iconName = cleanParam(a1).toLowerCase();
+          const iconNode = createNode('span', '', 'rc-icon');
+          iconNode.attrs['aria-label'] = iconName;
+          iconNode.attrs.role = 'img';
+          iconNode.innerText = icons[iconName] || iconName;
+          addChild(iconNode);
+          break;
+        }
+
+        case 'badge': {
+          const badgeNode = createNode('span', '', 'rc-badge');
+          badgeNode.innerText = cleanParam(a1);
+          addChild(badgeNode);
+          break;
+        }
+
+        case 'pestana': {
+          const tabId = cleanParam(a1);
+          const tabNode = createNode('section', tabId, 'rc-tab active', true, 'tab');
+          tabNode.lineNum = lineNum;
+          tabNode.attrs['data-rc-tab'] = tabId;
+          tabNode.attrs['aria-labelledby'] = `${tabId}-button`;
+          tabNode.attrs.role = 'tabpanel';
+          const tabButton = createNode('button', `${tabId}-button`, 'rc-tab-button');
+          tabButton.attrs.type = 'button';
+          tabButton.attrs['aria-controls'] = tabId;
+          tabButton.attrs['aria-selected'] = 'true';
+          tabButton.innerText = cleanParam(a2);
+          tabNode.children.push(tabButton);
+          tabButton.parent = tabNode;
+          addChild(tabNode);
+          scriptLines.push(`{
+            const panel = document.getElementById(${escapeJsString(tabId)});
+            const button = document.getElementById(${escapeJsString(`${tabId}-button`)});
+            const siblings = [...(panel?.parentElement?.querySelectorAll(':scope > .rc-tab') || [])];
+            siblings.forEach((item, index) => {
+              item.classList.toggle('active', index === 0);
+              item.querySelector('.rc-tab-button')?.setAttribute('aria-selected', String(index === 0));
+            });
+            button?.addEventListener('click', () => {
+              siblings.forEach(item => {
+                item.classList.toggle('active', item === panel);
+                item.querySelector('.rc-tab-button')?.setAttribute('aria-selected', String(item === panel));
+              });
+            });
+          }`);
+          break;
+        }
+
+        case 'acordeon': {
+          const accordionId = cleanParam(a1);
+          const accordionNode = createNode('section', accordionId, 'rc-accordion', true, 'accordion');
+          accordionNode.lineNum = lineNum;
+          accordionNode.attrs['data-rc-accordion'] = accordionId;
+          const accordionButton = createNode('button', `${accordionId}-button`, 'rc-accordion-button');
+          accordionButton.attrs.type = 'button';
+          accordionButton.attrs['aria-expanded'] = 'true';
+          accordionButton.innerText = cleanParam(a2);
+          accordionNode.children.push(accordionButton);
+          accordionButton.parent = accordionNode;
+          addChild(accordionNode);
+          scriptLines.push(`{
+            const panel = document.getElementById(${escapeJsString(accordionId)});
+            const button = document.getElementById(${escapeJsString(`${accordionId}-button`)});
+            button?.addEventListener('click', () => {
+              const expanded = button.getAttribute('aria-expanded') !== 'true';
+              button.setAttribute('aria-expanded', String(expanded));
+              panel?.classList.toggle('collapsed', !expanded);
+            });
+          }`);
+          break;
+        }
+
+        case 'tooltip': {
+          const target = currentTargetForStyle();
+          target.className = `${target.className} rc-tooltip`.trim();
+          target.attrs['data-rc-tooltip'] = cleanParam(a1);
+          target.attrs.tabindex = target.attrs.tabindex || '0';
+          break;
+        }
+
+        case 'ventana': {
+          const windowId = cleanParam(a1);
+          const windowNode = createNode('section', windowId, 'rc-window', true, 'window');
+          windowNode.lineNum = lineNum;
+          windowNode.attrs['aria-label'] = cleanParam(a2);
+          addChild(windowNode);
+          scriptLines.push(`{
+            const windowEl = document.getElementById(${escapeJsString(windowId)});
+            const handle = windowEl?.querySelector('.rc-window-titlebar');
+            const minimize = windowEl?.querySelector('[data-rc-window-minimize]');
+            const close = windowEl?.querySelector('[data-rc-window-close]');
+            const body = windowEl?.querySelector('.rc-window-body');
+            minimize?.addEventListener('click', () => {
+              const hidden = body?.hidden !== true;
+              if (body) body.hidden = hidden;
+              minimize.setAttribute('aria-expanded', String(!hidden));
+            });
+            close?.addEventListener('click', () => { if (windowEl) windowEl.hidden = true; });
+            let drag = null;
+            handle?.addEventListener('pointerdown', event => {
+              if (event.target.closest('button')) return;
+              const rect = windowEl.getBoundingClientRect();
+              drag = { x: event.clientX - rect.left, y: event.clientY - rect.top };
+              handle.setPointerCapture(event.pointerId);
+            });
+            handle?.addEventListener('pointermove', event => {
+              if (!drag || !windowEl) return;
+              windowEl.style.left = (event.clientX - drag.x) + 'px';
+              windowEl.style.top = (event.clientY - drag.y) + 'px';
+              windowEl.style.right = 'auto';
+            });
+            handle?.addEventListener('pointerup', () => { drag = null; });
+            handle?.addEventListener('pointercancel', () => { drag = null; });
+          }`);
+          break;
+        }
+
+        case 'barraestado': {
+          const statusNode = createNode('div', '', 'rc-statusbar');
+          statusNode.attrs.role = 'status';
+          statusNode.attrs['aria-live'] = 'polite';
+          statusNode.innerText = 'Sistema local listo';
+          addChild(statusNode);
+          scriptLines.push(`{
+            const status = document.querySelector('.rc-statusbar');
+            const refresh = () => { if (status) status.textContent = (navigator.onLine ? 'En línea' : 'Sin conexión') + ' · ' + new Date().toLocaleTimeString(); };
+            refresh();
+            setInterval(refresh, 30000);
+            window.addEventListener('online', refresh);
+            window.addEventListener('offline', refresh);
+          }`);
+          break;
+        }
+
+        case 'consola': {
+          const consoleNode = createNode('pre', cleanParam(a1), 'rc-console');
+          consoleNode.attrs.role = 'log';
+          consoleNode.attrs['aria-live'] = 'polite';
+          consoleNode.innerText = 'Consola RC local lista';
+          addChild(consoleNode);
+          break;
+        }
+
+        case 'proceso': {
+          const processId = cleanParam(a1);
+          const action = cleanParam(a2).toLowerCase();
+          if (!['iniciar', 'detener', 'pausar', 'reanudar', 'start', 'stop', 'pause', 'resume'].includes(action)) {
+            warnings.push(`${filename || 'RC'}:${lineNum}: 'proceso' admite iniciar, detener, pausar o reanudar.`);
+            break;
+          }
+          const state = ({ iniciar: 'activo', start: 'activo', detener: 'detenido', stop: 'detenido', pausar: 'pausado', pause: 'pausado', reanudar: 'activo', resume: 'activo' })[action];
+          scriptLines.push(`{
+            const id = ${escapeJsString(processId)};
+            const state = ${escapeJsString(state)};
+            window.rcProcesses = window.rcProcesses || {};
+            window.rcProcesses[id] = state;
+            const target = document.getElementById(id);
+            if (target) { target.dataset.processState = state; target.setAttribute('aria-label', id + ': ' + state); }
+            document.querySelectorAll('.rc-console').forEach(output => { output.textContent += '\\\\n' + id + ': ' + state; });
+          }`);
+          break;
+        }
+
+        case 'memoria':
+          scriptLines.push(`{
+            window.rcMemory = window.rcMemory || Object.create(null);
+            window.rcMemory[${escapeJsString(cleanParam(a1))}] = ${escapeJsString(cleanParam(a2))};
+          }`);
+          break;
+
+        case 'archivo': {
+          const fileName = cleanParam(a1);
+          const mode = cleanParam(a2).toLowerCase();
+          if (!['guardar', 'leer'].includes(mode)) {
+            warnings.push(`${filename || 'RC'}:${lineNum}: 'archivo' admite el modo guardar o leer.`);
+            break;
+          }
+          const fileButton = createNode('button', '', 'rc-file-action');
+          fileButton.attrs.type = 'button';
+          fileButton.attrs['data-file-name'] = fileName;
+          fileButton.attrs['data-file-mode'] = mode;
+          fileButton.innerText = `${mode === 'guardar' ? 'Guardar' : 'Leer'} ${fileName}`;
+          addChild(fileButton);
+          scriptLines.push(`document.querySelectorAll('.rc-file-action').forEach(button => {
+            if (button.dataset.fileName !== ${escapeJsString(fileName)} || button.dataset.fileMode !== ${escapeJsString(mode)}) return;
+            button.addEventListener('click', () => {
+              if (${escapeJsString(mode)} === 'guardar') {
+                const value = window.rcMemory?.[${escapeJsString(fileName)}] ?? '';
+                const link = document.createElement('a');
+                link.href = URL.createObjectURL(new Blob([String(value)], { type: 'text/plain;charset=utf-8' }));
+                link.download = ${escapeJsString(fileName)};
+                link.click();
+                setTimeout(() => URL.revokeObjectURL(link.href), 1000);
+                return;
+              }
+              const input = document.createElement('input');
+              input.type = 'file';
+              input.addEventListener('change', () => {
+                const file = input.files?.[0];
+                if (!file) return;
+                const reader = new FileReader();
+                reader.addEventListener('load', () => {
+                  window.rcMemory = window.rcMemory || Object.create(null);
+                  window.rcMemory[${escapeJsString(fileName)}] = String(reader.result ?? '');
+                  document.querySelectorAll('.rc-console').forEach(output => { output.textContent += '\\\\nArchivo leído localmente: ' + file.name; });
+                });
+                reader.readAsText(file);
+              }, { once: true });
+              input.click();
+            });
+          });`);
+          break;
+        }
+
+        case 'reloj': {
+          const clockNode = createNode('time', cleanParam(a1), 'rc-clock');
+          clockNode.attrs['aria-live'] = 'off';
+          addChild(clockNode);
+          scriptLines.push(`{
+            const clock = document.getElementById(${escapeJsString(a1)});
+            const update = () => { if (clock) clock.textContent = new Date().toLocaleTimeString(); };
+            update();
+            setInterval(update, 1000);
+          }`);
+          break;
+        }
+
+        case 'bateria': {
+          const batteryNode = createNode('span', cleanParam(a1), 'rc-battery');
+          batteryNode.innerText = 'Batería: no disponible';
+          addChild(batteryNode);
+          scriptLines.push(`{
+            const output = document.getElementById(${escapeJsString(a1)});
+            if (navigator.getBattery) navigator.getBattery().then(battery => {
+              const update = () => { if (output) output.textContent = 'Batería: ' + Math.round(battery.level * 100) + '%' + (battery.charging ? ' (cargando)' : ''); };
+              update();
+              battery.addEventListener('levelchange', update);
+              battery.addEventListener('chargingchange', update);
+            }).catch(error => console.warn('No se pudo leer el estado de batería', error));
+          }`);
+          break;
+        }
+
+        case 'red': {
+          const networkNode = createNode('span', cleanParam(a1), 'rc-network');
+          addChild(networkNode);
+          scriptLines.push(`{
+            const output = document.getElementById(${escapeJsString(a1)});
+            const update = () => { if (output) output.textContent = navigator.onLine ? 'Red: en línea' : 'Red: sin conexión'; };
+            update();
+            window.addEventListener('online', update);
+            window.addEventListener('offline', update);
+          }`);
+          break;
+        }
+
+        case 'sistema': {
+          const parameter = cleanParam(a1).toLowerCase();
+          const values = {
+            navegador: 'navigator.userAgent',
+            idioma: 'navigator.language',
+            plataforma: 'navigator.platform',
+            conexion: 'navigator.onLine ? "en línea" : "sin conexión"',
+            nucleos: 'navigator.hardwareConcurrency || "no disponible"'
+          };
+          if (!values[parameter]) {
+            warnings.push(`${filename || 'RC'}:${lineNum}: 'sistema' admite navegador, idioma, plataforma, conexion o nucleos.`);
+            break;
+          }
+          const systemNode = createNode('span', '', 'rc-system-info');
+          systemNode.innerText = `${parameter}: `;
+          systemNode.attrs['data-system-info'] = parameter;
+          addChild(systemNode);
+          scriptLines.push(`document.querySelectorAll('[data-system-info=${escapeJsString(parameter)}]').forEach(node => { node.textContent = ${escapeJsString(`${parameter}: `)} + String(${values[parameter]}); });`);
+          break;
+        }
+
+        case 'notificacionos':
+          scriptLines.push(`{
+            let toast = document.querySelector('.rc-os-toast');
+            if (!toast) { toast = document.createElement('div'); toast.className = 'rc-os-toast'; toast.setAttribute('role', 'status'); toast.setAttribute('aria-live', 'polite'); document.body.appendChild(toast); }
+            toast.textContent = ${escapeJsString(`${cleanParam(a1)}: ${cleanParam(a2)}`)};
+            toast.classList.add('visible');
+            clearTimeout(toast.dismissTimer);
+            toast.dismissTimer = setTimeout(() => toast.classList.remove('visible'), 4000);
+          }`);
+          break;
+
+        case 'nucleo': {
+          const kernelNode = createNode('section', '', 'rc-kernel');
+          kernelNode.attrs['aria-label'] = 'Estado del sistema local';
+          kernelNode.innerText = 'Núcleo simulado · iniciando';
+          addChild(kernelNode);
+          scriptLines.push(`{
+            const kernel = document.querySelector('.rc-kernel');
+            if (kernel) kernel.textContent = 'Núcleo simulado · ' + (navigator.onLine ? 'conectado' : 'sin conexión') + ' · ' + (navigator.hardwareConcurrency || 'CPU n/d') + ' hilos · ' + new Date().toLocaleTimeString();
+          }`);
+          break;
+        }
 
         case 'seccion': {
           const secId = bracketId || cleanParam(a1);
@@ -979,6 +1792,8 @@
           const aNode = createNode('a', bracketId);
           aNode.innerText = cleanParam(a2);
           aNode.href = cleanParam(a1);
+          aNode.attrs.target = '_blank';
+          aNode.attrs.rel = 'noopener noreferrer';
           addChild(aNode);
           break;
         }
@@ -1418,7 +2233,10 @@
           break;
 
         case 'avisar':
-          scriptLines.push(`document.getElementById(${escapeJsString(a1)})?.addEventListener('click', () => alert(${escapeJsString(a2)}));`);
+          scriptLines.push(`document.getElementById(${escapeJsString(a1)})?.addEventListener('click', () => {
+            if (window.Swal?.fire) window.Swal.fire({ text: ${escapeJsString(a2)} });
+            else window.alert(${escapeJsString(a2)});
+          });`);
           break;
 
         case 'exportarcanvas': {
@@ -1584,6 +2402,212 @@
       }
     });
 
+    if (scenes3d.size > 0) {
+      const sceneData = Object.fromEntries(scenes3d);
+      scriptLines.push(`{
+        const scenes = JSON.parse(${escapeJsString(JSON.stringify(sceneData))});
+        if (!window.THREE) {
+          console.error('No se puede iniciar escena3d: Three.js no está disponible.');
+          document.querySelectorAll('.rc-scene3d').forEach(sceneElement => {
+            sceneElement.setAttribute('role', 'status');
+            sceneElement.textContent = 'No se puede iniciar la escena 3D: Three.js no está disponible.';
+          });
+        } else {
+          document.querySelectorAll('.rc-scene3d').forEach(sceneElement => {
+            const sceneData = scenes[sceneElement.id];
+            const canvas = sceneElement.querySelector('canvas.rc-scene3d-canvas');
+            if (!sceneData || !canvas) return;
+            const scene = new THREE.Scene();
+            scene.background = new THREE.Color('#101827');
+            let camera;
+            const isOrthographic = ['ortografica', 'ortográfica'].includes((sceneData.projection || sceneData.camera || '').toLowerCase());
+            camera = isOrthographic
+              ? new THREE.OrthographicCamera(-4, 4, 2.24, -2.24, 0.1, 100)
+              : new THREE.PerspectiveCamera(45, 25 / 14, 0.1, 100);
+            let renderer;
+            try {
+              renderer = new THREE.WebGLRenderer({ canvas, antialias: true, preserveDrawingBuffer: true });
+            } catch (error) {
+              console.error('No se pudo iniciar el renderizador WebGL de la escena 3D.', error);
+              const errorMessage = document.createElement('p');
+              errorMessage.setAttribute('role', 'status');
+              errorMessage.textContent = 'No se pudo iniciar la escena 3D: WebGL no está disponible.';
+              sceneElement.appendChild(errorMessage);
+              return;
+            }
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+            renderer.shadowMap.enabled = true;
+            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+            const cameraTarget = new THREE.Vector3(0, 0, 0);
+            let yaw = -0.55;
+            let pitch = 0.42;
+            const updateCamera = () => {
+              const distance = 7;
+              camera.position.set(
+                Math.sin(yaw) * Math.cos(pitch) * distance,
+                Math.sin(pitch) * distance + 1,
+                Math.cos(yaw) * Math.cos(pitch) * distance
+              );
+              camera.lookAt(cameraTarget);
+            };
+            updateCamera();
+            scene.add(new THREE.GridHelper(8, 8, '#526075', '#354155'));
+            if (sceneData.lights?.length) {
+              sceneData.lights.forEach(light => {
+                if (light.type === 'ambiental') {
+                  scene.add(new THREE.AmbientLight(light.color || '#ffffff', 1.2));
+                } else {
+                  const directional = new THREE.DirectionalLight(light.color || '#ffffff', 2);
+                  directional.position.set(4, 6, 5);
+                  directional.castShadow = true;
+                  scene.add(directional);
+                }
+              });
+            } else {
+              scene.add(new THREE.AmbientLight('#ffffff', 1.1));
+              const keyLight = new THREE.DirectionalLight('#ffffff', 2.4);
+              keyLight.position.set(4, 6, 5);
+              keyLight.castShadow = true;
+              scene.add(keyLight);
+            }
+            const createGeometry = object => {
+              const type = (object.type || 'cubo').toLowerCase();
+              if (type === 'esfera' || type === 'sphere') return new THREE.SphereGeometry(0.8, 32, 20);
+              if (type === 'cilindro' || type === 'cylinder') return new THREE.CylinderGeometry(0.7, 0.7, 1.6, 24);
+              if (type === 'piramide' || type === 'pyramid') return new THREE.ConeGeometry(1.2, 1.8, 4);
+              if (type === 'plano' || type === 'plano3d') return new THREE.PlaneGeometry(4, 4);
+              if (type === 'vertices' && Array.isArray(object.vertices) && object.vertices.length >= 3) {
+                const geometry = new THREE.BufferGeometry();
+                const positions = object.vertices.flatMap(vertex => vertex.slice(0, 3));
+                const indices = [];
+                for (let index = 1; index < object.vertices.length - 1; index++) indices.push(0, index, index + 1);
+                geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+                geometry.setIndex(indices);
+                geometry.computeVertexNormals();
+                return geometry;
+              }
+              return new THREE.BoxGeometry(1.6, 1.6, 1.6);
+            };
+            const objects = Object.values(sceneData.objects || {});
+            if (!objects.length) objects.push({ id: 'cubo_demo', type: 'cubo', color: '#68b5ff' });
+            objects.forEach(object => {
+              const geometry = createGeometry(object);
+              const material = new THREE.MeshStandardMaterial({
+                color: object.color || '#68b5ff',
+                roughness: Number.isFinite(object.roughness) ? object.roughness : 0.5,
+                metalness: 0.08,
+                transparent: true,
+                opacity: 0.84,
+                side: THREE.DoubleSide
+              });
+              const mesh = new THREE.Mesh(geometry, material);
+              mesh.name = object.id || '';
+              const position = object.position || [0, 0, 0];
+              const rotation = object.rotation || [0, 0, 0];
+              const scale = object.scale || [1, 1, 1];
+              mesh.position.set(position[0], position[1] + (object.depth || 0), position[2]);
+              mesh.rotation.set(THREE.MathUtils.degToRad(rotation[0]), THREE.MathUtils.degToRad(rotation[1]), THREE.MathUtils.degToRad(rotation[2]));
+              mesh.scale.set(scale[0], scale[1], scale[2]);
+              mesh.castShadow = Number(object.shadow) > 0;
+              mesh.receiveShadow = true;
+              if (object.texture) {
+                new THREE.TextureLoader().load(
+                  object.texture,
+                  texture => { material.map = texture; material.needsUpdate = true; renderer.render(scene, camera); },
+                  undefined,
+                  error => console.warn('No se pudo cargar la textura 3D', object.texture, error)
+                );
+              }
+              scene.add(mesh);
+              if (object.type === 'vertices' && Array.isArray(object.vertices)) {
+                const points = new THREE.Points(geometry, new THREE.PointsMaterial({ color: object.color || '#68b5ff', size: 0.08 }));
+                points.position.copy(mesh.position);
+                points.rotation.copy(mesh.rotation);
+                points.scale.copy(mesh.scale);
+                scene.add(points);
+              }
+            });
+            if (sceneData.ribbon?.width > 0) {
+              const points = [];
+              for (let step = 0; step <= 40; step++) {
+                const t = step / 40;
+                points.push(new THREE.Vector3(-2 + t * 4, 0.35 + Math.sin(t * Math.PI * 3) * sceneData.ribbon.tension, 0.5));
+              }
+              const ribbon = new THREE.Mesh(
+                new THREE.TubeGeometry(new THREE.CatmullRomCurve3(points), 64, Math.min(0.16, sceneData.ribbon.width / 100), 8, false),
+                new THREE.MeshStandardMaterial({ color: '#ffad70', emissive: '#6b3215', roughness: 0.35 })
+              );
+              scene.add(ribbon);
+            }
+            const focusLabel = document.createElement('span');
+            focusLabel.className = 'rc-scene3d-focus';
+            focusLabel.textContent = sceneData.focus ? 'Enfoque: ' + sceneData.focus : 'Three.js WebGL · arrastra para orbitar';
+            sceneElement.appendChild(focusLabel);
+            sceneElement.dataset.scene = JSON.stringify(sceneData);
+            const resize = () => {
+              const width = Math.max(1, sceneElement.clientWidth);
+              const height = Math.max(1, sceneElement.clientHeight);
+              renderer.setSize(width, height, false);
+              if (camera.isPerspectiveCamera) camera.aspect = width / height;
+              else {
+                const halfHeight = 2.24;
+                const halfWidth = halfHeight * width / height;
+                camera.left = -halfWidth;
+                camera.right = halfWidth;
+                camera.top = halfHeight;
+                camera.bottom = -halfHeight;
+              }
+              camera.updateProjectionMatrix();
+              renderer.render(scene, camera);
+            };
+            let dragging = false;
+            let lastX = 0;
+            let lastY = 0;
+            canvas.addEventListener('pointerdown', event => {
+              dragging = true;
+              lastX = event.clientX;
+              lastY = event.clientY;
+              canvas.setPointerCapture(event.pointerId);
+            });
+            canvas.addEventListener('pointermove', event => {
+              if (!dragging) return;
+              yaw += (event.clientX - lastX) * 0.008;
+              pitch = Math.max(-1.25, Math.min(1.25, pitch + (event.clientY - lastY) * 0.008));
+              lastX = event.clientX;
+              lastY = event.clientY;
+              updateCamera();
+              renderer.render(scene, camera);
+            });
+            const finishOrbit = event => {
+              dragging = false;
+              if (canvas.hasPointerCapture(event.pointerId)) canvas.releasePointerCapture(event.pointerId);
+            };
+            canvas.addEventListener('pointerup', finishOrbit);
+            canvas.addEventListener('pointercancel', finishOrbit);
+            canvas.addEventListener('rc:render3d', () => renderer.render(scene, camera));
+            let orbitFrame = 0;
+            const animateOrbit = () => {
+              if (sceneElement.dataset.orbit === 'true') {
+                yaw += 0.01;
+                updateCamera();
+                renderer.render(scene, camera);
+                orbitFrame = requestAnimationFrame(animateOrbit);
+              } else {
+                cancelAnimationFrame(orbitFrame);
+              }
+            };
+            const observer = new MutationObserver(() => {
+              if (sceneElement.dataset.orbit === 'true') animateOrbit();
+            });
+            observer.observe(sceneElement, { attributes: true, attributeFilter: ['data-orbit'] });
+            if ('ResizeObserver' in window) new ResizeObserver(resize).observe(sceneElement);
+            else window.addEventListener('resize', resize);
+            resize();
+          });
+        }
+      }`);
+    }
+
     if (hasDrawingSurface) {
       scriptLines.push(`{
         const brush = { type: ${escapeJsString(drawingBrush.type)}, size: ${drawingBrush.size} };
@@ -1680,6 +2704,14 @@
       }
 
       const textContent = escapeHtml(node.innerText || '');
+      if (node.structureType === 'window') {
+        const windowContent = node.children.map(c => renderNode(c, depth + 2)).join('\n');
+        return `${indent}<${node.tag}${attrs}>\n${indent}  <header class="rc-window-titlebar"><strong>${escapeHtml(node.attrs['aria-label'] || node.id)}</strong><span><button type="button" data-rc-window-minimize aria-expanded="true" aria-label="Minimizar">−</button><button type="button" data-rc-window-close aria-label="Cerrar">×</button></span></header>\n${indent}  <div class="rc-window-body">${windowContent ? `\n${windowContent}\n${indent}  ` : ''}</div>\n${indent}</${node.tag}>`;
+      }
+      if (node.structureType === 'tab' || node.structureType === 'accordion') {
+        const children = node.children.map(c => renderNode(c, depth + 1)).join('\n');
+        return `${indent}<${node.tag}${attrs}>\n${children}\n${indent}</${node.tag}>`;
+      }
       if (node.structureType === 'modal') {
         const modalContent = node.children.map(c => renderNode(c, depth + 2)).join('\n');
         return `${indent}<${node.tag}${attrs}>\n${indent}  <div class="rc-modal-content">\n${indent}    <button type="button" class="rc-modal-close" aria-label="Cerrar">×</button>${modalContent ? `\n${modalContent}` : ''}\n${indent}  </div>\n${indent}</${node.tag}>`;
@@ -1702,7 +2734,7 @@
 
     let scriptBlock = '';
     if (scriptLines.length > 0) {
-      scriptBlock = `\n  <script>\n    ${scriptLines.join('\n    ')}\n  <\/script>`;
+      scriptBlock = `\n  <script>\n    window.addEventListener('DOMContentLoaded', () => {\n      ${scriptLines.join('\n      ')}\n    });\n  <\/script>`;
     }
 
     return `<!DOCTYPE html>
@@ -1710,6 +2742,15 @@
 <head>
   <meta charset="UTF-8">
   <title>${escapeHtml(title)}</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <script defer src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"><\/script>
+  <script defer src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"><\/script>
+  <script defer src="https://cdn.jsdelivr.net/npm/sweetalert2@11"><\/script>
+  <script defer src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"><\/script>
+  <script defer src="https://cdnjs.cloudflare.com/ajax/libs/dexie.js/3.2.4/dexie.min.js"><\/script>
+  <script defer src="https://cdn.jsdelivr.net/npm/chart.js"><\/script>
+  <script defer src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"><\/script>
   <style>
     body { position: relative; font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; margin: 16px; box-sizing: border-box; background: #0e1015; color: #ffffff; }
     *, *:before, *:after { box-sizing: inherit; }
@@ -1726,6 +2767,30 @@
     .rc-modal-close { position: absolute; top: 8px; right: 8px; margin: 0; padding: 4px 10px; font-size: 20px; }
     .rc-toast { position: fixed; z-index: 1100; left: 50%; bottom: 20px; max-width: calc(100% - 32px); padding: 10px 16px; border: 1px solid #454b5a; border-radius: 8px; background: #292d38; color: #ffffff; opacity: 0; pointer-events: none; transform: translate(-50%, 12px); transition: opacity 160ms ease, transform 160ms ease; }
     .rc-toast.visible { opacity: 1; transform: translate(-50%, 0); }
+    .rc-scene3d { position: relative; width: 100%; max-width: 1000px; min-height: 0; margin: 12px 0; overflow: hidden; border: 1px solid #3d4454; border-radius: 10px; background: #101827; aspect-ratio: 25 / 14; }
+    .rc-scene3d-canvas { display: block; width: 100%; height: 100%; touch-action: none; cursor: grab; }
+    .rc-scene3d-canvas:active { cursor: grabbing; }
+    .rc-scene3d-focus { position: absolute; inset: auto 12px 10px; color: #c5d2e5; font-size: 12px; pointer-events: none; }
+    .rc-glass { isolation: isolate; }
+    .rc-icon { display: inline-flex; align-items: center; justify-content: center; min-width: 1.25em; font-size: 1.25em; line-height: 1; }
+    .rc-badge { display: inline-block; padding: 2px 8px; border-radius: 999px; background: #335b88; color: #fff; font-size: .8em; font-weight: 700; }
+    .rc-tooltip { position: relative; }
+    .rc-tooltip:focus::after, .rc-tooltip:hover::after { content: attr(data-rc-tooltip); position: absolute; z-index: 20; left: 50%; bottom: calc(100% + 8px); width: max-content; max-width: 240px; padding: 6px 9px; border: 1px solid #454b5a; border-radius: 6px; background: #191b22; color: #fff; font-size: 12px; transform: translateX(-50%); }
+    .rc-tab { margin: 8px 0; }
+    .rc-tab:not(.active) { display: none; }
+    .rc-tab-button, .rc-accordion-button { display: block; width: 100%; text-align: left; }
+    .rc-accordion { margin: 8px 0; border: 1px solid #3d4454; border-radius: 8px; overflow: hidden; }
+    .rc-accordion.collapsed > :not(.rc-accordion-button) { display: none; }
+    .rc-window { position: fixed; z-index: 900; top: 10%; left: 10%; width: min(520px, calc(100vw - 32px)); max-height: 80vh; overflow: auto; border: 1px solid #596276; border-radius: 10px; background: #191b22; box-shadow: 0 16px 48px #000a; }
+    .rc-window-titlebar { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 8px 10px; background: #252a35; cursor: move; touch-action: none; }
+    .rc-window-titlebar button { margin: 0 0 0 4px; padding: 2px 8px; }
+    .rc-window-body { min-height: 32px; padding: 12px; }
+    .rc-statusbar { position: sticky; bottom: 0; padding: 7px 10px; border-top: 1px solid #3d4454; background: #191b22; color: #b9c3d4; font-size: 12px; }
+    .rc-console { min-height: 100px; max-height: 320px; overflow: auto; padding: 12px; border: 1px solid #394252; border-radius: 8px; background: #090d12; color: #9fe7a4; white-space: pre-wrap; }
+    .rc-kernel { padding: 10px 12px; border: 1px solid #3d4454; border-radius: 8px; background: #151821; color: #9fe7a4; font-family: ui-monospace, monospace; }
+    .rc-os-toast { position: fixed; z-index: 1200; right: 20px; top: 20px; max-width: min(360px, calc(100vw - 40px)); padding: 12px 16px; border: 1px solid #596276; border-radius: 9px; background: #252a35; color: #fff; opacity: 0; transform: translateY(-8px); transition: opacity 160ms ease, transform 160ms ease; pointer-events: none; }
+    .rc-os-toast.visible { opacity: 1; transform: translateY(0); }
+    ${Array.from(generatedKeyframes, ([name, frames]) => `@keyframes rc-${name} { ${frames} }`).join('\n    ')}
     :root[data-rc-theme="claro"] body { background: #f5f6fa; color: #20232b; }
     :root[data-rc-theme="claro"] button { background: #e8ebf2; color: #20232b; border-color: #c5cad5; }
     :root[data-rc-theme="claro"] .rc-modal-content { background: #ffffff; color: #20232b; }
@@ -1742,14 +2807,17 @@ ${warningBlock}${bodyChildren}${scriptBlock}
   const STORAGE_KEY = "rc_studio_state";
   const files = new Map();
   let activeFile = "main.rc";
+  let splitRatio = 0.5;
   const panelSel = document.getElementById("panelSelector");
 
   function saveState() {
     try {
+      if (!files.has(activeFile)) activeFile = "";
       const state = {
         files: Array.from(files.entries()),
         activeFile: activeFile,
-        panelMode: panelSel ? panelSel.value : "rc-preview"
+        panelMode: panelSel ? panelSel.value : "rc-preview",
+        splitRatio
       };
       localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
     } catch (e) {
@@ -1762,7 +2830,7 @@ ${warningBlock}${bodyChildren}${scriptBlock}
       const raw = localStorage.getItem(STORAGE_KEY);
       if (!raw) return false;
       const parsed = JSON.parse(raw);
-      if (!parsed || !Array.isArray(parsed.files) || parsed.files.length === 0) return false;
+      if (!parsed || !Array.isArray(parsed.files)) return false;
 
       files.clear();
       for (const [name, fileObj] of parsed.files) {
@@ -1773,7 +2841,14 @@ ${warningBlock}${bodyChildren}${scriptBlock}
         }
       }
 
-      if (files.size === 0) return false;
+      if (Number.isFinite(parsed.splitRatio)) splitRatio = Math.max(0.2, Math.min(0.8, parsed.splitRatio));
+      if (files.size === 0) {
+        activeFile = "";
+        if (parsed.panelMode && panelSel) {
+          panelSel.value = (parsed.panelMode === 'rc-html' || parsed.panelMode === 'all') ? 'rc-preview' : parsed.panelMode;
+        }
+        return true;
+      }
 
       if (parsed.activeFile && files.has(parsed.activeFile)) {
         activeFile = parsed.activeFile;
@@ -1821,6 +2896,7 @@ ${warningBlock}${bodyChildren}${scriptBlock}
   const tabsEl = document.getElementById("rcTabs");
   const listEl = document.getElementById("fileList");
   const explorerEl = document.getElementById("explorer");
+  const splitterEl = document.getElementById("paneSplitter");
   let toastTimer;
   let isTranslating = false;
   let translateTimer = null;
@@ -1836,12 +2912,35 @@ ${warningBlock}${bodyChildren}${scriptBlock}
     }
   }
 
+  function applySplitRatio() {
+    const editorPane = document.getElementById("rcEditorSection");
+    const previewPane = document.getElementById("previewPaneSection");
+    if (!editorPane || !previewPane) return;
+    editorPane.style.flexGrow = String(splitRatio);
+    previewPane.style.flexGrow = String(1 - splitRatio);
+    splitterEl?.setAttribute("aria-valuenow", String(Math.round(splitRatio * 100)));
+  }
+
+  function updateSplitRatio(clientX) {
+    const editorPane = document.getElementById("rcEditorSection");
+    const previewPane = document.getElementById("previewPaneSection");
+    if (!editorPane || !previewPane) return;
+    const left = editorPane.getBoundingClientRect();
+    const right = previewPane.getBoundingClientRect();
+    const combinedWidth = right.right - left.left;
+    if (combinedWidth <= 0) return;
+    splitRatio = Math.max(0.2, Math.min(0.8, (clientX - left.left) / combinedWidth));
+    applySplitRatio();
+  }
+
   function applyPanelMode(mode) {
     const rcSec = document.getElementById("rcEditorSection");
     const prevSec = document.getElementById("previewPaneSection");
 
     if (rcSec) rcSec.style.display = (mode === "preview" ? "none" : "flex");
     if (prevSec) prevSec.style.display = (mode === "rc" ? "none" : "flex");
+    if (splitterEl) splitterEl.style.display = (mode === "rc-preview" ? "block" : "none");
+    applySplitRatio();
   }
 
   function highlightRc(code) {
@@ -1951,7 +3050,10 @@ ${warningBlock}${bodyChildren}${scriptBlock}
     if (isTranslating) return;
     isTranslating = true;
     try {
-      if (activeFile && files.has(activeFile)) {
+      if (!activeFile || !files.has(activeFile)) {
+        lastValidHtml = "";
+        updateLivePreview("");
+      } else {
         const rcVal = editorEl.value;
         files.get(activeFile).content = rcVal;
 
@@ -2025,7 +3127,7 @@ ${warningBlock}${bodyChildren}${scriptBlock}
 
       const ext = document.createElement("span");
       ext.className = "ext";
-      ext.textContent = "✎.RC";
+      ext.textContent = "";
 
       const renameBtn = document.createElement("button");
       renameBtn.className = "mini";
@@ -2046,12 +3148,15 @@ ${warningBlock}${bodyChildren}${scriptBlock}
 
   function renderAll() {
     renderTabs();
-    if (activeFile && files.has(activeFile)) {
+    const hasActiveFile = Boolean(activeFile && files.has(activeFile));
+    editorEl.disabled = !hasActiveFile;
+    if (hasActiveFile) {
       editorEl.value = files.get(activeFile).content;
       document.getElementById("rcStatusName").textContent = activeFile;
     } else {
       editorEl.value = "";
       document.getElementById("rcStatusName").textContent = "Sin archivo abierto";
+      hideAutocomplete();
     }
     updateCursor();
     updateLineNumbers();
@@ -2115,13 +3220,10 @@ ${warningBlock}${bodyChildren}${scriptBlock}
   }
 
   function deleteFile(name) {
-    if (files.size <= 1) {
-      notify("Debe existir al menos un archivo en el proyecto.");
-      return;
-    }
     if (!confirm(`¿Eliminar "${name}"?`)) return;
     files.delete(name);
-    if (activeFile === name) activeFile = [...files.keys()][0];
+    if (activeFile === name) activeFile = [...files.keys()][0] || "";
+    clearTimeout(translateTimer);
     saveState();
     renderAll();
     notify("Archivo eliminado.");
@@ -2411,6 +3513,34 @@ ${warningBlock}${bodyChildren}${scriptBlock}
     });
     applyPanelMode(panelSel.value);
   }
+  applySplitRatio();
+
+  splitterEl?.addEventListener("pointerdown", event => {
+    if (panelSel?.value !== "rc-preview") return;
+    event.preventDefault();
+    splitterEl.classList.add("dragging");
+    splitterEl.setPointerCapture(event.pointerId);
+    updateSplitRatio(event.clientX);
+  });
+  splitterEl?.addEventListener("pointermove", event => {
+    if (splitterEl.hasPointerCapture(event.pointerId)) updateSplitRatio(event.clientX);
+  });
+  splitterEl?.addEventListener("pointerup", event => {
+    if (splitterEl.hasPointerCapture(event.pointerId)) splitterEl.releasePointerCapture(event.pointerId);
+    splitterEl.classList.remove("dragging");
+    saveState();
+  });
+  splitterEl?.addEventListener("pointercancel", () => {
+    splitterEl.classList.remove("dragging");
+    saveState();
+  });
+  splitterEl?.addEventListener("keydown", event => {
+    if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") return;
+    event.preventDefault();
+    splitRatio = Math.max(0.2, Math.min(0.8, splitRatio + (event.key === "ArrowRight" ? 0.02 : -0.02)));
+    applySplitRatio();
+    saveState();
+  });
 
   // Modal Diccionario RC
   const dictModal = document.getElementById("dictModal");
@@ -2436,6 +3566,192 @@ ${warningBlock}${bodyChildren}${scriptBlock}
     });
   }
 
+  const libraryCatalog = [
+    { category: 'Gráficos, 3D y Canvas', name: 'Three.js (r128)', urls: ['https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js'], description: 'Motor 3D WebGL nativo para escena3d.', example: 'const scene = new THREE.Scene();' },
+    { category: 'Gráficos, 3D y Canvas', name: 'Chart.js (v4)', urls: ['https://cdn.jsdelivr.net/npm/chart.js'], description: 'Gráficos estadísticos de barras, líneas y pastel.', example: 'new Chart(ctx, { type: "bar", data });' },
+    { category: 'Gráficos, 3D y Canvas', name: 'p5.js (v1.9)', urls: ['https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.0/p5.min.js'], description: 'Arte generativo, dibujo interactivo y simulación.', example: 'new p5(p => { p.setup = () => p.createCanvas(400, 300); });' },
+    { category: 'Gráficos, 3D y Canvas', name: 'Fabric.js (v5)', urls: ['https://cdnjs.cloudflare.com/ajax/libs/fabric.js/530/fabric.min.js'], description: 'Manipulación interactiva de objetos en Canvas 2D.', example: 'const canvas = new fabric.Canvas("canvas");' },
+    { category: 'Gráficos, 3D y Canvas', name: 'Konva.js (v9)', urls: ['https://unpkg.com/konva@9/konva.min.js'], description: 'Motor de canvas 2D multipropósito de alto rendimiento.', example: 'const stage = new Konva.Stage({ container: "app", width: 400, height: 300 });' },
+    { category: 'Gráficos, 3D y Canvas', name: 'Rough.js (v4)', urls: ['https://unpkg.com/roughjs@latest/bundled/rough.js'], description: 'Estilo de dibujo a mano alzada en canvas y SVG.', example: 'rough.canvas(canvas).rectangle(10, 10, 100, 80);' },
+    { category: 'Gráficos, 3D y Canvas', name: 'ApexCharts (v3)', urls: ['https://cdn.jsdelivr.net/npm/apexcharts'], description: 'Gráficos interactivos y dashboards modernos.', example: 'new ApexCharts(el, { chart: { type: "line" }, series: [] }).render();' },
+
+    { category: 'UI, estilos y diálogos', name: 'Tailwind CSS (v4)', urls: ['https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4'], description: 'Clases utilitarias de diseño rápido.', example: '<div class="p-4 text-blue-500">Hola</div>' },
+    { category: 'UI, estilos y diálogos', name: 'SweetAlert2 (v11)', urls: ['https://cdn.jsdelivr.net/npm/sweetalert2@11'], description: 'Modales y alertas flotantes elegantes en avisar().', example: 'Swal.fire("¡Listo!", "Operación completada", "success");' },
+    { category: 'UI, estilos y diálogos', name: 'Font Awesome (v6)', urls: ['https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css'], description: '+2000 iconos vectoriales listos para usar.', example: '<i class="fa-solid fa-star" aria-hidden="true"></i>' },
+    { category: 'UI, estilos y diálogos', name: 'Lucide Icons', urls: ['https://unpkg.com/lucide@latest'], description: 'Iconos limpios, ligeros y de estilo moderno.', example: 'lucide.createIcons();' },
+    { category: 'UI, estilos y diálogos', name: 'Bootstrap CSS (v5)', urls: ['https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css'], description: 'Componentes UI preconstruidos y grid responsivo.', example: '<button class="btn btn-primary">Guardar</button>' },
+    { category: 'UI, estilos y diálogos', name: 'Pico CSS (v2)', urls: ['https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css'], description: 'Framework CSS ultraligero y semántico para modo oscuro/claro.', example: '<main class="container"><article>Contenido</article></main>' },
+    { category: 'UI, estilos y diálogos', name: 'Bulma CSS (v1)', urls: ['https://cdn.jsdelivr.net/npm/bulma@1.0.0/css/bulma.min.css'], description: 'Framework UI basado 100% en Flexbox.', example: '<button class="button is-primary">Guardar</button>' },
+
+    { category: 'Animaciones y efectos visuales', name: 'GSAP - GreenSock (v3)', urls: ['https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js'], description: 'Animaciones de alto rendimiento para HTML y Canvas.', example: 'gsap.to(".caja", { x: 100, duration: 1 });' },
+    { category: 'Animaciones y efectos visuales', name: 'Animate.css (v4)', urls: ['https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css'], description: 'Efectos y animaciones CSS listas para agregar.', example: '<div class="animate__animated animate__bounce">¡Hola!</div>' },
+    { category: 'Animaciones y efectos visuales', name: 'Canvas Confetti (v1.9)', urls: ['https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js'], description: 'Efecto visual de celebración al presionar botones.', example: 'confetti({ particleCount: 100, spread: 70 });' },
+    { category: 'Animaciones y efectos visuales', name: 'Anime.js (v3)', urls: ['https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.2/anime.min.js'], description: 'Animación flexible para CSS, SVG y propiedades JS.', example: 'anime({ targets: ".caja", translateX: 100 });' },
+    { category: 'Animaciones y efectos visuales', name: 'AOS - Animate On Scroll (v2)', urls: ['https://unpkg.com/aos@2.3.1/dist/aos.css', 'https://unpkg.com/aos@2.3.1/dist/aos.js'], description: 'Animación de elementos al hacer scroll.', example: 'AOS.init(); // elemento: <div data-aos="fade-up">' },
+    { category: 'Animaciones y efectos visuales', name: 'Lottie-Web (v5)', urls: ['https://cdnjs.cloudflare.com/ajax/libs/lottie-web/5.12.2/lottie.min.js'], description: 'Reproducción de animaciones vectoriales JSON creadas en After Effects.', example: 'lottie.loadAnimation({ container: el, path: "animacion.json", renderer: "svg" });' },
+    { category: 'Animaciones y efectos visuales', name: 'Typed.js (v2)', urls: ['https://unpkg.com/typed.js@2.1.0/dist/typed.umd.js'], description: 'Efecto de máquina de escribir automatizado en texto.', example: 'new Typed("#texto", { strings: ["Hola", "RC Studio"], typeSpeed: 50 });' },
+
+    { category: 'Almacenamiento, datos y red', name: 'Dexie.js (v3)', urls: ['https://cdnjs.cloudflare.com/ajax/libs/dexie.js/3.2.4/dexie.min.js'], description: 'Base de datos IndexedDB local persistente y rápida.', example: 'const db = new Dexie("app"); db.version(1).stores({ items: "++id" });' },
+    { category: 'Almacenamiento, datos y red', name: 'Axios (v1)', urls: ['https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js'], description: 'Cliente de peticiones HTTP para consumir APIs REST.', example: 'const { data } = await axios.get("/api/items");' },
+    { category: 'Almacenamiento, datos y red', name: 'LocalForage (v1)', urls: ['https://cdnjs.cloudflare.com/ajax/libs/localforage/1.10.0/localforage.min.js'], description: 'Manejo simplificado de almacenamiento local asíncrono.', example: 'await localforage.setItem("clave", { listo: true });' },
+    { category: 'Almacenamiento, datos y red', name: 'GunDB (P2P)', urls: ['https://cdn.jsdelivr.net/npm/gun/gun.js'], description: 'Base de datos descentralizada P2P en tiempo real.', example: 'const gun = Gun(); gun.get("mensajes").put({ texto: "Hola" });' },
+    { category: 'Almacenamiento, datos y red', name: 'Socket.IO Client (v4)', urls: ['https://cdn.socket.io/4.7.5/socket.io.min.js'], description: 'Comunicación WebSocket en tiempo real.', example: 'const socket = io("https://servidor.example");' },
+    { category: 'Almacenamiento, datos y red', name: 'PapaParse (v5)', urls: ['https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js'], description: 'Lectura y procesamiento rápido de archivos CSV.', example: 'Papa.parse(file, { header: true, complete: ({ data }) => console.log(data) });' },
+    { category: 'Almacenamiento, datos y red', name: 'JSZip (v3)', urls: ['https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js'], description: 'Crear, leer y extraer archivos ZIP en el navegador.', example: 'const zip = new JSZip(); zip.file("hola.txt", "Hola");' },
+
+    { category: 'Texto, Markdown y formularios', name: 'Marked.js', urls: ['https://cdn.jsdelivr.net/npm/marked/marked.min.js'], description: 'Renderizado e interpretación de Markdown en tiempo real.', example: 'element.innerHTML = marked.parse("# Hola");' },
+    { category: 'Texto, Markdown y formularios', name: 'DOMPurify (v3)', urls: ['https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.0.9/purify.min.js'], description: 'Sanitización de HTML para evitar vulnerabilidades XSS.', example: 'element.innerHTML = DOMPurify.sanitize(html);' },
+    { category: 'Texto, Markdown y formularios', name: 'Highlight.js (v11)', urls: ['https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js'], description: 'Resaltado de sintaxis para bloques de código.', example: 'hljs.highlightElement(document.querySelector("pre code"));' },
+    { category: 'Texto, Markdown y formularios', name: 'Prism.js (v1)', urls: ['https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js'], description: 'Resaltado sintáctico de código ultraligero.', example: 'Prism.highlightAll();' },
+    { category: 'Texto, Markdown y formularios', name: 'Cleave.js (v1)', urls: ['https://cdnjs.cloudflare.com/ajax/libs/cleave.js/1.6.0/cleave.min.js'], description: 'Formateo automático de entradas (tarjetas, fechas, moneda).', example: 'new Cleave("#telefono", { phone: true, phoneRegionCode: "ES" });' },
+    { category: 'Texto, Markdown y formularios', name: 'Validator.js (v13)', urls: ['https://cdnjs.cloudflare.com/ajax/libs/validator/13.11.0/validator.min.js'], description: 'Validación de emails, URLs, teléfonos y datos.', example: 'validator.isEmail("usuario@example.com");' },
+    { category: 'Texto, Markdown y formularios', name: 'Fuse.js (v7)', urls: ['https://cdn.jsdelivr.net/npm/fuse.js@7.0.0'], description: 'Búsqueda difusa (fuzzy search) rápida en arreglos y JSON.', example: 'new Fuse(items, { keys: ["nombre"] }).search("busqueda");' },
+
+    { category: 'Audio, medios y utilidades', name: 'Howler.js (v2)', urls: ['https://cdnjs.cloudflare.com/ajax/libs/howler/2.2.4/howler.min.js'], description: 'Reproducción avanzada de efectos de sonido y audio Web.', example: 'new Howl({ src: ["sonido.mp3"] }).play();' },
+    { category: 'Audio, medios y utilidades', name: 'Tone.js (v14)', urls: ['https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js'], description: 'Sintetizador y creación de música interactiva en la web.', example: 'await Tone.start(); new Tone.Synth().toDestination().triggerAttackRelease("C4", "8n");' },
+    { category: 'Audio, medios y utilidades', name: 'WebCamera / WebcamJS (v1)', urls: ['https://cdnjs.cloudflare.com/ajax/libs/webcamjs/1.0.26/webcam.min.js'], description: 'Captura de fotos desde la cámara web integrada.', example: 'Webcam.set({ width: 320, height: 240 }); Webcam.attach("#camara");' },
+    { category: 'Audio, medios y utilidades', name: 'QR Code JS (v1)', urls: ['https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js'], description: 'Generación dinámica de códigos QR en la interfaz.', example: 'new QRCode(document.getElementById("qr"), "https://example.com");' },
+    { category: 'Audio, medios y utilidades', name: 'JsBarcode (v3)', urls: ['https://cdn.jsdelivr.net/npm/jsbarcode@3.11.6/dist/JsBarcode.all.min.js'], description: 'Generación de códigos de barras (EAN, CODE128, etc.).', example: 'JsBarcode("#codigo", "123456", { format: "CODE128" });' },
+    { category: 'Audio, medios y utilidades', name: 'Hammer.js (v2)', urls: ['https://cdnjs.cloudflare.com/ajax/libs/hammer.js/2.0.8/hammer.min.js'], description: 'Soporte para gestos táctiles (swipe, pinch, rotate, tap).', example: 'new Hammer(element).on("swipe", event => console.log(event.direction));' },
+
+    { category: 'Documentos y exportación', name: 'jsPDF (v2)', urls: ['https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js'], description: 'Generación y descarga directa de documentos PDF.', example: 'const pdf = new jspdf.jsPDF(); pdf.text("Hola", 10, 10); pdf.save("archivo.pdf");' },
+    { category: 'Documentos y exportación', name: 'html2canvas (v1)', urls: ['https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js'], description: 'Capturar pantalla o convertir elementos HTML a imágenes PNG.', example: 'const canvas = await html2canvas(document.querySelector("#captura"));' },
+    { category: 'Documentos y exportación', name: 'SheetJS / xlsx (v0.18)', urls: ['https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js'], description: 'Leer, modificar y exportar hojas de cálculo de Excel (.xlsx).', example: 'const sheet = XLSX.utils.aoa_to_sheet([["Nombre"], ["Ana"]]);' },
+    { category: 'Documentos y exportación', name: 'FileSaver.js (v2)', urls: ['https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js'], description: 'Descarga de archivos pesados o generados desde la app.', example: 'saveAs(new Blob(["Hola"]), "archivo.txt");' },
+
+    { category: 'Fechas, matemáticas y física', name: 'Day.js (v1)', urls: ['https://cdnjs.cloudflare.com/ajax/libs/dayjs/1.11.10/dayjs.min.js'], description: 'Manejo y formateo ligero de fechas y horas.', example: 'dayjs().format("YYYY-MM-DD");' },
+    { category: 'Fechas, matemáticas y física', name: 'Math.js (v12)', urls: ['https://cdnjs.cloudflare.com/ajax/libs/mathjs/12.4.1/math.js'], description: 'Evaluador de expresiones matemáticas avanzadas y matrices.', example: 'math.evaluate("sqrt(3^2 + 4^2)");' },
+    { category: 'Fechas, matemáticas y física', name: 'Matter.js (v0.19)', urls: ['https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js'], description: 'Motor de física 2D rígida para simulaciones y juegos.', example: 'const engine = Matter.Engine.create();' },
+    { category: 'Fechas, matemáticas y física', name: 'SortableJS (v1)', urls: ['https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.2/Sortable.min.js'], description: 'Listas y contenedores reordenables mediante Drag & Drop.', example: 'Sortable.create(document.getElementById("lista"));' },
+    { category: 'Fechas, matemáticas y física', name: 'Tippy.js (v6)', urls: ['https://unpkg.com/@popperjs/core@2', 'https://unpkg.com/tippy.js@6'], description: 'Tooltips y elementos flotantes interactivos de alto nivel.', example: 'tippy("[data-tooltip]", { content: "Ayuda" });' }
+  ];
+  const dictLibraries = document.getElementById('dictLibraries');
+  const libraryCategories = [...new Set(libraryCatalog.map(library => library.category))];
+  libraryCategories.forEach(category => {
+    const categorySection = document.createElement('section');
+    categorySection.className = 'dict-category';
+    categorySection.dataset.libraryCategory = category;
+    const heading = document.createElement('h4');
+    heading.textContent = category;
+    const grid = document.createElement('div');
+    grid.className = 'dict-library-grid';
+    libraryCatalog.filter(library => library.category === category).forEach(library => {
+      const card = document.createElement('article');
+      card.className = 'dict-library-card';
+      const title = document.createElement('h5');
+      title.textContent = library.name;
+      const description = document.createElement('p');
+      description.textContent = library.description;
+      const cdn = document.createElement('code');
+      cdn.textContent = library.urls.join('\n');
+      const example = document.createElement('code');
+      example.className = 'dict-library-example';
+      example.textContent = library.example;
+      const copyButton = document.createElement('button');
+      copyButton.type = 'button';
+      copyButton.className = 'dict-library-copy';
+      copyButton.dataset.cdn = library.urls.join('\n');
+      copyButton.textContent = 'Copiar CDN';
+      card.append(title, description, cdn, example, copyButton);
+      grid.appendChild(card);
+    });
+    categorySection.append(heading, grid);
+    dictLibraries?.appendChild(categorySection);
+  });
+
+  const dictCommandsTab = document.getElementById('dictCommandsTab');
+  const dictPaletteTab = document.getElementById('dictPaletteTab');
+  const dictLibsTab = document.getElementById('dictLibsTab');
+  const dictCommandsPanel = document.getElementById('dictCommandsPanel');
+  const dictPalettePanel = document.getElementById('dictPalettePanel');
+  const dictLibsPanel = document.getElementById('dictLibsPanel');
+  let activeDictionaryTab = dictCommandsTab;
+  const dictCommandCount = document.getElementById('dictCommandCount');
+  if (dictCommandCount) dictCommandCount.textContent = `Referencia rápida · ${Object.keys(RC_COMMANDS_SPEC).length} comandos oficiales`;
+
+  function selectDictionaryTab(activeTab) {
+    activeDictionaryTab = activeTab;
+    [
+      [dictCommandsTab, dictCommandsPanel],
+      [dictPaletteTab, dictPalettePanel],
+      [dictLibsTab, dictLibsPanel]
+    ].forEach(([tab, panel]) => {
+      const active = tab === activeTab;
+      tab?.classList.toggle('active', active);
+      tab?.setAttribute('aria-selected', String(active));
+      if (panel) panel.hidden = !active;
+    });
+  }
+
+  dictCommandsTab?.addEventListener('click', () => selectDictionaryTab(dictCommandsTab));
+  dictPaletteTab?.addEventListener('click', () => selectDictionaryTab(dictPaletteTab));
+  dictLibsTab?.addEventListener('click', () => selectDictionaryTab(dictLibsTab));
+
+  const dictCopyToast = document.getElementById('dictCopyToast');
+  let dictCopyToastTimer;
+  function showDictCopyToast(message) {
+    if (!dictCopyToast) return;
+    dictCopyToast.textContent = message;
+    dictCopyToast.hidden = false;
+    clearTimeout(dictCopyToastTimer);
+    dictCopyToastTimer = setTimeout(() => { dictCopyToast.hidden = true; }, 1800);
+  }
+
+  function fallbackCopyText(value, successMessage, failureMessage) {
+    const input = document.createElement('textarea');
+    input.value = value;
+    input.setAttribute('readonly', '');
+    input.style.position = 'fixed';
+    input.style.opacity = '0';
+    document.body.appendChild(input);
+    input.select();
+    let copied = false;
+    try {
+      copied = document.execCommand('copy');
+    } catch (error) {
+      console.warn('No se pudo copiar el texto del diccionario', error);
+    } finally {
+      input.remove();
+    }
+    showDictCopyToast(copied ? successMessage : failureMessage);
+  }
+
+  function fallbackCopyColor(value) {
+    fallbackCopyText(value, '¡Código copiado!', 'No se pudo copiar el código.');
+  }
+
+  function copyDictionaryText(value, successMessage) {
+    if (!navigator.clipboard?.writeText) {
+      fallbackCopyText(value, successMessage, 'No se pudo copiar el texto.');
+      return;
+    }
+    navigator.clipboard.writeText(value).then(
+      () => showDictCopyToast(successMessage),
+      () => fallbackCopyText(value, successMessage, 'No se pudo copiar el texto.')
+    );
+  }
+
+  colorPalette?.addEventListener('click', event => {
+    const button = event.target.closest('.palette-color');
+    if (!button || !colorPalette.contains(button)) return;
+    const value = button.dataset.color;
+    if (!value) return;
+    if (!navigator.clipboard?.writeText) {
+      fallbackCopyColor(value);
+      return;
+    }
+    navigator.clipboard.writeText(value).then(
+      () => showDictCopyToast('¡Código copiado!'),
+      () => fallbackCopyColor(value)
+    );
+  });
+
+  dictLibraries?.addEventListener('click', event => {
+    const button = event.target.closest('.dict-library-copy');
+    if (!button || !dictLibraries.contains(button)) return;
+    copyDictionaryText(button.dataset.cdn, 'CDN copiado.');
+  });
+
   document.addEventListener("keydown", (e) => {
     if (e.key === "Escape") {
       hideDictModal();
@@ -2443,24 +3759,71 @@ ${warningBlock}${bodyChildren}${scriptBlock}
     }
   });
 
+  const normalizeDictionarySearch = value => value
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase();
+  const dictionarySearchGroups = [
+    ...Array.from(document.querySelectorAll('#dictCommandsPanel .dict-category'), category => ({
+      category,
+      heading: normalizeDictionarySearch(category.querySelector('h4')?.textContent || ''),
+      items: Array.from(category.querySelectorAll('.cmd-item'), item => ({
+        element: item,
+        text: normalizeDictionarySearch(item.textContent)
+      }))
+    })),
+    ...Array.from(dictLibraries?.querySelectorAll('.dict-category') || [], category => ({
+      category,
+      heading: normalizeDictionarySearch(category.querySelector('h4')?.textContent || ''),
+      items: Array.from(category.querySelectorAll('.dict-library-card'), item => ({
+        element: item,
+        text: normalizeDictionarySearch(item.textContent)
+      }))
+    }))
+  ];
+  const dictionaryColorSearchItems = Array.from(colorPalette?.querySelectorAll('.palette-color') || [], element => ({
+    element,
+    text: normalizeDictionarySearch(element.textContent)
+  }));
+
   if (dictSearch) {
-    dictSearch.addEventListener("input", (e) => {
-      const q = e.target.value.trim().toLowerCase();
-      const categories = document.querySelectorAll(".dict-category");
-      categories.forEach(cat => {
+    dictSearch.addEventListener("input", () => {
+      const query = normalizeDictionarySearch(dictSearch.value.trim());
+      const matchesByPanel = new Map([
+        [dictCommandsPanel, 0],
+        [dictPalettePanel, 0],
+        [dictLibsPanel, 0]
+      ]);
+      dictionarySearchGroups.forEach(({ category, heading, items }) => {
+        const categoryMatches = !query || heading.includes(query);
         let visibleCount = 0;
-        const items = cat.querySelectorAll(".cmd-item");
-        items.forEach(item => {
-          const text = item.textContent.toLowerCase();
-          if (!q || text.includes(q)) {
-            item.style.display = "flex";
+        items.forEach(({ element, text }) => {
+          const matches = categoryMatches || text.includes(query);
+          element.hidden = !matches;
+          if (matches) {
             visibleCount++;
-          } else {
-            item.style.display = "none";
+            const panel = category.closest('#dictCommandsPanel, #dictLibsPanel');
+            matchesByPanel.set(panel, matchesByPanel.get(panel) + 1);
           }
         });
-        cat.style.display = (visibleCount > 0 || !q) ? "block" : "none";
+        category.hidden = visibleCount === 0;
       });
+      dictionaryColorSearchItems.forEach(({ element, text }) => {
+        const matches = !query || text.includes(query);
+        element.hidden = !matches;
+        if (matches) matchesByPanel.set(dictPalettePanel, matchesByPanel.get(dictPalettePanel) + 1);
+      });
+      const activePanel = activeDictionaryTab === dictCommandsTab ? dictCommandsPanel
+        : activeDictionaryTab === dictPaletteTab ? dictPalettePanel : dictLibsPanel;
+      if (query && matchesByPanel.get(activePanel) === 0) {
+        const nextPanel = [dictCommandsPanel, dictPalettePanel, dictLibsPanel]
+          .sort((a, b) => matchesByPanel.get(b) - matchesByPanel.get(a))
+          .find(panel => matchesByPanel.get(panel) > 0);
+        const nextTab = nextPanel === dictCommandsPanel ? dictCommandsTab
+          : nextPanel === dictPalettePanel ? dictPaletteTab
+            : nextPanel === dictLibsPanel ? dictLibsTab : null;
+        if (nextTab) selectDictionaryTab(nextTab);
+      }
     });
   }
 
