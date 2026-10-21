@@ -265,8 +265,8 @@
         <div class="dict-category" data-command-category="2">
           <h4>II. Estilo y Diseño Visual (Comandos 31 - 50)</h4>
           <div class="cmd-list">
-            <div class="cmd-item"><code>fondo(color) / fondo(idbtn)(color)</code><span>Establece el fondo del elemento activo o cambia el fondo global al pulsar un botón</span></div>
-            <div class="cmd-item"><code>color(color) / color(idbtn)(color)</code><span>Establece el color del elemento activo o cambia el color global del texto al pulsar un botón</span></div>
+            <div class="cmd-item"><code>fondo(color) / fondo(idbtn)(color)</code><span>Establece el fondo del elemento activo o el fondo global al pulsar el botón indicado</span></div>
+            <div class="cmd-item"><code>color(color) / color(idbtn)(color)</code><span>Establece el color del elemento activo o el color global del texto al pulsar el botón indicado</span></div>
             <div class="cmd-item"><code>letra(fuente)</code><span>Establece la familia tipográfica / fuente</span></div>
             <div class="cmd-item"><code>tamano(px)</code><span>Establece el tamaño de letra en píxeles</span></div>
             <div class="cmd-item"><code>ancho(px)</code><span>Establece el ancho del elemento</span></div>
@@ -411,8 +411,8 @@
     areatexto: { cat: 1, name: 'areatexto', params: ['id', 'texto'], minArgs: 1, type: 'element', tag: 'textarea', desc: 'Crea un área de texto multilínea (<textarea>)' },
 
     // Categoría II: Estilo y Diseño Visual (Comandos 31 - 50)
-    fondo: { cat: 2, name: 'fondo', params: ['color'], eventSignature: 'fondo(idbtn)(color)', minArgs: 1, maxArgs: 2, type: 'style', prop: 'background-color', desc: 'Establece el fondo o lo cambia al pulsar un botón' },
-    color: { cat: 2, name: 'color', params: ['color'], eventSignature: 'color(idbtn)(color)', minArgs: 1, maxArgs: 2, type: 'style', prop: 'color', desc: 'Establece el color del texto o lo cambia al pulsar un botón' },
+    fondo: { cat: 2, name: 'fondo', params: ['color'], eventSignature: 'fondo(idbtn)(color)', minArgs: 1, maxArgs: 2, type: 'style', prop: 'background-color', desc: 'Establece el fondo del elemento activo o el fondo global al pulsar el botón indicado' },
+    color: { cat: 2, name: 'color', params: ['color'], eventSignature: 'color(idbtn)(color)', minArgs: 1, maxArgs: 2, type: 'style', prop: 'color', desc: 'Establece el color del elemento activo o el color global del texto al pulsar el botón indicado' },
     letra: { cat: 2, name: 'letra', params: ['fuente'], minArgs: 1, type: 'style', prop: 'font-family', desc: 'Establece la familia tipográfica / fuente' },
     tamano: { cat: 2, name: 'tamano', params: ['px'], minArgs: 1, type: 'style', prop: 'font-size', desc: 'Establece el tamaño de letra en píxeles' },
     ancho: { cat: 2, name: 'ancho', params: ['px'], minArgs: 1, type: 'style', prop: 'width', desc: 'Establece el ancho del elemento' },
@@ -699,18 +699,14 @@
       const rest = workLine.slice(parenIndex);
 
       let depth = 0;
-      let currentArg = '';
-      let inArg = false;
+      let argumentStart = -1;
       let invalid = false;
 
       for (let i = 0; i < rest.length; i++) {
         const ch = rest[i];
         if (ch === '(') {
           if (depth === 0) {
-            inArg = true;
-            currentArg = '';
-          } else {
-            currentArg += ch;
+            argumentStart = i + 1;
           }
           depth++;
         } else if (ch === ')') {
@@ -720,15 +716,11 @@
           }
           depth--;
           if (depth === 0) {
-            inArg = false;
-            args.push(currentArg.trim());
-            currentArg = '';
-          } else {
-            currentArg += ch;
+            args.push(rest.slice(argumentStart, i).trim());
+            argumentStart = -1;
           }
-        } else {
-          if (inArg) currentArg += ch;
-          else if (!/\s/.test(ch)) invalid = true;
+        } else if (depth === 0 && !/\s/.test(ch)) {
+          invalid = true;
         }
       }
 
@@ -769,7 +761,7 @@
       source.split('\n').forEach((rawLine, index) => {
         const parsed = parseRcLine(rawLine, index + 1);
         if (!parsed || parsed.parseError || parsed.cmd !== 'incluir') {
-          sourceLines.push({ rawLine, lineNum: index + 1, filename });
+          sourceLines.push({ rawLine, lineNum: index + 1, filename, parsed });
           return;
         }
 
@@ -905,7 +897,7 @@
         return;
       }
 
-      const parsed = parseRcLine(line, lineNum);
+      const parsed = sourceLine.parsed;
       if (!parsed) return;
       if (parsed.parseError) {
         warnings.push(`${filename || 'RC'}:${lineNum}: ${parsed.parseError}.`);
@@ -2776,49 +2768,81 @@
   <script defer src="https://cdn.jsdelivr.net/npm/chart.js"><\/script>
   <script defer src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"><\/script>
   <style>
-    body { position: relative; font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; margin: 16px; box-sizing: border-box; background: #0e1015; color: #ffffff; }
+    :root {
+      color-scheme: dark;
+      --rc-page-bg: #0e1015;
+      --rc-text: #ffffff;
+      --rc-surface: #191b22;
+      --rc-surface-raised: #272c38;
+      --rc-surface-hover: #383f50;
+      --rc-surface-active: #1e222c;
+      --rc-border: #3d4454;
+      --rc-muted: #b9c3d4;
+      --rc-input-bg: #151821;
+      --rc-toast-bg: #292d38;
+      --rc-tooltip-bg: #191b22;
+      --rc-console-bg: #090d12;
+      --rc-console-text: #9fe7a4;
+      --rc-scene-bg: #101827;
+      --rc-overlay: rgba(0, 0, 0, 0.72);
+    }
+    :root[data-rc-theme="claro"] {
+      color-scheme: light;
+      --rc-page-bg: #f5f6fa;
+      --rc-text: #20232b;
+      --rc-surface: #ffffff;
+      --rc-surface-raised: #e8ebf2;
+      --rc-surface-hover: #dce1eb;
+      --rc-surface-active: #cfd6e2;
+      --rc-border: #c5cad5;
+      --rc-muted: #596273;
+      --rc-input-bg: #ffffff;
+      --rc-toast-bg: #ffffff;
+      --rc-tooltip-bg: #20232b;
+      --rc-console-bg: #eef1f6;
+      --rc-console-text: #287a38;
+      --rc-scene-bg: #e9edf5;
+      --rc-overlay: rgba(32, 35, 43, 0.45);
+    }
+    body { position: relative; font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; margin: 16px; box-sizing: border-box; background: var(--rc-page-bg); color: var(--rc-text); }
     *, *:before, *:after { box-sizing: inherit; }
-    button { cursor: pointer; padding: 10px 14px; font-size: 15px; border-radius: 8px; border: 1px solid #3d4454; background: #272c38; color: #ffffff; display: inline-block; vertical-align: middle; box-sizing: border-box; transition: background 0.15s ease; margin: 4px; }
-    button:hover { background: #383f50; }
-    button:active { background: #1e222c; }
-    input[type="text"], input[type="number"], input[type="email"], input[type="password"], input[type="date"], textarea, select { width: 100%; padding: 10px; font-size: 15px; border-radius: 8px; border: 1px solid #3d4454; background: #151821; color: #ffffff; outline: none; box-sizing: border-box; margin: 4px 0; }
+    button { cursor: pointer; padding: 10px 14px; font-size: 15px; border-radius: 8px; border: 1px solid var(--rc-border); background: var(--rc-surface-raised); color: var(--rc-text); display: inline-block; vertical-align: middle; box-sizing: border-box; transition: background 0.15s ease; margin: 4px; }
+    button:hover { background: var(--rc-surface-hover); }
+    button:active { background: var(--rc-surface-active); }
+    input[type="text"], input[type="number"], input[type="email"], input[type="password"], input[type="date"], textarea, select { width: 100%; padding: 10px; font-size: 15px; border-radius: 8px; border: 1px solid var(--rc-border); background: var(--rc-input-bg); color: var(--rc-text); outline: none; box-sizing: border-box; margin: 4px 0; }
     .rejilla { display: grid; width: 100%; gap: 10px; box-sizing: border-box; }
     .cargando { display: inline-block; padding: 10px 20px; background: #222733; color: #68b5ff; border-radius: 6px; border: 1px dashed #68b5ff; }
     .rc-drawing-surface { position: relative; display: block; width: 100%; height: 320px; touch-action: none; color: #111111; background: #ffffff; border: 1px solid #3d4454; }
     .rc-layer { display: block; }
-    .rc-modal-overlay { position: fixed; inset: 0; z-index: 1000; display: flex; align-items: center; justify-content: center; padding: 20px; background: rgba(0, 0, 0, 0.72); }
-    .rc-modal-content { position: relative; width: min(100%, 720px); max-height: 85vh; overflow: auto; padding: 28px; border: 1px solid #454b5a; border-radius: 12px; background: #191b22; color: #e8eaf0; box-shadow: 0 16px 40px #0009; }
+    .rc-modal-overlay { position: fixed; inset: 0; z-index: 1000; display: flex; align-items: center; justify-content: center; padding: 20px; background: var(--rc-overlay); }
+    .rc-modal-content { position: relative; width: min(100%, 720px); max-height: 85vh; overflow: auto; padding: 28px; border: 1px solid var(--rc-border); border-radius: 12px; background: var(--rc-surface); color: var(--rc-text); box-shadow: 0 16px 40px #0009; }
     .rc-modal-close { position: absolute; top: 8px; right: 8px; margin: 0; padding: 4px 10px; font-size: 20px; }
-    .rc-toast { position: fixed; z-index: 1100; left: 50%; bottom: 20px; max-width: calc(100% - 32px); padding: 10px 16px; border: 1px solid #454b5a; border-radius: 8px; background: #292d38; color: #ffffff; opacity: 0; pointer-events: none; transform: translate(-50%, 12px); transition: opacity 160ms ease, transform 160ms ease; }
+    .rc-toast { position: fixed; z-index: 1100; left: 50%; bottom: 20px; max-width: calc(100% - 32px); padding: 10px 16px; border: 1px solid var(--rc-border); border-radius: 8px; background: var(--rc-toast-bg); color: var(--rc-text); opacity: 0; pointer-events: none; transform: translate(-50%, 12px); transition: opacity 160ms ease, transform 160ms ease; }
     .rc-toast.visible { opacity: 1; transform: translate(-50%, 0); }
-    .rc-scene3d { position: relative; width: 100%; max-width: 1000px; min-height: 0; margin: 12px 0; overflow: hidden; border: 1px solid #3d4454; border-radius: 10px; background: #101827; aspect-ratio: 25 / 14; }
+    .rc-scene3d { position: relative; width: 100%; max-width: 1000px; min-height: 0; margin: 12px 0; overflow: hidden; border: 1px solid var(--rc-border); border-radius: 10px; background: var(--rc-scene-bg); aspect-ratio: 25 / 14; }
     .rc-scene3d-canvas { display: block; width: 100%; height: 100%; touch-action: none; cursor: grab; }
     .rc-scene3d-canvas:active { cursor: grabbing; }
-    .rc-scene3d-focus { position: absolute; inset: auto 12px 10px; color: #c5d2e5; font-size: 12px; pointer-events: none; }
+    .rc-scene3d-focus { position: absolute; inset: auto 12px 10px; color: var(--rc-muted); font-size: 12px; pointer-events: none; }
     .rc-glass { isolation: isolate; }
     .rc-icon { display: inline-flex; align-items: center; justify-content: center; min-width: 1.25em; font-size: 1.25em; line-height: 1; }
     .rc-badge { display: inline-block; padding: 2px 8px; border-radius: 999px; background: #335b88; color: #fff; font-size: .8em; font-weight: 700; }
     .rc-tooltip { position: relative; }
-    .rc-tooltip:focus::after, .rc-tooltip:hover::after { content: attr(data-rc-tooltip); position: absolute; z-index: 20; left: 50%; bottom: calc(100% + 8px); width: max-content; max-width: 240px; padding: 6px 9px; border: 1px solid #454b5a; border-radius: 6px; background: #191b22; color: #fff; font-size: 12px; transform: translateX(-50%); }
+    .rc-tooltip:focus::after, .rc-tooltip:hover::after { content: attr(data-rc-tooltip); position: absolute; z-index: 20; left: 50%; bottom: calc(100% + 8px); width: max-content; max-width: 240px; padding: 6px 9px; border: 1px solid var(--rc-border); border-radius: 6px; background: var(--rc-tooltip-bg); color: #fff; font-size: 12px; transform: translateX(-50%); }
     .rc-tab { margin: 8px 0; }
     .rc-tab:not(.active) { display: none; }
     .rc-tab-button, .rc-accordion-button { display: block; width: 100%; text-align: left; }
-    .rc-accordion { margin: 8px 0; border: 1px solid #3d4454; border-radius: 8px; overflow: hidden; }
+    .rc-accordion { margin: 8px 0; border: 1px solid var(--rc-border); border-radius: 8px; overflow: hidden; }
     .rc-accordion.collapsed > :not(.rc-accordion-button) { display: none; }
-    .rc-window { position: fixed; z-index: 900; top: 10%; left: 10%; width: min(520px, calc(100vw - 32px)); max-height: 80vh; overflow: auto; border: 1px solid #596276; border-radius: 10px; background: #191b22; box-shadow: 0 16px 48px #000a; }
-    .rc-window-titlebar { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 8px 10px; background: #252a35; cursor: move; touch-action: none; }
+    .rc-window { position: fixed; z-index: 900; top: 10%; left: 10%; width: min(520px, calc(100vw - 32px)); max-height: 80vh; overflow: auto; border: 1px solid var(--rc-border); border-radius: 10px; background: var(--rc-surface); color: var(--rc-text); box-shadow: 0 16px 48px #000a; }
+    .rc-window-titlebar { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 8px 10px; background: var(--rc-surface-raised); color: var(--rc-text); cursor: move; touch-action: none; }
     .rc-window-titlebar button { margin: 0 0 0 4px; padding: 2px 8px; }
     .rc-window-body { min-height: 32px; padding: 12px; }
-    .rc-statusbar { position: sticky; bottom: 0; padding: 7px 10px; border-top: 1px solid #3d4454; background: #191b22; color: #b9c3d4; font-size: 12px; }
-    .rc-console { min-height: 100px; max-height: 320px; overflow: auto; padding: 12px; border: 1px solid #394252; border-radius: 8px; background: #090d12; color: #9fe7a4; white-space: pre-wrap; }
-    .rc-kernel { padding: 10px 12px; border: 1px solid #3d4454; border-radius: 8px; background: #151821; color: #9fe7a4; font-family: ui-monospace, monospace; }
-    .rc-os-toast { position: fixed; z-index: 1200; right: 20px; top: 20px; max-width: min(360px, calc(100vw - 40px)); padding: 12px 16px; border: 1px solid #596276; border-radius: 9px; background: #252a35; color: #fff; opacity: 0; transform: translateY(-8px); transition: opacity 160ms ease, transform 160ms ease; pointer-events: none; }
+    .rc-statusbar { position: sticky; bottom: 0; padding: 7px 10px; border-top: 1px solid var(--rc-border); background: var(--rc-surface); color: var(--rc-muted); font-size: 12px; }
+    .rc-console { min-height: 100px; max-height: 320px; overflow: auto; padding: 12px; border: 1px solid var(--rc-border); border-radius: 8px; background: var(--rc-console-bg); color: var(--rc-console-text); white-space: pre-wrap; }
+    .rc-kernel { padding: 10px 12px; border: 1px solid var(--rc-border); border-radius: 8px; background: var(--rc-input-bg); color: var(--rc-console-text); font-family: ui-monospace, monospace; }
+    .rc-os-toast { position: fixed; z-index: 1200; right: 20px; top: 20px; max-width: min(360px, calc(100vw - 40px)); padding: 12px 16px; border: 1px solid var(--rc-border); border-radius: 9px; background: var(--rc-surface-raised); color: var(--rc-text); opacity: 0; transform: translateY(-8px); transition: opacity 160ms ease, transform 160ms ease; pointer-events: none; }
     .rc-os-toast.visible { opacity: 1; transform: translateY(0); }
     ${Array.from(generatedKeyframes, ([name, frames]) => `@keyframes rc-${name} { ${frames} }`).join('\n    ')}
-    :root[data-rc-theme="claro"] body { background: #f5f6fa; color: #20232b; }
-    :root[data-rc-theme="claro"] button { background: #e8ebf2; color: #20232b; border-color: #c5cad5; }
-    :root[data-rc-theme="claro"] .rc-modal-content { background: #ffffff; color: #20232b; }
-    :root[data-rc-theme="claro"] .rc-toast { background: #ffffff; color: #20232b; border-color: #c5cad5; }
   </style>
 </head>
 <body>
