@@ -26,9 +26,11 @@
   .editor-body{--editor-font:14px;--editor-line-height:24.5px;--editor-pad-y:17px;--editor-pad-x:17px;display:flex;flex:1;min-height:0;position:relative;overflow:hidden;background:#0e1015}
   .gutter{width:42px;flex:0 0 42px;padding:var(--editor-pad-y) 8px;background:#15171e;color:#5a6275;font:var(--editor-font)/var(--editor-line-height) ui-monospace,SFMono-Regular,Consolas,monospace;text-align:right;user-select:none;border:0;border-right:1px solid var(--line);overflow:hidden;white-space:pre;box-sizing:border-box}
   .editor-input-wrap { position: relative; flex: 1; min-width: 0; height: 100%; overflow: hidden; background: #0e1015; }
-  .highlight-layer { position: absolute; top: 0; left: 0; right: 0; bottom: 0; margin: 0; padding: var(--editor-pad-y) var(--editor-pad-x); border: 0; font: 400 var(--editor-font)/var(--editor-line-height) ui-monospace,SFMono-Regular,Consolas,monospace; letter-spacing: normal; word-spacing: normal; tab-size: 2; white-space: pre; word-wrap: normal; overflow: hidden; pointer-events: none; background: transparent; box-sizing: border-box; color: #d9e2f2; }
-  .highlight-layer code { font: inherit; background: none; padding: 0; display: block; }
-  .editor textarea { position: absolute; top: 0; left: 0; right: 0; bottom: 0; width: 100%; height: 100%; margin: 0; padding: var(--editor-pad-y) var(--editor-pad-x); font: 400 var(--editor-font)/var(--editor-line-height) ui-monospace,SFMono-Regular,Consolas,monospace; letter-spacing: normal; word-spacing: normal; tab-size: 2; white-space: pre; word-wrap: normal; overflow: auto; background: transparent; color: transparent; caret-color: #ffffff; border: 0; outline: 0; resize: none; box-sizing: border-box; z-index: 1; }
+  .highlight-layer, .editor textarea { padding: var(--editor-pad-y) var(--editor-pad-x); font: 400 var(--editor-font)/var(--editor-line-height) ui-monospace,SFMono-Regular,Consolas,monospace; letter-spacing: normal; word-spacing: normal; tab-size: 2; white-space: pre; word-wrap: normal; box-sizing: border-box; }
+  .highlight-layer { position: absolute; top: 0; left: 0; right: 0; bottom: 0; margin: 0; border: 0; overflow: hidden; pointer-events: none; background: transparent; color: #d9e2f2; }
+  .highlight-layer code { display: block; padding: 0; font: inherit; font-weight: 400; font-style: normal; background: none; }
+  .highlight-layer span { font-weight: inherit; font-style: inherit; }
+  .editor textarea { position: absolute; top: 0; left: 0; right: 0; bottom: 0; width: 100%; height: 100%; margin: 0; overflow: auto; background: transparent; color: transparent; caret-color: #ffffff; border: 0; outline: 0; resize: none; z-index: 1; }
   .editor textarea:disabled { cursor: not-allowed; caret-color: transparent; }
   .editor textarea:disabled::placeholder { color: var(--muted); opacity: 1; }
   .editor textarea::selection { background: rgba(104, 181, 255, 0.35); color: transparent; }
@@ -39,14 +41,14 @@
   .autocomplete-popup button span { color: var(--muted); font: 11px system-ui, sans-serif; }
 
   /* Tokens Resaltado de Sintaxis */
-  .hl-comment { color: #6272a4; font-style: italic; }
-  .hl-cmd     { color: #ff79c6; font-weight: 600; }
+  .hl-comment { color: #7b8da8; }
+  .hl-cmd     { color: #5eead4; }
   .hl-string  { color: #f1fa8c; }
-  .hl-num     { color: #bd93f9; }
-  .hl-color   { color: #50fa7b; font-weight: 600; }
-  .hl-paren   { color: #ff79c6; }
-  .hl-tag     { color: #79c0ff; font-weight: 600; }
-  .hl-attr    { color: #d2a8ff; }
+  .hl-num     { color: #7dd3fc; }
+  .hl-color   { color: #34d399; }
+  .hl-paren   { color: #60a5fa; }
+  .hl-tag     { color: #38bdf8; }
+  .hl-attr    { color: #2dd4bf; }
   .status{height:30px;display:flex;align-items:center;gap:15px;padding:0 12px;border-top:1px solid var(--line);color:var(--muted);font-size:12px}
   .status .spacer{flex:1}
   .explorer{width:250px;flex:0 0 250px;display:flex;flex-direction:column;background:var(--panel);border:1px solid var(--line);border-radius:9px;overflow:hidden}
@@ -226,136 +228,42 @@
       <div class="dict-categories" id="dictCategories">
         <!-- Categoría I -->
         <div class="dict-category" data-command-category="1">
-          <h4>I. Estructura y Contenido (Comandos 1 - 30)</h4>
-          <div class="cmd-list">
-            <div class="cmd-item"><code>incluir(archivo)</code><span>Incluye otro archivo RC del proyecto</span></div>
-            <div class="cmd-item"><code>titulo(texto)</code><span>Define el título de la página/aplicación</span></div>
-            <div class="cmd-item"><code>seccion(nombre)</code><span>Crea un contenedor tipo sección</span></div>
-            <div class="cmd-item"><code>contenedor(id)</code><span>Crea un contenedor multipropósito</span></div>
-            <div class="cmd-item"><code>rejilla(columnas)</code><span>Crea una cuadrícula CSS Grid de N columnas</span></div>
-            <div class="cmd-item"><code>linea</code><span>Inserta una línea divisoria horizontal (&lt;hr&gt;)</span></div>
-            <div class="cmd-item"><code>texto(mensaje)</code><span>Inserta un mensaje de texto libre</span></div>
-            <div class="cmd-item"><code>encabezado(nivel)(mensaje)</code><span>Inserta un encabezado jerárquico del 1 al 6</span></div>
-            <div class="cmd-item"><code>parrafo(mensaje)</code><span>Inserta un párrafo de texto (&lt;p&gt;)</span></div>
-            <div class="cmd-item"><code>negrita(texto)</code><span>Aplica formato de texto en negrita (&lt;b&gt;)</span></div>
-            <div class="cmd-item"><code>cursiva(texto)</code><span>Aplica formato de texto en cursiva (&lt;i&gt;)</span></div>
-            <div class="cmd-item"><code>subrayado(texto)</code><span>Aplica formato de texto subrayado (&lt;u&gt;)</span></div>
-            <div class="cmd-item"><code>etiqueta(id)(texto)</code><span>Crea una etiqueta identificable por ID</span></div>
-            <div class="cmd-item"><code>bloque(texto)</code><span>Inserta un bloque contenedor de texto</span></div>
-            <div class="cmd-item"><code>cita(texto)</code><span>Inserta una cita destacada (&lt;blockquote&gt;)</span></div>
-            <div class="cmd-item"><code>codigo(texto)</code><span>Inserta un fragmento de código (&lt;code&gt;)</span></div>
-            <div class="cmd-item"><code>enlace(url)(texto)</code><span>Crea un hipervínculo (&lt;a href="..."&gt;)</span></div>
-            <div class="cmd-item"><code>imagen(url)</code><span>Inserta una imagen (&lt;img src="..."&gt;)</span></div>
-            <div class="cmd-item"><code>listadesordenada</code><span>Inicia una lista no ordenada (&lt;ul&gt;)</span></div>
-            <div class="cmd-item"><code>listaordenada</code><span>Inicia una lista numerada (&lt;ol&gt;)</span></div>
-            <div class="cmd-item"><code>elementolista(texto)</code><span>Inserta un elemento de lista (&lt;li&gt;)</span></div>
-            <div class="cmd-item"><code>tabla</code><span>Inicia una tabla de datos (&lt;table&gt;)</span></div>
-            <div class="cmd-item"><code>filatabla</code><span>Inicia una fila de tabla (&lt;tr&gt;)</span></div>
-            <div class="cmd-item"><code>encabezadotabla(texto)</code><span>Inserta una celda de encabezado (&lt;th&gt;)</span></div>
-            <div class="cmd-item"><code>celdatabla(texto)</code><span>Inserta una celda de datos (&lt;td&gt;)</span></div>
-            <div class="cmd-item"><code>boton(id)(texto)</code><span>Crea un botón interactivo</span></div>
-            <div class="cmd-item"><code>etiquetacampo(texto)</code><span>Crea una etiqueta de formulario (&lt;label&gt;)</span></div>
-            <div class="cmd-item"><code>cargando</code><span>Inserta un indicador visual de carga</span></div>
-            <div class="cmd-item"><code>lienzo(id)</code><span>Crea un área de dibujo HTML5 Canvas</span></div>
-            <div class="cmd-item"><code>areatexto(id)(texto)</code><span>Crea un área de texto multilínea (&lt;textarea&gt;)</span></div>
-          </div>
+          <h4>I. Estructura y Contenido</h4>
+          <div class="cmd-list"></div>
         </div>
 
         <!-- Categoría II -->
         <div class="dict-category" data-command-category="2">
-          <h4>II. Estilo y Diseño Visual (Comandos 31 - 50)</h4>
-          <div class="cmd-list">
-            <div class="cmd-item"><code>fondo(color) / fondo(idbtn)(color)</code><span>Establece el fondo del elemento activo o el fondo global al pulsar el botón indicado</span></div>
-            <div class="cmd-item"><code>color(color) / color(idbtn)(color)</code><span>Establece el color del elemento activo o el color global del texto al pulsar el botón indicado</span></div>
-            <div class="cmd-item"><code>letra(fuente)</code><span>Establece la familia tipográfica / fuente</span></div>
-            <div class="cmd-item"><code>tamano(px)</code><span>Establece el tamaño de letra en píxeles</span></div>
-            <div class="cmd-item"><code>ancho(px)</code><span>Establece el ancho del elemento</span></div>
-            <div class="cmd-item"><code>alto(px)</code><span>Establece el alto del elemento</span></div>
-            <div class="cmd-item"><code>gap(px)</code><span>Establece el espaciado interno en rejillas</span></div>
-            <div class="cmd-item"><code>margen(px)</code><span>Establece el margen exterior</span></div>
-            <div class="cmd-item"><code>relleno(px)</code><span>Establece el relleno interior (padding)</span></div>
-            <div class="cmd-item"><code>radio(px)</code><span>Establece el radio de bordes redondeados</span></div>
-            <div class="cmd-item"><code>centrar</code><span>Alinea o centra horizontalmente</span></div>
-            <div class="cmd-item"><code>alinearizquierda</code><span>Alinea el texto a la izquierda</span></div>
-            <div class="cmd-item"><code>alinearderecha</code><span>Alinea el texto a la derecha</span></div>
-            <div class="cmd-item"><code>borde(color)</code><span>Establece el borde del elemento</span></div>
-            <div class="cmd-item"><code>sombra(nivel)</code><span>Aplica sombra con nivel de elevación</span></div>
-            <div class="cmd-item"><code>transparencia(nivel)</code><span>Establece nivel de opacidad/transparencia (1 a 10)</span></div>
-            <div class="cmd-item"><code>ocultar(id)</code><span>Oculta el elemento especificado por ID</span></div>
-            <div class="cmd-item"><code>mostrar(id)</code><span>Muestra el elemento especificado por ID</span></div>
-            <div class="cmd-item"><code>flotante(posicion)</code><span>Establece posicionamiento (relative, absolute, fixed)</span></div>
-            <div class="cmd-item"><code>desplazamiento</code><span>Habilita barras de desplazamiento (overflow auto)</span></div>
-          </div>
+          <h4>II. Estilo y Diseño Visual</h4>
+          <div class="cmd-list"></div>
         </div>
 
         <!-- Categoría III -->
         <div class="dict-category" data-command-category="3">
-          <h4>III. Campos, Eventos y Lógica (Comandos 51 - 75)</h4>
-          <div class="cmd-list">
-            <div class="cmd-item"><code>entrada(id)(valor)</code><span>Crea un campo de texto (&lt;input type="text"&gt;)</span></div>
-            <div class="cmd-item"><code>camponumero(id)(valor)</code><span>Crea un campo numérico (&lt;input type="number"&gt;)</span></div>
-            <div class="cmd-item"><code>campocorreo(id)(valor)</code><span>Crea un campo de correo (&lt;input type="email"&gt;)</span></div>
-            <div class="cmd-item"><code>campocontrasena(id)</code><span>Crea un campo de contraseña (&lt;input type="password"&gt;)</span></div>
-            <div class="cmd-item"><code>campofecha(id)</code><span>Crea un selector de fecha (&lt;input type="date"&gt;)</span></div>
-            <div class="cmd-item"><code>campochequeo(id)(texto)</code><span>Crea una casilla de verificación (checkbox)</span></div>
-            <div class="cmd-item"><code>desplegable(id)</code><span>Crea un menú desplegable (&lt;select&gt;)</span></div>
-            <div class="cmd-item"><code>avisar(idbtn)(mensaje)</code><span>Muestra alerta al presionar un botón</span></div>
-            <div class="cmd-item"><code>ira(idbtn)(url)</code><span>Navega a una URL al presionar un botón</span></div>
-            <div class="cmd-item"><code>ocultarboton(idbtn)(id)</code><span>Oculta el elemento objetivo al hacer clic</span></div>
-            <div class="cmd-item"><code>mostrarboton(idbtn)(id)</code><span>Muestra el elemento objetivo al hacer clic</span></div>
-            <div class="cmd-item"><code>alternar(idbtn)(id)</code><span>Alterna visibilidad del elemento objetivo al hacer clic</span></div>
-            <div class="cmd-item"><code>limpiar(idbtn)(idin)</code><span>Limpia el campo de entrada al hacer clic</span></div>
-            <div class="cmd-item"><code>limpiarlienzo(idbtn)(idlienzo)</code><span>Limpia el lienzo canvas al hacer clic</span></div>
-            <div class="cmd-item"><code>deshabilitar(id)</code><span>Deshabilita un campo o botón</span></div>
-            <div class="cmd-item"><code>habilitar(id)</code><span>Habilita un campo o botón</span></div>
-            <div class="cmd-item"><code>copiartexto(idbtn)(id)</code><span>Copia el contenido del elemento al portapapeles</span></div>
-            <div class="cmd-item"><code>sumar(idbtn)(in1)(in2)(lbl)</code><span>Suma valores de in1 e in2 y los muestra en lbl</span></div>
-            <div class="cmd-item"><code>restar(idbtn)(in1)(in2)(lbl)</code><span>Resta valores de in1 e in2 y los muestra en lbl</span></div>
-            <div class="cmd-item"><code>multiplicar(idbtn)(in1)(in2)(lbl)</code><span>Multiplica valores de in1 e in2 y los muestra en lbl</span></div>
-            <div class="cmd-item"><code>dividir(idbtn)(in1)(in2)(lbl)</code><span>Divide valores de in1 e in2 (maneja división por cero)</span></div>
-            <div class="cmd-item"><code>incrementar(idbtn)(id)(paso)</code><span>Incrementa valor en destino según el paso especificado</span></div>
-            <div class="cmd-item"><code>decrementar(idbtn)(id)(paso)</code><span>Decrementa valor en destino según el paso especificado</span></div>
-            <div class="cmd-item"><code>guardarlocal(idbtn)(clave)(idin)</code><span>Guarda en localStorage el valor del campo al pulsar el botón</span></div>
-            <div class="cmd-item"><code>cargarlocal(clave)(lbl)</code><span>Lee el valor almacenado y lo muestra en la etiqueta de destino</span></div>
-          </div>
+          <h4>III. Campos, Eventos y Lógica</h4>
+          <div class="cmd-list"></div>
         </div>
 
         <!-- Categoría IV -->
         <div class="dict-category" data-command-category="4">
-          <h4>IV. Dibujo, Capas, Efectos y Utilidades (Comandos 76 - 90)</h4>
-          <div class="cmd-list">
-            <div class="cmd-item"><code>capa(id)</code><span>Crea una capa canvas superpuesta no interactiva</span></div>
-            <div class="cmd-item"><code>pincel(tipo)(tamano)</code><span>Configura el pincel para los lienzos dibujables</span></div>
-            <div class="cmd-item"><code>opacidad(nivel)</code><span>Ajusta la opacidad activa de 0 a 10</span></div>
-            <div class="cmd-item"><code>exportarcanvas(idbtn)(formato)</code><span>Descarga un lienzo como PNG o JPG al pulsar</span></div>
-            <div class="cmd-item"><code>luz(id)(tipo)</code><span>Aplica iluminación ambiental o direccional a un elemento</span></div>
-            <div class="cmd-item"><code>sombrapro(nivel)(color)</code><span>Aplica una sombra avanzada personalizada</span></div>
-            <div class="cmd-item"><code>filtro(efecto)</code><span>Aplica desenfoque, brillo, contraste o escala de grises</span></div>
-            <div class="cmd-item"><code>rotar(grados)</code><span>Rota el elemento activo</span></div>
-            <div class="cmd-item"><code>escala(porcentaje)</code><span>Escala el elemento activo mediante un porcentaje</span></div>
-            <div class="cmd-item"><code>transicion(milisegundos)</code><span>Define una transición fluida en milisegundos</span></div>
-            <div class="cmd-item"><code>audio(id)(url)</code><span>Inserta un reproductor de audio</span></div>
-            <div class="cmd-item"><code>notificacion(idbtn)(mensaje)</code><span>Muestra un aviso flotante al pulsar un botón</span></div>
-            <div class="cmd-item"><code>modal(id)</code><span>Inicia una ventana modal reutilizable</span></div>
-            <div class="cmd-item"><code>finmodal</code><span>Cierra la estructura modal abierta</span></div>
-            <div class="cmd-item"><code>tema(modo) / tema(idbtn)(modo)</code><span>Configura el tema global directamente o al pulsar un botón</span></div>
-          </div>
+          <h4>IV. Dibujo, Capas, Efectos y Utilidades</h4>
+          <div class="cmd-list"></div>
         </div>
         <!-- Categorías V - VIII -->
         <div class="dict-category" data-command-category="5">
-          <h4>V. Espacio 3D, Cámaras y Motores Geométricos (91–105)</h4>
+          <h4>V. Espacio 3D, Cámaras y Motores Geométricos</h4>
           <div class="cmd-list"></div>
         </div>
         <div class="dict-category" data-command-category="6">
-          <h4>VI. Diseño Moderno, UI Avanzada y Efectos Visuales (106–117)</h4>
+          <h4>VI. Diseño Moderno, UI Avanzada y Efectos Visuales</h4>
           <div class="cmd-list"></div>
         </div>
         <div class="dict-category" data-command-category="7">
-          <h4>VII. Capacidades de Sistema Operativo (OS) y Gestión (118–130)</h4>
+          <h4>VII. Capacidades de Sistema Operativo (OS) y Gestión</h4>
           <div class="cmd-list"></div>
         </div>
         <div class="dict-category" data-command-category="8">
-          <h4>VIII. Herramientas Avanzadas de Dibujo 3D y Capas (131–135)</h4>
+          <h4>VIII. Herramientas Avanzadas de Dibujo 3D y Capas</h4>
           <div class="cmd-list"></div>
         </div>
       </div>
@@ -375,7 +283,7 @@
 <script>
 (() => {
   // ==========================================
-  // ESPECIFICACIÓN CENTRAL DE 135 COMANDOS RC
+  // ESPECIFICACIÓN CENTRAL DE 147 COMANDOS RC
   // ==========================================
   const RC_COMMANDS_SPEC = {
     // Categoría I: Estructura y Contenido (Comandos 1 - 30)
@@ -432,7 +340,7 @@
     flotante: { cat: 2, name: 'flotante', params: ['posicion'], minArgs: 1, type: 'style', action: 'displayOrFloat', desc: 'Establece posicionamiento (relative, absolute, fixed, flex, grid)' },
     desplazamiento: { cat: 2, name: 'desplazamiento', params: [], minArgs: 0, type: 'style', prop: 'overflow', val: 'auto', desc: 'Habilita barras de desplazamiento (overflow auto)' },
 
-    // Categoría III: Campos, Eventos y Lógica (Comandos 51 - 75)
+    // Categoría III: Campos, Eventos y Lógica (Comandos 51 - 80)
     entrada: { cat: 3, name: 'entrada', params: ['id', 'valor'], minArgs: 1, type: 'input', inputType: 'text', desc: 'Crea un campo de texto (<input type="text">)' },
     camponumero: { cat: 3, name: 'camponumero', params: ['id', 'valor'], minArgs: 1, type: 'input', inputType: 'number', desc: 'Crea un campo numérico (<input type="number">)' },
     campocorreo: { cat: 3, name: 'campocorreo', params: ['id', 'valor'], minArgs: 1, type: 'input', inputType: 'email', desc: 'Crea un campo de correo (<input type="email">)' },
@@ -440,6 +348,11 @@
     campofecha: { cat: 3, name: 'campofecha', params: ['id'], minArgs: 1, type: 'input', inputType: 'date', desc: 'Crea un selector de fecha (<input type="date">)' },
     campochequeo: { cat: 3, name: 'campochequeo', params: ['id', 'texto'], minArgs: 2, type: 'checkbox', desc: 'Crea una casilla de verificación (checkbox)' },
     desplegable: { cat: 3, name: 'desplegable', params: ['id'], minArgs: 1, type: 'element', tag: 'select', desc: 'Crea un menú desplegable (<select>)' },
+    al_clic_fuera: { cat: 3, name: 'al_clic_fuera', params: ['id_elemento'], minArgs: 1, type: 'outsideClick', desc: 'Detecta clics fuera, oculta el elemento y emite rc:clickoutside' },
+    deslizar: { cat: 3, name: 'deslizar', params: ['id_elemento', 'direccion'], minArgs: 2, type: 'swipe', desc: 'Detecta un gesto swipe en la dirección indicada y emite rc:swipe' },
+    al_presionar_atras: { cat: 3, name: 'al_presionar_atras', params: [], minArgs: 0, type: 'back', desc: 'Detecta Atrás en móvil o Escape y emite rc:back' },
+    estado: { cat: 3, name: 'estado', params: ['id_elemento', 'clave, valor'], signatures: ['estado(id_elemento)(clave, valor)', 'estado(id_elemento)(clave)(valor)'], minArgs: 2, maxArgs: 3, type: 'state', desc: 'Guarda estado interno y emite rc:statechange' },
+    si_estado: { cat: 3, name: 'si_estado', params: ['id_elemento', 'clave, valor'], signatures: ['si_estado(id_elemento)(clave, valor)', 'si_estado(id_elemento)(clave)(valor)'], minArgs: 2, maxArgs: 3, type: 'stateCondition', desc: 'Evalúa el estado y emite rc:statecheck' },
     avisar: { cat: 3, name: 'avisar', params: ['idbtn', 'mensaje'], minArgs: 2, type: 'event', desc: 'Muestra alerta al presionar un botón' },
     ira: { cat: 3, name: 'ira', params: ['idbtn', 'url'], minArgs: 2, type: 'event', desc: 'Navega a una URL al presionar un botón' },
     ocultarboton: { cat: 3, name: 'ocultarboton', params: ['idbtn', 'idtarget'], minArgs: 2, type: 'event', desc: 'Oculta el elemento objetivo al hacer clic' },
@@ -459,24 +372,31 @@
     guardarlocal: { cat: 3, name: 'guardarlocal', params: ['idbtn', 'clave', 'idin'], minArgs: 3, type: 'storage', action: 'save', desc: 'Guarda en localStorage el valor del campo al pulsar el botón' },
     cargarlocal: { cat: 3, name: 'cargarlocal', params: ['clave', 'lbl'], minArgs: 2, type: 'storage', action: 'load', desc: 'Lee el valor almacenado y lo muestra en la etiqueta de destino' },
 
-    // Categoría IV: Dibujo, efectos y utilidades (Comandos 76 - 90)
-    capa: { cat: 4, name: 'capa', params: ['id'], minArgs: 1, type: 'layer', desc: 'Crea una capa canvas superpuesta y no interactiva' },
+    // Categoría IV: Dibujo, efectos y utilidades (Comandos 81 - 102)
+    capa: { cat: 4, name: 'capa', params: ['nivel'], signatures: ['capa(nivel)', 'capa(id)'], minArgs: 1, type: 'layer', desc: 'Establece z-index o crea una capa canvas superpuesta con un ID' },
+    posicion: { cat: 4, name: 'posicion', params: ['tipo'], minArgs: 1, type: 'position', desc: 'Establece posicionamiento fijo, absoluto o relativo' },
+    desplazar: { cat: 4, name: 'desplazar', params: ['x', 'y'], signatures: ['desplazar(x)(y)', 'desplazar(x, y)'], minArgs: 1, maxArgs: 2, type: 'translate', desc: 'Desplaza el elemento activo en los ejes X e Y' },
     pincel: { cat: 4, name: 'pincel', params: ['tipo', 'tamano'], minArgs: 2, type: 'brush', desc: 'Configura el tipo y grosor del pincel' },
-    opacidad: { cat: 4, name: 'opacidad', params: ['nivel'], minArgs: 1, type: 'opacity', desc: 'Ajusta la opacidad de 0 a 10' },
+    opacidad: { cat: 4, name: 'opacidad', params: ['valor'], minArgs: 1, type: 'opacity', desc: 'Ajusta la opacidad de 0 a 100 o de 0.0 a 1.0' },
     exportarcanvas: { cat: 4, name: 'exportarcanvas', params: ['idbtn', 'formato'], minArgs: 2, type: 'event', desc: 'Exporta un lienzo en formato PNG o JPG al pulsar' },
     luz: { cat: 4, name: 'luz', params: ['id', 'tipo'], minArgs: 2, type: 'light', desc: 'Aplica iluminación ambiental o direccional a un elemento' },
     sombrapro: { cat: 4, name: 'sombrapro', params: ['nivel', 'color'], minArgs: 2, type: 'shadow', desc: 'Aplica una sombra personalizada' },
     filtro: { cat: 4, name: 'filtro', params: ['efecto'], minArgs: 1, type: 'filter', desc: 'Aplica desenfoque, brillo, contraste o escala de grises' },
     rotar: { cat: 4, name: 'rotar', params: ['grados'], minArgs: 1, type: 'rotate', desc: 'Rota el elemento activo en grados' },
     escala: { cat: 4, name: 'escala', params: ['porcentaje'], minArgs: 1, type: 'scale', desc: 'Escala el elemento activo mediante un porcentaje' },
-    transicion: { cat: 4, name: 'transicion', params: ['milisegundos'], minArgs: 1, type: 'transition', desc: 'Define la duración de transición en milisegundos' },
+    transicion: { cat: 4, name: 'transicion', params: ['tiempo'], minArgs: 1, type: 'transition', desc: 'Define una transición en milisegundos o segundos' },
     audio: { cat: 4, name: 'audio', params: ['id', 'url'], minArgs: 2, type: 'audio', desc: 'Inserta un reproductor de audio' },
+    cargar_audio: { cat: 4, name: 'cargar_audio', params: ['id_audio', 'ruta'], minArgs: 2, type: 'loadAudio', desc: 'Precarga un archivo MP3, WAV u OGG en un canal oculto' },
+    reproducir: { cat: 4, name: 'reproducir', params: ['id_audio'], minArgs: 1, type: 'audioControl', desc: 'Inicia la reproducción del canal de audio' },
+    pausar: { cat: 4, name: 'pausar', params: ['id_audio'], minArgs: 1, type: 'audioControl', desc: 'Pausa el canal de audio en su posición actual' },
+    detener: { cat: 4, name: 'detener', params: ['id_audio'], minArgs: 1, type: 'audioControl', desc: 'Detiene el canal de audio y reinicia su posición' },
+    volumen: { cat: 4, name: 'volumen', params: ['id_audio', 'nivel'], minArgs: 2, type: 'audioVolume', desc: 'Ajusta el volumen del canal entre 0 y 100%' },
     notificacion: { cat: 4, name: 'notificacion', params: ['idbtn', 'mensaje'], minArgs: 2, type: 'event', desc: 'Muestra una notificación flotante al pulsar' },
     modal: { cat: 4, name: 'modal', params: ['id'], minArgs: 1, type: 'container', tag: 'div', desc: 'Inicia una ventana modal reutilizable' },
     finmodal: { cat: 4, name: 'finmodal', params: [], minArgs: 0, type: 'closing', desc: 'Cierra la estructura modal abierta' },
     tema: { cat: 4, name: 'tema', params: ['modo'], eventSignature: 'tema(idbtn)(modo)', minArgs: 1, maxArgs: 2, type: 'theme', desc: 'Configura el tema directamente o al pulsar un botón' },
 
-    // Categoría V: Espacio 3D, cámaras y motores geométricos (91 - 105)
+    // Categoría V: Espacio 3D, cámaras y motores geométricos (103 - 117)
     escena3d: { cat: 5, name: 'escena3d', params: ['id'], minArgs: 1, type: 'scene3d', desc: 'Crea una escena geométrica 3D interactiva en Canvas' },
     finescena3d: { cat: 5, name: 'finescena3d', params: [], minArgs: 0, type: 'closing', desc: 'Cierra la escena 3D activa' },
     camara3d: { cat: 5, name: 'camara3d', params: ['tipo'], minArgs: 1, type: 'camera3d', desc: 'Configura la cámara 3D en perspectiva u ortográfica' },
@@ -493,7 +413,7 @@
     vertice: { cat: 5, name: 'vertice', params: ['id', 'x', 'y', 'z'], minArgs: 4, type: 'vertex3d', desc: 'Añade un vértice XYZ a la geometría identificada' },
     render3d: { cat: 5, name: 'render3d', params: ['id'], minArgs: 1, type: 'render3d', desc: 'Renderiza o actualiza la escena 3D indicada' },
 
-    // Categoría VI: Diseño moderno, UI avanzada y efectos visuales (106 - 117)
+    // Categoría VI: Diseño moderno, UI avanzada y efectos visuales (118 - 129)
     gradiente: { cat: 6, name: 'gradiente', params: ['tipo', 'colores'], minArgs: 2, type: 'gradient', desc: 'Aplica un gradiente lineal o radial con los colores indicados' },
     glassmorphism: { cat: 6, name: 'glassmorphism', params: ['nivel'], minArgs: 1, type: 'glass', desc: 'Aplica un acabado de vidrio esmerilado configurable' },
     animacion: { cat: 6, name: 'animacion', params: ['nombre', 'duracion'], minArgs: 2, type: 'animation', desc: 'Anima el elemento activo con una duración en segundos' },
@@ -507,7 +427,7 @@
     finacordeon: { cat: 6, name: 'finacordeon', params: [], minArgs: 0, type: 'closing', desc: 'Cierra el panel acordeón abierto' },
     tooltip: { cat: 6, name: 'tooltip', params: ['texto'], minArgs: 1, type: 'tooltip', desc: 'Añade un tooltip accesible al elemento activo' },
 
-    // Categoría VII: Capacidades de sistema operativo y gestión (118 - 130)
+    // Categoría VII: Capacidades de sistema operativo y gestión (130 - 142)
     ventana: { cat: 7, name: 'ventana', params: ['id', 'titulo'], minArgs: 2, type: 'window', desc: 'Crea una ventana flotante arrastrable con controles' },
     finventana: { cat: 7, name: 'finventana', params: [], minArgs: 0, type: 'closing', desc: 'Cierra el contenido de la ventana flotante' },
     barraestado: { cat: 7, name: 'barraestado', params: [], minArgs: 0, type: 'statusbar', desc: 'Inserta una barra de estado del sistema simulado' },
@@ -522,7 +442,7 @@
     notificacionos: { cat: 7, name: 'notificacionos', params: ['titulo', 'mensaje'], minArgs: 2, type: 'osNotification', desc: 'Muestra una notificación local dentro de la aplicación' },
     nucleo: { cat: 7, name: 'nucleo', params: [], minArgs: 0, type: 'kernel', desc: 'Inserta un panel de estado del sistema simulado' },
 
-    // Categoría VIII: Herramientas avanzadas de dibujo 3D y capas (131 - 135)
+    // Categoría VIII: Herramientas avanzadas de dibujo 3D y capas (143 - 147)
     sombra3d: { cat: 8, name: 'sombra3d', params: ['id', 'suavizado'], minArgs: 2, type: 'shadow3d', desc: 'Activa sombra suave en un objeto de la escena 3D' },
     enfocar3d: { cat: 8, name: 'enfocar3d', params: ['id'], minArgs: 1, type: 'focus3d', desc: 'Centra la cámara 3D en el objeto indicado' },
     exportar3d: { cat: 8, name: 'exportar3d', params: ['idbtn', 'formato'], minArgs: 2, type: 'event', desc: 'Exporta la imagen PNG o geometría JSON de una escena 3D' },
@@ -535,21 +455,35 @@
     'finescena3d', 'finpestana', 'finacordeon', 'finventana'
   ]);
 
+  const commandsByCategory = new Map();
+  Object.values(RC_COMMANDS_SPEC).forEach(spec => {
+    const commands = commandsByCategory.get(spec.cat) || [];
+    commands.push(spec);
+    commandsByCategory.set(spec.cat, commands);
+  });
+
+  let commandNumber = 0;
   document.querySelectorAll('.dict-category[data-command-category]').forEach(category => {
-    const categoryNumber = Number(category.dataset.commandCategory);
+    const commands = commandsByCategory.get(Number(category.dataset.commandCategory)) || [];
+    const heading = category.querySelector('h4');
+    if (heading) {
+      const title = heading.textContent.replace(/\s*\(\d+ comandos\)$/, '');
+      heading.textContent = `${title} (${commands.length} comandos)`;
+    }
     const commandList = category.querySelector('.cmd-list');
-    commandList.replaceChildren();
-    Object.values(RC_COMMANDS_SPEC).filter(spec => spec.cat === categoryNumber).forEach(spec => {
+    commandList.replaceChildren(...commands.map(spec => {
       const item = document.createElement('div');
       item.className = 'cmd-item';
       const signature = document.createElement('code');
-      signature.textContent = spec.name + spec.params.map(param => `(${param})`).join('') +
-        (spec.eventSignature ? ` / ${spec.eventSignature}` : '');
+      const signatures = (spec.signatures || [
+        spec.name + spec.params.map(param => `(${param})`).join('')
+      ]).concat(spec.eventSignature ? [spec.eventSignature] : []).join(' / ');
+      signature.textContent = `${String(++commandNumber).padStart(3, '0')}. ${signatures}`;
       const description = document.createElement('span');
       description.textContent = spec.desc;
       item.append(signature, description);
-      commandList.appendChild(item);
-    });
+      return item;
+    }));
   });
 
   const paletteColors = [
@@ -617,13 +551,74 @@
   }
 
   function formatColor(val) {
+    val = cleanParam(val);
     if (!val) return '';
-    val = val.trim();
-    if (val.startsWith('#')) return val.toLowerCase();
-    if (/^[0-9a-fA-F]{3}$|^[0-9a-fA-F]{6}$|^[0-9a-fA-F]{8}$/.test(val)) {
-      return '#' + val.toLowerCase();
+    if (/^#(?:[0-9a-f]{3}|[0-9a-f]{4}|[0-9a-f]{6}|[0-9a-f]{8})$/i.test(val)) return val.toLowerCase();
+    if (/^(?:[0-9a-f]{3}|[0-9a-f]{4}|[0-9a-f]{6}|[0-9a-f]{8})$/i.test(val)) return `#${val.toLowerCase()}`;
+    const spanishAliases = {
+      blanco: 'white', negro: 'black', rojo: 'red', azul: 'blue', verde: 'green',
+      amarillo: 'yellow', naranja: 'orange', morado: 'purple', purpura: 'purple',
+      violeta: 'violet', rosa: 'pink', cian: 'cyan', turquesa: 'turquoise',
+      magenta: 'magenta', gris: 'gray', plata: 'silver', dorado: 'gold',
+      marron: 'brown', cafe: 'brown', lima: 'lime', coral: 'coral',
+      salmon: 'salmon', aguamarina: 'aquamarine', oliva: 'olive',
+      marino: 'navy', fucsia: 'fuchsia', granate: 'maroon',
+      'azul claro': 'lightblue', 'azul oscuro': 'darkblue',
+      'verde claro': 'lightgreen', 'verde oscuro': 'darkgreen',
+      'rojo oscuro': 'darkred', 'gris claro': 'lightgray',
+      'gris oscuro': 'dimgray', 'azul marino': 'navy', 'verde lima': 'lime'
+    };
+    const normalized = val.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    if (Object.prototype.hasOwnProperty.call(spanishAliases, normalized)) return spanishAliases[normalized];
+    return val;
+  }
+
+  function isCssColor(val) {
+    const color = cleanParam(val);
+    if (!color) return false;
+    if (typeof CSS !== 'undefined' && typeof CSS.supports === 'function') {
+      return CSS.supports('color', color);
     }
-    return val.toLowerCase();
+    return /^(?:#(?:[0-9a-f]{3}|[0-9a-f]{4}|[0-9a-f]{6}|[0-9a-f]{8})|[a-z][a-z0-9-]*|(?:rgb|rgba|hsl|hsla|hwb|lab|lch|oklab|oklch|color|color-mix)\([\w\s,.\/%+*()-]+\))$/i.test(formatColor(color));
+  }
+
+  function splitTopLevel(value, separator = ',') {
+    const parts = [];
+    let depth = 0;
+    let start = 0;
+    let quote = '';
+    let escaped = false;
+    const cleanPart = part => {
+      const trimmed = part.trim();
+      if (trimmed.length >= 2 && ['"', "'"].includes(trimmed[0]) && trimmed[trimmed.length - 1] === trimmed[0]) {
+        return trimmed.slice(1, -1).replace(/\\(["'\\()])/g, '$1');
+      }
+      return trimmed;
+    };
+    for (let index = 0; index < value.length; index++) {
+      const char = value[index];
+      if (escaped) {
+        escaped = false;
+        continue;
+      }
+      if (quote && char === '\\') {
+        escaped = true;
+        continue;
+      }
+      if (quote) {
+        if (char === quote) quote = '';
+        continue;
+      }
+      if (char === '"' || char === "'") quote = char;
+      else if (char === '(') depth++;
+      else if (char === ')') depth = Math.max(0, depth - 1);
+      else if (char === separator && depth === 0) {
+        parts.push(cleanPart(value.slice(start, index)));
+        start = index + 1;
+      }
+    }
+    parts.push(cleanPart(value.slice(start)));
+    return parts;
   }
 
   function formatUnit(val) {
@@ -661,76 +656,120 @@
   // PARSER DE LÍNEAS RC Y ASIGNACIONES
   // ==========================================
   function parseRcLine(line, lineNum = 1) {
-    line = line.trim();
+    const rawLine = String(line);
+    line = rawLine.trim();
     if (!line || line.startsWith('//')) return null;
 
-    // Detectar asignación de variable: var_name = valor
-    const assignMatch = line.match(/^([a-z0-9_]+)\s*=\s*(.+)$/);
-    if (assignMatch && !line.includes('(')) {
-      return {
-        isAssignment: true,
-        varName: assignMatch[1].toLowerCase(),
-        varVal: cleanParam(assignMatch[2]),
-        rawLine: line,
-        lineNum
-      };
+    const parseError = message => ({ parseError: message, rawLine: line, lineNum });
+    const decodeArgument = value => {
+      const trimmed = value.trim();
+      if (trimmed.length < 2 || !['"', "'"].includes(trimmed[0])) return trimmed;
+      let escaped = false;
+      for (let index = 1; index < trimmed.length; index++) {
+        const char = trimmed[index];
+        if (escaped) {
+          escaped = false;
+        } else if (char === '\\') {
+          escaped = true;
+        } else if (char === trimmed[0]) {
+          return index === trimmed.length - 1
+            ? trimmed.slice(1, -1).replace(/\\(["'\\()])/g, '$1')
+            : trimmed;
+        }
+      }
+      return trimmed;
+    };
+
+    const assignMatch = line.match(/^([a-z0-9_]+)\s*=\s*(.*)$/);
+    if (assignMatch) {
+      let quote = '';
+      let escaped = false;
+      let hasCommandCall = false;
+      for (const char of assignMatch[2]) {
+        if (escaped) {
+          escaped = false;
+          continue;
+        }
+        if (quote && char === '\\') {
+          escaped = true;
+          continue;
+        }
+        if (quote) {
+          if (char === quote) quote = '';
+        } else if (char === '"' || char === "'") {
+          quote = char;
+        } else if (char === '(') {
+          hasCommandCall = true;
+          break;
+        }
+      }
+      if (!hasCommandCall) {
+        return {
+          isAssignment: true,
+          varName: assignMatch[1].toLowerCase(),
+          varVal: cleanParam(decodeArgument(assignMatch[2])),
+          rawLine: line,
+          lineNum
+        };
+      }
     }
 
     let bracketId = '';
-    let workLine = line;
+    let cursor = 0;
+    const commandMatch = line.match(/^([a-zA-Z][a-zA-Z0-9_]*)/);
+    if (!commandMatch) {
+      return parseError('Los comandos deben escribirse en minúsculas');
+    }
+    const rawCommand = commandMatch[1];
+    const cmd = rawCommand.toLowerCase();
+    cursor = rawCommand.length;
 
-    // Sintaxis de corchetes: comando[id](args) o comando[id]
-    const bracketMatch = workLine.match(/^([a-z0-9_]+)\[([a-z0-9_]+)\](.*)$/);
-    if (bracketMatch) {
-      const baseCmd = bracketMatch[1];
-      bracketId = bracketMatch[2];
-      const restAfterBracket = bracketMatch[3].trim();
-      workLine = baseCmd + restAfterBracket;
-    } else if (workLine.includes('[') || workLine.includes(']')) {
-      return { parseError: 'Sintaxis de corchetes inválida', rawLine: line, lineNum };
+    while (/\s/.test(line[cursor] || '')) cursor++;
+    if (line[cursor] === '[') {
+      const bracketMatch = line.slice(cursor).match(/^\[([\u00C0-\u024F\u1E00-\u1EFFa-zA-Z0-9_]+)\]/);
+      if (!bracketMatch) return parseError('Sintaxis de corchetes inválida');
+      bracketId = bracketMatch[1];
+      cursor += bracketMatch[0].length;
+      while (/\s/.test(line[cursor] || '')) cursor++;
+    } else if (line.slice(cursor).includes(']')) {
+      return parseError('Sintaxis de corchetes inválida');
     }
 
-    const parenIndex = workLine.indexOf('(');
-    let cmd = workLine;
     let args = [];
-
-    if (parenIndex !== -1) {
-      cmd = workLine.slice(0, parenIndex).trim();
-      const rest = workLine.slice(parenIndex);
-
-      let depth = 0;
-      let argumentStart = -1;
-      let invalid = false;
-
-      for (let i = 0; i < rest.length; i++) {
-        const ch = rest[i];
-        if (ch === '(') {
-          if (depth === 0) {
-            argumentStart = i + 1;
-          }
-          depth++;
-        } else if (ch === ')') {
-          if (depth === 0) {
-            invalid = true;
-            break;
-          }
-          depth--;
-          if (depth === 0) {
-            args.push(rest.slice(argumentStart, i).trim());
-            argumentStart = -1;
-          }
-        } else if (depth === 0 && !/\s/.test(ch)) {
-          invalid = true;
+    while (cursor < line.length) {
+      if (line[cursor] !== '(') {
+        return parseError('Paréntesis sin pareja o contenido fuera de los parámetros');
+      }
+      const argumentStart = ++cursor;
+      let depth = 1;
+      let quote = '';
+      let escaped = false;
+      for (; cursor < line.length; cursor++) {
+        const char = line[cursor];
+        if (escaped) {
+          escaped = false;
+          continue;
         }
+        if (quote && char === '\\') {
+          escaped = true;
+          continue;
+        }
+        if (quote) {
+          if (char === quote) quote = '';
+          continue;
+        }
+        if (char === '"' || char === "'") quote = char;
+        else if (char === '(') depth++;
+        else if (char === ')' && --depth === 0) break;
       }
-
-      if (invalid || depth !== 0) {
-        return { parseError: 'Paréntesis sin pareja o contenido fuera de los parámetros', rawLine: line, lineNum };
-      }
+      if (depth !== 0 || quote) return parseError('Paréntesis o comillas sin pareja');
+      args.push(decodeArgument(line.slice(argumentStart, cursor)));
+      cursor++;
+      while (/\s/.test(line[cursor] || '')) cursor++;
     }
 
-    if (!/^[a-z][a-z0-9_]*$/.test(cmd)) {
-      return { parseError: 'Los comandos deben escribirse en minúsculas', rawLine: line, lineNum };
+    if (rawCommand !== cmd) {
+      return parseError('Los comandos deben escribirse en minúsculas');
     }
 
     return { cmd, bracketId, args, rawLine: line, lineNum };
@@ -756,6 +795,14 @@
     const scenes3d = new Map();
     let activeScene3d = null;
     const generatedKeyframes = new Map();
+    const bracketIdCommands = new Set([
+      'seccion', 'contenedor', 'texto', 'encabezado', 'negrita', 'cursiva', 'subrayado',
+      'etiqueta', 'bloque', 'cita', 'codigo', 'enlace', 'imagen', 'listadesordenada',
+      'listaordenada', 'elementolista', 'tabla', 'filatabla', 'encabezadotabla',
+      'celdatabla', 'boton', 'etiquetacampo', 'cargando', 'lienzo', 'areatexto',
+      'entrada', 'camponumero', 'campocorreo', 'campocontrasena', 'campofecha',
+      'campochequeo', 'desplegable'
+    ]);
 
     function expandIncludes(source, filename, includeChain) {
       source.split('\n').forEach((rawLine, index) => {
@@ -916,9 +963,12 @@
         warnings.push(`${filename || 'RC'}:${lineNum}: comando desconocido '${escapeHtml(cmd)}'.`);
         return;
       }
-      const maxArgs = spec?.maxArgs ?? spec?.params.length ?? 0;
-      if (spec && (args.length < spec.minArgs || args.length > maxArgs)) {
-        warnings.push(`${filename || 'RC'}:${lineNum}: '${cmd}' espera entre ${spec.minArgs} y ${maxArgs} parámetros; recibió ${args.length}.`);
+      const bracketIdUsed = Boolean(bracketId && bracketIdCommands.has(cmd));
+      const argumentOffset = bracketIdUsed && spec?.params[0] === 'id' ? 1 : 0;
+      const minArgs = Math.max(0, (spec?.minArgs ?? 0) - argumentOffset);
+      const maxArgs = (spec?.maxArgs ?? spec?.params.length ?? 0) - argumentOffset;
+      if (spec && (args.length < minArgs || args.length > maxArgs)) {
+        warnings.push(`${filename || 'RC'}:${lineNum}: '${cmd}' espera entre ${minArgs} y ${maxArgs} parámetros; recibió ${args.length}.`);
         return;
       }
 
@@ -947,6 +997,8 @@
         sumar: [a1, a2, a3, a4], restar: [a1, a2, a3, a4], multiplicar: [a1, a2, a3, a4], dividir: [a1, a2, a3, a4],
         incrementar: [a1, a2], decrementar: [a1, a2], guardarlocal: [a1, a3], cargarlocal: [a2],
         exportarcanvas: [a1], luz: [a1], notificacion: [a1],
+        al_clic_fuera: [a1], deslizar: [a1], estado: [a1], si_estado: [a1],
+        reproducir: [a1], pausar: [a1], detener: [a1], volumen: [a1],
         fondo: args.length === 2 ? [a1] : [],
         color: args.length === 2 ? [a1] : [],
         tema: args.length === 2 ? [a1] : []
@@ -959,10 +1011,10 @@
         'seccion', 'contenedor', 'rejilla', 'boton', 'parrafo', 'texto',
         'encabezado', 'entrada', 'camponumero', 'campocorreo', 'campocontrasena',
         'campofecha', 'campochequeo', 'desplegable', 'areatexto', 'lienzo',
-        'capa', 'audio', 'modal', 'cargando', 'tabla', 'listadesordenada', 'listaordenada'
+        'capa', 'audio', 'cargar_audio', 'modal', 'cargando', 'tabla', 'listadesordenada', 'listaordenada'
       ];
 
-      if (elementCmds.includes(cmd)) {
+      if (elementCmds.includes(cmd) && !(cmd === 'capa' && cleanParam(a1) !== '' && Number.isFinite(Number(a1)))) {
         lastCreatedNode = null;
       }
 
@@ -1315,10 +1367,9 @@
 
         case 'gradiente': {
           const gradientType = cleanParam(a1).toLowerCase();
-          const colors = cleanParam(a2).split(',').map(color => color.trim());
-          const validColor = color => /^(#[0-9a-f]{3,8}|[a-z]{1,24})$/i.test(color);
-          if (!['lineal', 'radial'].includes(gradientType) || colors.length < 2 || colors.some(color => !validColor(color))) {
-            warnings.push(`${filename || 'RC'}:${lineNum}: 'gradiente' requiere tipo lineal/radial y al menos dos colores CSS simples separados por comas.`);
+          const colors = splitTopLevel(cleanParam(a2));
+          if (!['lineal', 'radial'].includes(gradientType) || colors.length < 2 || colors.some(color => !isCssColor(color))) {
+            warnings.push(`${filename || 'RC'}:${lineNum}: 'gradiente' requiere tipo lineal/radial y al menos dos colores CSS válidos separados por comas.`);
             break;
           }
           currentTargetForStyle().styles.push(`background: ${gradientType === 'radial' ? 'radial' : 'linear'}-gradient(${gradientType === 'radial' ? 'circle, ' : '135deg, '}${colors.map(formatColor).join(', ')});`);
@@ -1887,6 +1938,11 @@
         }
 
         case 'capa': {
+          const zIndex = Number(cleanParam(a1));
+          if (cleanParam(a1) !== '' && Number.isFinite(zIndex)) {
+            currentTargetForStyle().styles.push(`z-index: ${zIndex};`);
+            break;
+          }
           const layerParent = currentContainer();
           if (layerParent !== rootNode) layerParent.styles.push('position: relative;');
           const layerNode = createNode('canvas', cleanParam(a1), 'rc-layer');
@@ -1903,6 +1959,53 @@
           audioNode.attrs.controls = 'controls';
           audioNode.attrs.preload = 'metadata';
           addChild(audioNode);
+          break;
+        }
+
+        case 'cargar_audio': {
+          const audioNode = createNode('audio', cleanParam(a1));
+          audioNode.src = cleanParam(a2);
+          audioNode.attrs.preload = 'auto';
+          audioNode.attrs['aria-hidden'] = 'true';
+          audioNode.styles.push('display: none;');
+          addChild(audioNode);
+          break;
+        }
+
+        case 'reproducir':
+          scriptLines.push(`{
+            const audio = document.getElementById(${escapeJsString(a1)});
+            if (audio) {
+              const playback = audio.play();
+              playback?.catch(error => console.error('No se pudo reproducir el audio ' + ${escapeJsString(a1)} + ':', error));
+            }
+          }`);
+          break;
+
+        case 'pausar':
+          scriptLines.push(`document.getElementById(${escapeJsString(a1)})?.pause();`);
+          break;
+
+        case 'detener':
+          scriptLines.push(`{
+            const audio = document.getElementById(${escapeJsString(a1)});
+            if (audio) {
+              audio.pause();
+              audio.currentTime = 0;
+            }
+          }`);
+          break;
+
+        case 'volumen': {
+          const volume = Number(a2);
+          if (!Number.isFinite(volume) || volume < 0 || volume > 100) {
+            warnings.push(`${filename || 'RC'}:${lineNum}: 'volumen' requiere un nivel entre 0 y 100.`);
+            break;
+          }
+          scriptLines.push(`{
+            const audio = document.getElementById(${escapeJsString(a1)});
+            if (audio) audio.volume = ${volume / 100};
+          }`);
           break;
         }
 
@@ -1928,7 +2031,7 @@
         case 'areatexto': {
           const areaId = bracketId || cleanParam(a1);
           const areaNode = createNode('textarea', areaId);
-          areaNode.innerText = cleanParam(a2);
+          areaNode.innerText = cleanParam(bracketId ? a1 : a2);
           addChild(areaNode);
           break;
         }
@@ -1937,7 +2040,7 @@
           const inTxtId = bracketId || cleanParam(a1);
           const inTxt = createNode('input', inTxtId);
           inTxt.inputType = 'text';
-          inTxt.val = cleanParam(a2);
+          inTxt.val = cleanParam(bracketId ? a1 : a2);
           addChild(inTxt);
           break;
         }
@@ -1946,7 +2049,7 @@
           const inNumId = bracketId || cleanParam(a1);
           const inNum = createNode('input', inNumId);
           inNum.inputType = 'number';
-          inNum.val = cleanParam(a2);
+          inNum.val = cleanParam(bracketId ? a1 : a2);
           addChild(inNum);
           break;
         }
@@ -1955,7 +2058,7 @@
           const inMailId = bracketId || cleanParam(a1);
           const inMail = createNode('input', inMailId);
           inMail.inputType = 'email';
-          inMail.val = cleanParam(a2);
+          inMail.val = cleanParam(bracketId ? a1 : a2);
           addChild(inMail);
           break;
         }
@@ -1979,7 +2082,7 @@
         case 'campochequeo': {
           const chkId = bracketId || cleanParam(a1);
           const chkNode = createNode('label', chkId);
-          chkNode.rawHtml = `<label><input type="checkbox" id="${chkId}"> ${escapeHtml(cleanParam(a2))}</label>`;
+          chkNode.rawHtml = `<label><input type="checkbox" id="${escapeHtml(chkId)}"> ${escapeHtml(cleanParam(bracketId ? a1 : a2))}</label>`;
           addChild(chkNode);
           break;
         }
@@ -1990,21 +2093,151 @@
           break;
         }
 
-        case 'fondo':
+        case 'al_clic_fuera':
+          scriptLines.push(`{
+            const element = document.getElementById(${escapeJsString(a1)});
+            if (element) {
+              const outsideClickElements = window.__rcOutsideClickElements || (window.__rcOutsideClickElements = new Set());
+              outsideClickElements.add(element);
+              document.addEventListener('pointerdown', event => {
+                const clickedRegisteredElement = [...outsideClickElements].some(registered =>
+                  registered !== element && registered.contains(event.target)
+                );
+                if (!element.contains(event.target) && !clickedRegisteredElement) {
+                element.dispatchEvent(new CustomEvent('rc:clickoutside', { bubbles: true, detail: { originalEvent: event } }));
+                element.style.setProperty('display', 'none');
+                }
+              });
+            }
+          }`);
+          break;
+
+        case 'deslizar': {
+          const directions = {
+            izquierda: 'izquierda', left: 'izquierda',
+            derecha: 'derecha', right: 'derecha',
+            arriba: 'arriba', up: 'arriba',
+            abajo: 'abajo', down: 'abajo'
+          };
+          const direction = directions[cleanParam(a2).toLowerCase()];
+          if (!direction) {
+            warnings.push(`${filename || 'RC'}:${lineNum}: 'deslizar' admite izquierda, derecha, arriba o abajo.`);
+            break;
+          }
+          scriptLines.push(`{
+            const element = document.getElementById(${escapeJsString(a1)});
+            if (element) {
+              element.style.touchAction = ${escapeJsString(direction === 'izquierda' || direction === 'derecha' ? 'pan-y' : 'pan-x')};
+              let start = null;
+              element.addEventListener('pointerdown', event => {
+                start = { x: event.clientX, y: event.clientY, id: event.pointerId };
+                element.setPointerCapture?.(event.pointerId);
+              });
+              element.addEventListener('pointerup', event => {
+                if (!start || start.id !== event.pointerId) return;
+                const dx = event.clientX - start.x;
+                const dy = event.clientY - start.y;
+                start = null;
+                if (Math.max(Math.abs(dx), Math.abs(dy)) < 40) return;
+                const detected = Math.abs(dx) > Math.abs(dy)
+                  ? (dx < 0 ? 'izquierda' : 'derecha')
+                  : (dy < 0 ? 'arriba' : 'abajo');
+                if (detected === ${escapeJsString(direction)}) {
+                  element.dispatchEvent(new CustomEvent('rc:swipe', { bubbles: true, detail: { direction: detected, deltaX: dx, deltaY: dy } }));
+                }
+              });
+              element.addEventListener('pointercancel', () => { start = null; });
+            }
+          }`);
+          break;
+        }
+
+        case 'al_presionar_atras':
+          scriptLines.push(`{
+            const notifyBack = event => document.dispatchEvent(new CustomEvent('rc:back', { detail: { originalEvent: event } }));
+            window.addEventListener('popstate', event => {
+              notifyBack(event);
+              if (window.history?.pushState) window.history.pushState({ rcBackListener: true }, '', window.location.href);
+            });
+            if (window.history?.pushState) window.history.pushState({ rcBackListener: true }, '', window.location.href);
+            document.addEventListener('keydown', event => {
+              if (event.key === 'Escape' || event.key === 'BrowserBack') notifyBack(event);
+            });
+          }`);
+          break;
+
+        case 'estado':
+        case 'si_estado': {
+          const stateParts = args.length === 3
+            ? [cleanParam(a2), cleanParam(a3)]
+            : splitTopLevel(cleanParam(a2));
+          if (stateParts.length !== 2 || !stateParts[0] || !stateParts[1]) {
+            warnings.push(`${filename || 'RC'}:${lineNum}: '${cmd}' requiere clave y valor separados por coma.`);
+            break;
+          }
+          const [stateKey, stateValue] = stateParts;
+          const stateKeyJs = escapeJsString(stateKey);
+          const stateValueJs = escapeJsString(stateValue);
+          if (cmd === 'estado') {
+            scriptLines.push(`{
+              const element = document.getElementById(${escapeJsString(a1)});
+              if (element) {
+                const state = element.__rcState || (element.__rcState = Object.create(null));
+                state[${stateKeyJs}] = ${stateValueJs};
+                if (${escapeJsString(stateKey.toLowerCase())} === 'visibilidad') {
+                  if (['oculto', 'hidden'].includes(${escapeJsString(stateValue.toLowerCase())})) element.style.setProperty('display', 'none');
+                  else if (['visible', 'mostrado', 'shown'].includes(${escapeJsString(stateValue.toLowerCase())})) element.style.removeProperty('display');
+                }
+                element.dispatchEvent(new CustomEvent('rc:statechange', { bubbles: true, detail: { key: ${stateKeyJs}, value: ${stateValueJs} } }));
+              }
+            }`);
+          } else {
+            scriptLines.push(`{
+              const element = document.getElementById(${escapeJsString(a1)});
+              if (element) {
+                const evaluate = () => {
+                  const state = element.__rcState;
+                  const matches = Boolean(state && String(state[${stateKeyJs}]) === ${stateValueJs});
+                  element.dataset.rcStateMatch = String(matches);
+                  element.dispatchEvent(new CustomEvent('rc:statecheck', { bubbles: true, detail: { key: ${stateKeyJs}, value: ${stateValueJs}, matches } }));
+                };
+                element.addEventListener('rc:statechange', event => {
+                  if (event.detail?.key === ${stateKeyJs}) evaluate();
+                });
+                evaluate();
+              }
+            }`);
+          }
+          break;
+        }
+
+        case 'fondo': {
+          const colorValue = args.length === 2 ? a2 : a1;
+          if (!isCssColor(colorValue)) {
+            warnings.push(`${filename || 'RC'}:${lineNum}: 'fondo' requiere un color CSS válido.`);
+            break;
+          }
           if (args.length === 2) {
             scriptLines.push(`document.getElementById(${escapeJsString(a1)})?.addEventListener('click', () => { document.body.style.setProperty('background-color', ${escapeJsString(formatColor(a2))}); });`);
           } else {
             currentTargetForStyle().styles.push(`background-color: ${formatColor(a1)};`);
           }
           break;
+        }
 
-        case 'color':
+        case 'color': {
+          const colorValue = args.length === 2 ? a2 : a1;
+          if (!isCssColor(colorValue)) {
+            warnings.push(`${filename || 'RC'}:${lineNum}: 'color' requiere un color CSS válido.`);
+            break;
+          }
           if (args.length === 2) {
             scriptLines.push(`document.getElementById(${escapeJsString(a1)})?.addEventListener('click', () => { document.body.style.setProperty('color', ${escapeJsString(formatColor(a2))}); });`);
           } else {
             currentTargetForStyle().styles.push(`color: ${formatColor(a1)};`);
           }
           break;
+        }
 
         case 'letra':
           currentTargetForStyle().styles.push(`font-family: ${a1.includes(',') ? a1 : a1 + ', sans-serif'};`);
@@ -2095,11 +2328,11 @@
 
         case 'opacidad': {
           const level = Number(a1);
-          if (!Number.isFinite(level) || level < 0 || level > 10) {
-            warnings.push(`${filename || 'RC'}:${lineNum}: 'opacidad' requiere un nivel entre 0 y 10.`);
+          if (cleanParam(a1) === '' || !Number.isFinite(level) || level < 0 || level > 100) {
+            warnings.push(`${filename || 'RC'}:${lineNum}: 'opacidad' requiere un valor entre 0 y 1 o entre 0 y 100.`);
             break;
           }
-          currentTargetForStyle().styles.push(`opacity: ${level / 10};`);
+          currentTargetForStyle().styles.push(`opacity: ${level <= 1 ? level : level / 100};`);
           break;
         }
 
@@ -2164,9 +2397,11 @@
         }
 
         case 'transicion': {
-          const milliseconds = Number(a1);
+          const durationMatch = cleanParam(a1).match(/^(\d+(?:\.\d+)?)(ms|s)?$/i);
+          const duration = durationMatch ? Number(durationMatch[1]) : NaN;
+          const milliseconds = durationMatch?.[2]?.toLowerCase() === 's' ? duration * 1000 : duration;
           if (!Number.isFinite(milliseconds) || milliseconds < 0) {
-            warnings.push(`${filename || 'RC'}:${lineNum}: 'transicion' requiere una duración en milisegundos no negativa.`);
+            warnings.push(`${filename || 'RC'}:${lineNum}: 'transicion' requiere un tiempo no negativo en ms o s.`);
             break;
           }
           currentTargetForStyle().styles.push(`transition: all ${milliseconds}ms ease;`);
@@ -2218,6 +2453,38 @@
           } else {
             currentTargetForStyle().styles.push(`position: ${flotVal};`);
           }
+          break;
+        }
+
+        case 'posicion': {
+          const positionTypes = {
+            fijo: 'fixed', fixed: 'fixed',
+            absoluto: 'absolute', absolute: 'absolute',
+            relativo: 'relative', relative: 'relative'
+          };
+          const position = positionTypes[cleanParam(a1).toLowerCase()];
+          if (!position) {
+            warnings.push(`${filename || 'RC'}:${lineNum}: 'posicion' admite fijo, absoluto o relativo.`);
+            break;
+          }
+          currentTargetForStyle().styles.push(`position: ${position};`);
+          break;
+        }
+
+        case 'desplazar': {
+          const offsets = (args.length === 2 ? [a1, a2] : splitTopLevel(a1)).map(cleanParam);
+          const validOffset = value => {
+            if (typeof CSS !== 'undefined' && typeof CSS.supports === 'function') {
+              return CSS.supports('translate', `${value} 0px`);
+            }
+            return /^-?(?:\d+(?:\.\d+)?|\.\d+)(?:px|%|em|rem|vw|vh|vmin|vmax|ch|ex)?$/i.test(value) ||
+              /^calc\([\w\s.%+\-*\/()]+\)$/i.test(value);
+          };
+          if (offsets.length !== 2 || offsets.some(value => !validOffset(value))) {
+            warnings.push(`${filename || 'RC'}:${lineNum}: 'desplazar' requiere desplazamientos CSS válidos en X e Y.`);
+            break;
+          }
+          currentTargetForStyle().styles.push(`translate: ${offsets.map(formatUnit).join(' ')};`);
           break;
         }
 
@@ -2745,7 +3012,12 @@
     let warningBlock = '';
     if (warnings.length > 0) {
       warningBlock = `  <div style="background: #2a1b1b; color: #ff8080; border: 1px solid #662222; padding: 10px; margin: 10px 0; border-radius: 6px; font-family: monospace; font-size: 12px;">\n` +
-        warnings.map(w => `    <div>⚠️ ${escapeHtml(w)}</div>`).join('\n') + `\n  </div>\n`;
+        warnings.map(w => {
+          const formattedWarning = w
+            .replace(/^[^:]+:(\d+): /, 'Línea $1: ')
+            .replace(/ desde [^:]+:(\d+)/g, ' desde la línea $1');
+          return `    <div>⚠️ ${escapeHtml(formattedWarning)}</div>`;
+        }).join('\n') + `\n  </div>\n`;
     }
 
     let scriptBlock = '';
@@ -2856,9 +3128,12 @@ ${warningBlock}${bodyChildren}${scriptBlock}
   const files = new Map();
   let activeFile = "main.rc";
   let splitRatio = 0.5;
+  let stateSaveTimer = null;
   const panelSel = document.getElementById("panelSelector");
 
   function saveState() {
+    clearTimeout(stateSaveTimer);
+    stateSaveTimer = null;
     try {
       if (!files.has(activeFile)) activeFile = "";
       const state = {
@@ -2872,6 +3147,13 @@ ${warningBlock}${bodyChildren}${scriptBlock}
       console.warn("No se pudo guardar el estado en localStorage", e);
     }
   }
+
+  function scheduleSaveState() {
+    clearTimeout(stateSaveTimer);
+    stateSaveTimer = setTimeout(saveState, 500);
+  }
+
+  window.addEventListener("pagehide", saveState);
 
   function loadState() {
     try {
@@ -2952,11 +3234,14 @@ ${warningBlock}${bodyChildren}${scriptBlock}
   let highlightFrame = null;
   let renderedLineCount = 0;
   let lastValidHtml = "";
+  let lastPreviewHtml = null;
 
   function updateLivePreview(htmlContent) {
+    if (htmlContent === lastPreviewHtml) return;
     const frame = document.getElementById("previewFrame");
     if (frame) {
       frame.srcdoc = htmlContent || '';
+      lastPreviewHtml = htmlContent;
     }
   }
 
@@ -2991,14 +3276,16 @@ ${warningBlock}${bodyChildren}${scriptBlock}
     applySplitRatio();
   }
 
+  const STANDALONE_COMMANDS = new Set([
+    "linea", "centrar", "alinearizquierda", "alinearderecha", "desplazamiento", "cargando",
+    "listadesordenada", "listaordenada", "tabla", "filatabla", "fin", "finseccion",
+    "fincontenedor", "finrejilla", "finlista", "fintabla", "finfilatabla"
+  ]);
+  const RC_TOKEN_REGEX = /(#[0-9a-fA-F]{3,8}\b)|(\b\d+(?:px|rem|em|%)?\b)|([\u00C0-\u024F\u1E00-\u1EFFa-zA-Z0-9_]+)(?=\()|([\u00C0-\u024F\u1E00-\u1EFFa-zA-Z0-9_]+)|([\(\)\[\]=#])|([^\(\)\[\]=#\u00C0-\u024F\u1E00-\u1EFFa-zA-Z0-9_]+)/g;
+
   function highlightRc(code) {
     if (!code) return "";
     const lines = code.split("\n");
-    const standaloneCmds = new Set([
-      "linea", "centrar", "alinearizquierda", "alinearderecha", "desplazamiento", "cargando",
-      "listadesordenada", "listaordenada", "tabla", "filatabla", "fin", "finseccion",
-      "fincontenedor", "finrejilla", "finlista", "fintabla", "finfilatabla"
-    ]);
 
     return lines.map(line => {
       const trimmed = line.trim();
@@ -3006,11 +3293,10 @@ ${warningBlock}${bodyChildren}${scriptBlock}
         return `<span class="hl-comment">${escapeHtml(line)}</span>`;
       }
 
-      const tokenRegex = /(#[0-9a-fA-F]{3,8}\b)|(\b\d+(?:px|rem|em|%)?\b)|([\u00C0-\u024F\u1E00-\u1EFFa-zA-Z0-9_]+)(?=\()|([\u00C0-\u024F\u1E00-\u1EFFa-zA-Z0-9_]+)|([\(\)\[\]=])|([^\(\)\[\]=#\u00C0-\u024F\u1E00-\u1EFFa-zA-Z0-9_]+)/g;
-
       let result = "";
       let match;
-      while ((match = tokenRegex.exec(line)) !== null) {
+      RC_TOKEN_REGEX.lastIndex = 0;
+      while ((match = RC_TOKEN_REGEX.exec(line)) !== null) {
         const [full, color, num, cmdWithParen, word, symbol, rest] = match;
         if (color) {
           result += `<span class="hl-color">${escapeHtml(color)}</span>`;
@@ -3019,7 +3305,7 @@ ${warningBlock}${bodyChildren}${scriptBlock}
         } else if (cmdWithParen) {
           result += `<span class="hl-cmd">${escapeHtml(cmdWithParen)}</span>`;
         } else if (word) {
-          if (standaloneCmds.has(word.toLowerCase()) || RC_COMMANDS_SPEC[word.toLowerCase()]) {
+          if (STANDALONE_COMMANDS.has(word.toLowerCase()) || RC_COMMANDS_SPEC[word.toLowerCase()]) {
             result += `<span class="hl-cmd">${escapeHtml(word)}</span>`;
           } else {
             result += escapeHtml(word);
@@ -3122,7 +3408,7 @@ ${warningBlock}${bodyChildren}${scriptBlock}
       lastValidHtml = `<!DOCTYPE html><html lang="es"><meta charset="UTF-8"><body style="font:14px system-ui;background:#2a1b1b;color:#ff8080;padding:16px"><strong>Error de compilación</strong><pre>${escapeHtml(errorMessage)}</pre></body></html>`;
     } finally {
       isTranslating = false;
-      saveState();
+      scheduleSaveState();
       updateHighlight();
       if (lastValidHtml !== undefined) {
         updateLivePreview(lastValidHtml);
