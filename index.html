@@ -53,6 +53,9 @@
   .hl-tag     { color: #38bdf8; }
   .hl-attr    { color: #2dd4bf; }
   .status{height:30px;display:flex;align-items:center;gap:15px;padding:0 12px;border-top:1px solid var(--line);color:var(--muted);font-size:12px}
+  #saveStatus[data-state="pending"]{color:var(--orange)}
+  #saveStatus[data-state="error"]{color:#ff8080}
+  #saveStatus[data-state="saved"]{color:#8fd3a2}
   .status .spacer{flex:1}
   .explorer{width:250px;flex:0 0 250px;display:flex;flex-direction:column;background:var(--panel);border:1px solid var(--line);border-radius:9px;overflow:hidden}
   .explorer.hidden{display:none}
@@ -98,6 +101,7 @@
   .dict-rules code { background: #111217; padding: 2px 6px; border-radius: 4px; color: var(--orange); font-family: ui-monospace, SFMono-Regular, Consolas, monospace; }
   .dict-search-wrap input { width: 100%; padding: 9px 12px; background: #0e1015; border: 1px solid var(--line); border-radius: 8px; color: var(--text); font-size: 13px; outline: none; }
   .dict-search-wrap input:focus { border-color: var(--blue); }
+  .dict-search-wrap #dictSearchStatus { display: block; min-height: 1.3em; margin-top: 4px; }
   .dict-categories { display: flex; flex-direction: column; gap: 16px; }
   .dict-category h4 { margin: 0 0 8px 0; font-size: 14px; color: var(--orange); border-bottom: 1px solid var(--line); padding-bottom: 6px; }
   .cmd-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 8px; }
@@ -118,7 +122,9 @@
   .dict-tab.active { border-bottom-color: var(--blue); color: var(--text); }
   .dict-panel[hidden] { display: none; }
   .color-palette { display: grid; grid-template-columns: minmax(220px, 1fr) auto; align-items: start; gap: 16px; }
-  .color-wheel { display: block; width: min(100%, 340px); aspect-ratio: 1; border: 0; border-radius: 50%; cursor: crosshair; touch-action: none; }
+  .color-wheel-wrap { position: relative; width: min(100%, 340px); aspect-ratio: 1; }
+  .color-wheel { display: block; width: 100%; height: 100%; border: 0; border-radius: 50%; cursor: crosshair; touch-action: none; }
+  .color-wheel-marker { position: absolute; width: 12px; height: 12px; border: 2px solid #fff; border-radius: 50%; box-shadow: 0 0 0 1px #111, 0 1px 5px #000a; pointer-events: none; transform: translate(-50%, -50%); }
   .color-picker-side { display: flex; min-width: 150px; min-height: 340px; flex-direction: column; align-items: flex-end; gap: 12px; }
   .color-wheel:focus-visible { outline: 2px solid var(--blue); outline-offset: 4px; }
   .color-preview { width: 42px; height: 42px; border: 1px solid #ffffff55; border-radius: 8px; background: var(--selected-color, #ff0061); }
@@ -163,13 +169,14 @@
         <div id="rcAutocomplete" class="autocomplete-popup" role="listbox" aria-label="Comandos RC" hidden></div>
       </div>
     </div>
-    <div class="status"><span id="rcStatusName">main.rc</span><span class="spacer"></span><span id="rcStatusLine">Línea 1, Col 1</span></div>
+    <div class="status"><span id="rcStatusName">main.rc</span><span id="saveStatus" role="status" aria-live="polite">Guardado local</span><span class="spacer"></span><span id="rcStatusLine">Línea 1, Col 1</span></div>
   </section>
   <div class="pane-splitter" id="paneSplitter" role="separator" aria-label="Redimensionar editor y vista previa" aria-orientation="vertical" aria-valuemin="20" aria-valuemax="80" aria-valuenow="50" tabindex="0"></div>
   <section class="editor" id="previewPaneSection" aria-label="Vista Previa en Vivo">
     <div class="tabs">
       <button class="tab active" style="pointer-events:none;">Vista Previa ▶</button>
       <div class="preview-mode-controls" role="group" aria-label="Tamaño de vista previa">
+        <button class="preview-mode-button" id="visualEditBtn" type="button" aria-pressed="false" title="Arrastra elementos para moverlos; usa el control de esquina para cambiar su tamaño">Editar visual</button>
         <button class="preview-mode-button" id="previewDesktopBtn" type="button" aria-pressed="true" title="Vista de escritorio"> Escritorio</button>
         <button class="preview-mode-button" id="previewMobileBtn" type="button" aria-pressed="false" title="Vista de teléfono"> Teléfono</button>
       </div>
@@ -177,7 +184,7 @@
     <div class="editor-body preview-body">
       <div class="preview-stage" id="previewStage" data-preview-mode="desktop">
         <div class="preview-device">
-          <iframe id="previewFrame" title="Vista Previa App"></iframe>
+          <iframe id="previewFrame" title="Vista Previa App" sandbox="allow-scripts allow-forms allow-modals allow-downloads"></iframe>
         </div>
       </div>
     </div>
@@ -186,7 +193,7 @@
   <aside class="explorer" id="explorer">
     <div class="explorer-head"><span>Archivos del proyecto</span><button id="closeExplorer" title="Ocultar explorador">×</button></div>
     <div class="new-actions">
-      <button id="newRc" style="width: 100%;"> + </button>
+      <button id="newRc" style="width: 100%;" title="Crear un archivo RC o auxiliar por nombre y extensión"> + </button>
     </div>
     <div class="file-list" id="fileList"></div>
     <div class="explorer-note">Explorador de archivos</div>
@@ -211,9 +218,13 @@
           <div style="font-weight: 600; color: var(--orange); font-size: 14px;"> Guardar como HTML </div>
           <div style="font-size: 12px; color: var(--muted); margin-top: 4px;">Exporta un documento HTML standalone funcional con sus estilos CSS y scripts.</div>
         </button>
-        <button id="exportAndroidBtn" style="text-align: left; padding: 12px 16px; border: 1px solid var(--line); border-radius: 8px; background: var(--panel2);">
-          <div style="font-weight: 600; color: #50fa7b; font-size: 14px;"> Guardar como archivo de Android </div>
-          <div style="font-size: 12px; color: var(--muted); margin-top: 4px;">Empaqueta el proyecto Android e incluye su AndroidManifest.xml.</div>
+        <button id="exportZipBtn" style="text-align: left; padding: 12px 16px; border: 1px solid var(--line); border-radius: 8px; background: var(--panel2);">
+        <div style="font-weight: 600; color: var(--blue); font-size: 14px;"> Exportar proyecto ZIP </div>
+        <div style="font-size: 12px; color: var(--muted); margin-top: 4px;">Descarga los archivos y carpetas reales guardados en este proyecto.</div>
+        </button>
+        <button id="exportManifestBtn" style="text-align: left; padding: 12px 16px; border: 1px solid var(--line); border-radius: 8px; background: var(--panel2);">
+          <div style="font-weight: 600; color: #50fa7b; font-size: 14px;"> Guardar como Manifest </div>
+          <div style="font-size: 12px; color: var(--muted); margin-top: 4px;">Traduce los comandos Manifest RC a un archivo XML listo para empaquetar.</div>
         </button>
       </div>
     </div>
@@ -235,18 +246,18 @@
       <div class="dict-rules">
         <h3>Reglas Oficiales de Sintaxis RC</h3>
         <ul>
-          <li><strong>Minúsculas:</strong> 100% letras minúsculas en todos los comandos e identificadores.</li>
-          <li><strong>Identificadores (_):</strong> Usar guion bajo <code>_</code> para nombres de IDs y variables (ej. <code>btn_1</code>, <code>sec_calc</code>).</li>
-          <li><strong>Parámetros ():</strong> Encerrar argumentos en paréntesis <code>()</code>. Múltiples argumentos usan paréntesis consecutivos <code>(arg1)(arg2)</code>.</li>
-          <li><strong>Estructuras y grupos []:</strong> Usar corchetes <code>[]</code> cuando aplique para conjuntos o rangos de opciones.</li>
-          <li><strong>Asignaciones (=):</strong> Signo igual <code>=</code> para asignaciones directas o configuraciones.</li>
-          <li><strong>Comentarios (//):</strong> Usar doble barra <code>//</code> para comentarios de una sola línea.</li>
-          <li><strong>Inclusión:</strong> Usar <code>incluir(nombre)</code> para importar archivos o módulos externos RC.</li>
+          <li><strong>Minúsculas:</strong> Escribe comandos, identificadores y valores en minúsculas.</li>
+          <li><strong>Caracteres:</strong> Usa letras minúsculas, números, espacios, paréntesis y guion bajo en nombres RC existentes. La puntuación solo se admite dentro de argumentos que la necesitan, como una URL o un color hexadecimal; no se permiten comillas ni punto y coma.</li>
+          <li><strong>Parámetros:</strong> Escribe cada argumento directamente entre paréntesis; varios argumentos usan paréntesis consecutivos, por ejemplo <code>boton(btn_guardar)(guardar)</code>. Los IDs opcionales también pueden declararse entre corchetes, como <code>entrada[mi_id](valor)</code>, y solo admiten minúsculas, números, guiones y guiones bajos.</li>
+          <li><strong>Comentarios:</strong> Usa <code>//</code> para comentar una línea o el resto de una instrucción.</li>
+          <li><strong>Inclusión:</strong> Usa <code>incluir(modulo)</code> para incluir un archivo <code>.rc</code> del proyecto, sin comillas ni extensión.</li>
+          <li><strong>Archivos:</strong> Los programas RC usan la extensión <code>.rc</code>; el explorador también conserva archivos auxiliares <code>.html</code>, <code>.css</code>, <code>.js</code> y <code>.json</code>.</li>
         </ul>
       </div>
 
       <div class="dict-search-wrap">
         <input type="text" id="dictSearch" placeholder="Buscar comandos, colores o librerías..." spellcheck="false" autocomplete="off">
+        <span id="dictSearchStatus" class="palette-hint" role="status" aria-live="polite"></span>
       </div>
 
       <div class="dict-tabs" role="tablist" aria-label="Contenido del diccionario">
@@ -303,7 +314,10 @@
       <section class="dict-panel" id="dictPalettePanel" role="tabpanel" aria-labelledby="dictPaletteTab" hidden>
         <p class="palette-hint">Selecciona un tono y su intensidad en el círculo cromático.</p>
         <div class="color-palette" id="colorPalette">
-          <canvas class="color-wheel" id="colorWheel" role="slider" tabindex="0" aria-label="Selector de color" aria-valuetext="#FF0061"></canvas>
+          <div class="color-wheel-wrap">
+            <canvas class="color-wheel" id="colorWheel" role="slider" tabindex="0" aria-label="Selector de color" aria-valuetext="#FF0061"></canvas>
+            <span class="color-wheel-marker" id="colorWheelMarker" aria-hidden="true"></span>
+          </div>
           <div class="color-picker-side">
             <div class="color-preview" id="colorPreview" aria-hidden="true"></div>
             <output class="color-code" id="colorCode">#FF0061</output>
@@ -323,7 +337,7 @@
 <div class="confirm-overlay" id="docsConfirmModal" role="dialog" aria-modal="true" aria-labelledby="docsConfirmTitle" aria-describedby="docsConfirmMessage" hidden>
   <div class="confirm-dialog">
     <h3 id="docsConfirmTitle">Descargar documentación</h3>
-    <p id="docsConfirmMessage">¿Deseas descargar el Manual de Referencia Oficial de RC Language (PDF) con los 160 comandos y reglas del sistema?</p>
+    <p id="docsConfirmMessage">¿Deseas descargar el Manual de Referencia de RC Language (PDF) con los 182 comandos y reglas del sistema?</p>
     <div class="confirm-actions">
       <button type="button" id="cancelDocsDownload">Cancelar</button>
       <button type="button" id="acceptDocsDownload">Aceptar</button>
@@ -334,14 +348,16 @@
 <script>
 (() => {
   // ==========================================
-  // ESPECIFICACIÓN CENTRAL DE 160 COMANDOS RC
+  // ESPECIFICACIÓN CENTRAL DE 182 COMANDOS RC
   // ==========================================
   const RC_COMMANDS_SPEC = {
-    // Categoría I: Estructura y Contenido (Comandos 1 - 30)
+    // Categoría I: Estructura y Contenido (Comandos 1 - 32)
     incluir: { cat: 1, name: 'incluir', params: ['archivo'], minArgs: 1, type: 'include', desc: 'Incluye otro archivo RC del proyecto' },
     titulo: { cat: 1, name: 'titulo', params: ['texto'], minArgs: 1, type: 'head', desc: 'Define el título de la página/aplicación' },
     seccion: { cat: 1, name: 'seccion', params: ['nombre'], minArgs: 0, type: 'container', tag: 'section', desc: 'Crea un contenedor tipo sección' },
     contenedor: { cat: 1, name: 'contenedor', params: ['id'], minArgs: 0, type: 'container', tag: 'div', desc: 'Crea un contenedor multipropósito' },
+    vista: { cat: 1, name: 'vista', params: ['id_vista'], minArgs: 1, type: 'view', desc: 'Inicia una pantalla de navegación interna' },
+    finvista: { cat: 1, name: 'finvista', params: [], minArgs: 0, type: 'closing', desc: 'Cierra la vista activa' },
     rejilla: { cat: 1, name: 'rejilla', params: ['columnas'], minArgs: 1, type: 'container', tag: 'div', isGrid: true, desc: 'Crea una cuadrícula CSS Grid de N columnas' },
     linea: { cat: 1, name: 'linea', params: [], minArgs: 0, type: 'element', tag: 'hr', selfClosing: true, desc: 'Inserta una línea divisoria horizontal (<hr>)' },
     texto: { cat: 1, name: 'texto', params: ['mensaje'], minArgs: 1, type: 'element', tag: 'p', desc: 'Inserta un mensaje de texto libre' },
@@ -369,7 +385,7 @@
     lienzo: { cat: 1, name: 'lienzo', params: ['id'], minArgs: 1, type: 'element', tag: 'canvas', desc: 'Crea un área de dibujo HTML5 Canvas' },
     areatexto: { cat: 1, name: 'areatexto', params: ['id', 'texto'], minArgs: 1, type: 'element', tag: 'textarea', desc: 'Crea un área de texto multilínea (<textarea>)' },
 
-    // Categoría II: Estilo y Diseño Visual (Comandos 31 - 50)
+    // Categoría II: Estilo y Diseño Visual (Comandos 33 - 52)
     fondo: { cat: 2, name: 'fondo', params: ['color'], eventSignature: 'fondo(idbtn)(color)', minArgs: 1, maxArgs: 2, type: 'style', prop: 'background-color', desc: 'Establece el fondo del elemento activo o el fondo global al pulsar el botón indicado' },
     color: { cat: 2, name: 'color', params: ['color'], eventSignature: 'color(idbtn)(color)', minArgs: 1, maxArgs: 2, type: 'style', prop: 'color', desc: 'Establece el color del elemento activo o el color global del texto al pulsar el botón indicado' },
     letra: { cat: 2, name: 'letra', params: ['fuente'], minArgs: 1, type: 'style', prop: 'font-family', desc: 'Establece la familia tipográfica / fuente' },
@@ -391,7 +407,7 @@
     flotante: { cat: 2, name: 'flotante', params: ['posicion'], minArgs: 1, type: 'style', action: 'displayOrFloat', desc: 'Establece posicionamiento (relative, absolute, fixed, flex, grid)' },
     desplazamiento: { cat: 2, name: 'desplazamiento', params: [], minArgs: 0, type: 'style', prop: 'overflow', val: 'auto', desc: 'Habilita barras de desplazamiento (overflow auto)' },
 
-    // Categoría III: Campos, Eventos y Lógica (Comandos 51 - 83)
+    // Categoría III: Campos, Eventos y Lógica (Comandos 53 - 97)
     entrada: { cat: 3, name: 'entrada', params: ['id', 'valor'], minArgs: 1, type: 'input', inputType: 'text', desc: 'Crea un campo de texto (<input type="text">)' },
     camponumero: { cat: 3, name: 'camponumero', params: ['id', 'valor'], minArgs: 1, type: 'input', inputType: 'number', desc: 'Crea un campo numérico (<input type="number">)' },
     campocorreo: { cat: 3, name: 'campocorreo', params: ['id', 'valor'], minArgs: 1, type: 'input', inputType: 'email', desc: 'Crea un campo de correo (<input type="email">)' },
@@ -404,6 +420,13 @@
     al_presionar_atras: { cat: 3, name: 'al_presionar_atras', params: [], minArgs: 0, type: 'back', desc: 'Detecta Atrás en móvil o Escape y emite rc:back' },
     estado: { cat: 3, name: 'estado', params: ['id_elemento', 'clave, valor'], signatures: ['estado(id_elemento)(clave, valor)', 'estado(id_elemento)(clave)(valor)'], minArgs: 2, maxArgs: 3, type: 'state', desc: 'Guarda estado interno y emite rc:statechange' },
     si_estado: { cat: 3, name: 'si_estado', params: ['id_elemento', 'clave, valor'], signatures: ['si_estado(id_elemento)(clave, valor)', 'si_estado(id_elemento)(clave)(valor)'], minArgs: 2, maxArgs: 3, type: 'stateCondition', desc: 'Evalúa el estado y emite rc:statecheck' },
+    enlazar: { cat: 3, name: 'enlazar', params: ['id_elemento', 'clave'], minArgs: 2, type: 'binding', desc: 'Enlaza un elemento visual a una clave de estado global' },
+    si: { cat: 3, name: 'si', params: ['clave', 'valor'], minArgs: 2, type: 'ifBlock', desc: 'Inicia una sección condicional basada en estado global' },
+    sino: { cat: 3, name: 'sino', params: [], minArgs: 0, type: 'elseBlock', desc: 'Inicia la rama alternativa de una condición' },
+    fin_si: { cat: 3, name: 'fin_si', params: [], minArgs: 0, type: 'closing', desc: 'Cierra una estructura condicional' },
+    repetir: { cat: 3, name: 'repetir', params: ['veces'], minArgs: 1, type: 'repeatBlock', desc: 'Repite un bloque RC un número entero de veces' },
+    fin_repetir: { cat: 3, name: 'fin_repetir', params: [], minArgs: 0, type: 'closing', desc: 'Cierra un bloque de repetición' },
+    navegar: { cat: 3, name: 'navegar', params: ['id_vista'], minArgs: 1, type: 'navigation', desc: 'Navega a una vista interna por ID' },
     avisar: { cat: 3, name: 'avisar', params: ['idbtn', 'mensaje'], minArgs: 2, type: 'event', desc: 'Muestra alerta al presionar un botón' },
     ira: { cat: 3, name: 'ira', params: ['idbtn', 'url'], minArgs: 2, type: 'event', desc: 'Navega a una URL al presionar un botón' },
     ocultarboton: { cat: 3, name: 'ocultarboton', params: ['idbtn', 'idtarget'], minArgs: 2, type: 'event', desc: 'Oculta el elemento objetivo al hacer clic' },
@@ -424,8 +447,13 @@
     cargarlocal: { cat: 3, name: 'cargarlocal', params: ['clave', 'lbl'], minArgs: 2, type: 'storage', action: 'load', desc: 'Lee el valor almacenado y lo muestra en la etiqueta de destino' },
     vibracion: { cat: 3, name: 'vibracion', params: ['patron'], minArgs: 1, type: 'vibration', desc: 'Activa vibración háptica con patrones predefinidos' },
     almacenamiento: { cat: 3, name: 'almacenamiento', params: ['clave', 'valor'], minArgs: 2, type: 'storage', desc: 'Guarda un valor persistente en localStorage' },
+    esperar: { cat: 3, name: 'esperar', params: ['milisegundos'], minArgs: 1, type: 'delay', desc: 'Pausa la ejecución del programa durante milisegundos' },
+    retardar: { cat: 3, name: 'retardar', params: ['milisegundos', 'id_elemento'], minArgs: 2, type: 'delayedShow', desc: 'Muestra un elemento una vez transcurrido el tiempo indicado' },
+    desvanecer: { cat: 3, name: 'desvanecer', params: ['id_elemento', 'milisegundos'], minArgs: 2, type: 'fadeOut', desc: 'Desvanece y oculta un elemento durante el tiempo indicado' },
+    aparecer_lento: { cat: 3, name: 'aparecer_lento', params: ['id_elemento', 'milisegundos'], minArgs: 2, type: 'fadeIn', desc: 'Muestra gradualmente un elemento durante el tiempo indicado' },
+    reiniciar_app: { cat: 3, name: 'reiniciar_app', params: [], signatures: ['reiniciar_app()'], minArgs: 0, type: 'restart', desc: 'Recarga la aplicación en la vista previa' },
 
-    // Categoría IV: Dibujo, efectos y utilidades (Comandos 84 - 105)
+    // Categoría IV: Dibujo, efectos y utilidades (Comandos 98 - 119)
     capa: { cat: 4, name: 'capa', params: ['nivel'], signatures: ['capa(nivel)', 'capa(id)'], minArgs: 1, type: 'layer', desc: 'Establece z-index o crea una capa canvas superpuesta con un ID' },
     posicion: { cat: 4, name: 'posicion', params: ['tipo'], minArgs: 1, type: 'position', desc: 'Establece posicionamiento fijo, absoluto o relativo' },
     desplazar: { cat: 4, name: 'desplazar', params: ['x', 'y'], signatures: ['desplazar(x)(y)', 'desplazar(x, y)'], minArgs: 1, maxArgs: 2, type: 'translate', desc: 'Desplaza el elemento activo en los ejes X e Y' },
@@ -449,7 +477,7 @@
     finmodal: { cat: 4, name: 'finmodal', params: [], minArgs: 0, type: 'closing', desc: 'Cierra la estructura modal abierta' },
     tema: { cat: 4, name: 'tema', params: ['modo'], eventSignature: 'tema(idbtn)(modo)', minArgs: 1, maxArgs: 2, type: 'theme', desc: 'Configura el tema directamente o al pulsar un botón' },
 
-    // Categoría V: Espacio 3D, cámaras y motores geométricos (106 - 122)
+    // Categoría V: Espacio 3D, cámaras y motores geométricos (120 - 136)
     escena3d: { cat: 5, name: 'escena3d', params: ['id'], minArgs: 1, type: 'scene3d', desc: 'Crea una escena geométrica 3D interactiva en Canvas' },
     finescena3d: { cat: 5, name: 'finescena3d', params: [], minArgs: 0, type: 'closing', desc: 'Cierra la escena 3D activa' },
     camara3d: { cat: 5, name: 'camara3d', params: ['tipo'], minArgs: 1, type: 'camera3d', desc: 'Configura la cámara 3D en perspectiva u ortográfica' },
@@ -468,7 +496,7 @@
     vertice: { cat: 5, name: 'vertice', params: ['id', 'x', 'y', 'z'], minArgs: 4, type: 'vertex3d', desc: 'Añade un vértice XYZ a la geometría identificada' },
     render3d: { cat: 5, name: 'render3d', params: ['id'], minArgs: 1, type: 'render3d', desc: 'Renderiza o actualiza la escena 3D indicada' },
 
-    // Categoría VI: Diseño moderno, UI avanzada y efectos visuales (123 - 136)
+    // Categoría VI: Diseño moderno, UI avanzada y efectos visuales (137 - 150)
     gradiente: { cat: 6, name: 'gradiente', params: ['tipo', 'colores'], minArgs: 2, type: 'gradient', desc: 'Aplica un gradiente lineal o radial con los colores indicados' },
     glassmorphism: { cat: 6, name: 'glassmorphism', params: ['nivel'], minArgs: 1, type: 'glass', desc: 'Aplica un acabado de vidrio esmerilado configurable' },
     animacion: { cat: 6, name: 'animacion', params: ['nombre', 'duracion'], minArgs: 2, type: 'animation', desc: 'Anima el elemento activo con una duración en segundos' },
@@ -484,7 +512,7 @@
     holonet: { cat: 6, name: 'holonet', params: ['id', 'tipo_proyeccion', 'modo_interaccion'], minArgs: 3, type: 'holonet', desc: 'Inicia un panel de interfaz holográfica interactiva' },
     finholonet: { cat: 6, name: 'finholonet', params: [], minArgs: 0, type: 'closing', desc: 'Cierra el panel holográfico abierto' },
 
-    // Categoría VII: Capacidades de sistema operativo y gestión (137 - 152)
+    // Categoría VII: Capacidades de sistema operativo y gestión (151 - 174)
     ventana: { cat: 7, name: 'ventana', params: ['id', 'titulo'], minArgs: 2, type: 'window', desc: 'Crea una ventana flotante arrastrable con controles' },
     finventana: { cat: 7, name: 'finventana', params: [], minArgs: 0, type: 'closing', desc: 'Cierra el contenido de la ventana flotante' },
     barraestado: { cat: 7, name: 'barraestado', params: [], minArgs: 0, type: 'statusbar', desc: 'Inserta una barra de estado del sistema simulado' },
@@ -501,9 +529,17 @@
     manifiesto: { cat: 7, name: 'manifiesto', params: ['paquete', 'version', 'codigover'], minArgs: 3, type: 'manifest', desc: 'Define los metadatos Android del proyecto' },
     permiso: { cat: 7, name: 'permiso', params: ['nombre'], minArgs: 1, type: 'permission', desc: 'Declara un permiso para el manifiesto Android' },
     finmanifiesto: { cat: 7, name: 'finmanifiesto', params: [], minArgs: 0, type: 'closing', desc: 'Cierra el bloque de metadatos Android' },
+    manifest_inicio: { cat: 7, name: 'manifest_inicio', params: ['nombre_app', 'paquete'], minArgs: 2, type: 'manifest', desc: 'Inicia la declaración del Manifest con nombre y paquete' },
+    manifest_version: { cat: 7, name: 'manifest_version', params: ['codigo', 'nombre'], minArgs: 2, type: 'manifestMetadata', desc: 'Define el código y nombre de versión del Manifest' },
+    manifest_permiso: { cat: 7, name: 'manifest_permiso', params: ['nombre_permiso'], minArgs: 1, type: 'manifestMetadata', desc: 'Declara un permiso de sistema para el Manifest' },
+    manifest_actividad: { cat: 7, name: 'manifest_actividad', params: ['nombre_clase', 'orientacion'], minArgs: 2, type: 'manifestMetadata', desc: 'Registra una actividad y su orientación' },
+    manifest_icono: { cat: 7, name: 'manifest_icono', params: ['ruta_recurso'], minArgs: 1, type: 'manifestMetadata', desc: 'Define la ruta del icono principal de la aplicación' },
+    manifest_pwa_meta: { cat: 7, name: 'manifest_pwa_meta', params: ['tema_color', 'fondo_color', 'display_modo'], minArgs: 3, type: 'manifestMetadata', desc: 'Configura los metadatos visuales de PWA' },
+    manifest_autor: { cat: 7, name: 'manifest_autor', params: ['nombre', 'contacto'], minArgs: 2, type: 'manifestMetadata', desc: 'Declara el autor y su contacto' },
+    manifest_fin: { cat: 7, name: 'manifest_fin', params: [], minArgs: 0, type: 'closing', desc: 'Cierra el bloque Manifest' },
     interruptor: { cat: 3, name: 'interruptor', params: ['id', 'texto'], minArgs: 2, type: 'toggle', desc: 'Crea un interruptor accesible con etiqueta' },
 
-    // Categoría VIII: Herramientas avanzadas de dibujo 3D y capas (153 - 160)
+    // Categoría VIII: Herramientas avanzadas de dibujo 3D y capas (175 - 182)
     sombra3d: { cat: 8, name: 'sombra3d', params: ['id', 'suavizado'], minArgs: 2, type: 'shadow3d', desc: 'Activa sombra suave en un objeto de la escena 3D' },
     enfocar3d: { cat: 8, name: 'enfocar3d', params: ['id'], minArgs: 1, type: 'focus3d', desc: 'Centra la cámara 3D en el objeto indicado' },
     exportar3d: { cat: 8, name: 'exportar3d', params: ['idbtn', 'formato'], minArgs: 2, type: 'event', desc: 'Exporta la imagen PNG o geometría JSON de una escena 3D' },
@@ -515,9 +551,32 @@
   };
 
   const CLOSING_COMMANDS = new Set([
-    'fin', 'finseccion', 'fincontenedor', 'finrejilla', 'finlista', 'fintabla', 'finfilatabla', 'finmodal',
-    'finescena3d', 'finpestana', 'finacordeon', 'finventana', 'finholonet', 'finmanifiesto'
+    'fin', 'finseccion', 'fincontenedor', 'finrejilla', 'finlista', 'fintabla', 'finfilatabla', 'finmodal', 'finvista',
+    'finescena3d', 'finpestana', 'finacordeon', 'finventana', 'finholonet', 'finmanifiesto',
+    'fin_si', 'fin_repetir', 'manifest_fin'
   ]);
+  const RC_EXTENSION_COMMANDS = new Set([
+    'notificacionos', 'nucleo', 'manifiesto', 'permiso', 'finmanifiesto',
+    'interruptor', 'sombra3d', 'enfocar3d', 'exportar3d', 'capa3d',
+    'textura3d', 'colision3d', 'particulas3d', 'fisica3d'
+  ]);
+  const RC_MANIFEST_OFFICIAL_COMMANDS = new Set([
+    'manifest_inicio', 'manifest_version', 'manifest_permiso', 'manifest_actividad',
+    'manifest_icono', 'manifest_pwa_meta', 'manifest_autor', 'manifest_fin'
+  ]);
+  const RC_CATALOG_AUDIT = {
+    manualBase: new Set(Object.keys(RC_COMMANDS_SPEC)
+      .filter(name => !RC_EXTENSION_COMMANDS.has(name) && !RC_MANIFEST_OFFICIAL_COMMANDS.has(name))
+      .slice(0, 160)),
+    manifestOfficial: RC_MANIFEST_OFFICIAL_COMMANDS,
+    extensions: RC_EXTENSION_COMMANDS,
+    aliases: new Set(),
+    ideAuxiliary: new Set()
+  };
+  Object.entries(RC_COMMANDS_SPEC).forEach(([name, spec]) => {
+    spec.catalogGroup = RC_CATALOG_AUDIT.extensions.has(name) ? 'extension'
+      : RC_CATALOG_AUDIT.manifestOfficial.has(name) ? 'manifest-official' : 'manual-base';
+  });
 
   const commandsByCategory = new Map();
   Object.values(RC_COMMANDS_SPEC).forEach(spec => {
@@ -552,6 +611,7 @@
 
   const colorPalette = document.getElementById('colorPalette');
   const colorWheel = document.getElementById('colorWheel');
+  const colorWheelMarker = document.getElementById('colorWheelMarker');
   const colorCode = document.getElementById('colorCode');
   const colorPreview = document.getElementById('colorPreview');
   const colorCopyStatus = document.getElementById('colorCopyStatus');
@@ -570,11 +630,27 @@
       for (let x = 0; x < size; x++) {
         const dx = x - center;
         const dy = y - center;
-        const distance = Math.sqrt(dx * dx + dy * dy) / radius;
+        const pixelDistance = Math.sqrt(dx * dx + dy * dy);
+        const distance = pixelDistance / radius;
         const offset = (y * size + x) * 4;
         if (distance > 1) continue;
+        if (pixelDistance <= 2) {
+          image.data[offset] = 0;
+          image.data[offset + 1] = 0;
+          image.data[offset + 2] = 0;
+          image.data[offset + 3] = 255;
+          continue;
+        }
+        if (pixelDistance < 18) {
+          const gray = Math.round((pixelDistance - 2) / 16 * 255);
+          image.data[offset] = gray;
+          image.data[offset + 1] = gray;
+          image.data[offset + 2] = gray;
+          image.data[offset + 3] = 255;
+          continue;
+        }
         const hue = (Math.atan2(dy, dx) * 180 / Math.PI + 360) % 360;
-        const saturation = Math.min(1, distance);
+        const saturation = Math.min(1, (pixelDistance - 18) / (radius - 18));
         const chroma = saturation;
         const section = hue / 60;
         const secondary = chroma * (1 - Math.abs(section % 2 - 1));
@@ -601,6 +677,8 @@
     colorCode.textContent = selectedColor;
     colorPreview.style.setProperty('--selected-color', selectedColor);
     colorWheel.setAttribute('aria-valuetext', selectedColor);
+    colorWheelMarker.style.left = `${x / (colorWheel.width - 1) * 100}%`;
+    colorWheelMarker.style.top = `${y / (colorWheel.height - 1) * 100}%`;
     colorCopyStatus.textContent = '';
   }
 
@@ -646,12 +724,12 @@
   }
 
   function readElementValueExpression(elementName) {
-    return `${isFormControlExpression(elementName)} ? ${elementName}.value : ${elementName}.innerText`;
+    return `${elementName}.dataset?.rcBind && window.rcState ? window.rcState[${elementName}.dataset.rcBind] : (${isFormControlExpression(elementName)} ? ${elementName}.value : ${elementName}.innerText)`;
   }
 
   function writeElementValueStatements(elementName, valueExpression, breakElse = false, indentation = '') {
     const separator = breakElse ? `\n${indentation}` : ' ';
-    return `if(${isFormControlExpression(elementName)}) ${elementName}.value = ${valueExpression};${separator}else ${elementName}.innerText = ${valueExpression};`;
+    return `if(${isFormControlExpression(elementName)}) ${elementName}.value = ${valueExpression};${separator}else ${elementName}.innerText = ${valueExpression}; if(${elementName}.dataset?.rcBind && window.rcState) window.rcState[${elementName}.dataset.rcBind] = ${valueExpression};`;
   }
 
   // Auxiliares de formato
@@ -661,6 +739,52 @@
       .replace(/[\r\n]+/g, ' ')
       .replace(/\s+/g, ' ')
       .trim();
+  }
+
+  const PROJECT_FILE_EXTENSIONS = new Set(['rc', 'html', 'css', 'js', 'json']);
+
+  function getProjectFileType(filename) {
+    const extension = String(filename).split('/').pop().split('.').pop().toLowerCase();
+    return PROJECT_FILE_EXTENSIONS.has(extension) ? extension : '';
+  }
+
+  function normalizeProjectPath(value, defaultExtension = 'rc') {
+    const rawPath = String(value || '').trim().replace(/\\/g, '/');
+    if (!rawPath || rawPath.startsWith('/') || /^[a-z]+:/i.test(rawPath)) return '';
+    const parts = rawPath.split('/');
+    if (parts.some(part => !part || part === '.' || part === '..')) return '';
+    const leaf = parts.pop();
+    if (parts.some(part => !/^[\p{L}\p{N}_ -]+$/u.test(part))) return '';
+    let filename = leaf;
+    let extension = defaultExtension;
+    const extensionMatch = leaf.match(/\.([a-z0-9]+)$/i);
+    if (extensionMatch) {
+      if (!PROJECT_FILE_EXTENSIONS.has(extensionMatch[1].toLowerCase())) return '';
+      filename = leaf.slice(0, -extensionMatch[0].length);
+      extension = extensionMatch[1].toLowerCase();
+    }
+    if (!filename || !/^[\p{L}\p{N}_ -]+$/u.test(filename)) return '';
+    parts.push(`${filename}.${extension}`);
+    return parts.join('/');
+  }
+
+  function resolveIncludePath(sourceFile, requestedName) {
+    const name = cleanParam(requestedName);
+    if (!/^[\p{L}\p{N}_ -]+$/u.test(name)) return '';
+    const target = `${name}.rc`;
+    const directory = sourceFile.includes('/') ? sourceFile.slice(0, sourceFile.lastIndexOf('/') + 1) : '';
+    const relativeCandidate = `${directory}${target}`;
+    if (files.has(relativeCandidate) && files.get(relativeCandidate).type === 'rc') return relativeCandidate;
+    const relativeMatches = [...files.keys()].filter(filename =>
+      filename.toLowerCase() === relativeCandidate.toLowerCase() && files.get(filename).type === 'rc'
+    );
+    if (relativeMatches.length === 1) return relativeMatches[0];
+
+    const basenameMatches = [...files.keys()].filter(filename =>
+      getProjectFileType(filename) === 'rc'
+      && filename.slice(filename.lastIndexOf('/') + 1).toLowerCase() === target.toLowerCase()
+    );
+    return basenameMatches.length === 1 ? basenameMatches[0] : '';
   }
 
   function formatColor(val) {
@@ -766,89 +890,95 @@
   }
 
   // ==========================================
-  // PARSER DE LÍNEAS RC Y ASIGNACIONES
+  // PARSER DE LÍNEAS RC
   // ==========================================
+  const RC_ARGUMENT_PUNCTUATION = {
+    url: ' .:/?#&=+%-_~@',
+    ruta: ' .:/?#&=+%-_~@',
+    ruta_recurso: ' .:/?#&=+%-_~@',
+    color: '.,/%+-*#',
+    colores: '.,/%+-*#',
+    borde: '.,/%+-*#',
+    fuente: '-,',
+    px: '.-%',
+    porcentaje: '.-%',
+    grados: '.-',
+    profundidad: '.-',
+    velocidad: '.-',
+    gravedad: '.-',
+    suavizado: '.-',
+    rugosidad: '.-',
+    tension: '.-',
+    paso: '.-',
+    milisegundos: '.-',
+    tiempo: '.-',
+    x: '.-',
+    y: '.-',
+    z: '.-',
+    valor: '.,:!?+-*/#%',
+    version: '.',
+    paquete: '.',
+    nombre_app: ' .-',
+    nombre: ' .-',
+    nombre_permiso: '.',
+    nombre_clase: '.$',
+    orientacion: '',
+    tema_color: '.,/%+-*#',
+    fondo_color: '.,/%+-*#',
+    display_modo: '-',
+    contacto: ' .:@+-_',
+    'clave, valor': '.,:!?+-*/#%'
+  };
+  const RC_BRACKET_ID_COMMANDS = new Set([
+    'seccion', 'contenedor', 'texto', 'encabezado', 'negrita', 'cursiva', 'subrayado',
+    'etiqueta', 'bloque', 'cita', 'codigo', 'enlace', 'imagen', 'listadesordenada',
+    'listaordenada', 'elementolista', 'tabla', 'filatabla', 'encabezadotabla',
+    'celdatabla', 'boton', 'etiquetacampo', 'cargando', 'lienzo', 'areatexto',
+    'entrada', 'camponumero', 'campocorreo', 'campocontrasena', 'campofecha',
+    'campochequeo', 'desplegable'
+  ]);
+
   function parseRcLine(line, lineNum = 1) {
     const rawLine = String(line);
     line = rawLine.trim();
-    if (!line || line.startsWith('//')) return null;
+    if (!line) return null;
+    let commentStart = -1;
+    for (let index = 0; index < line.length - 1; index++) {
+      if (line[index] === '/' && line[index + 1] === '/' && line[index - 1] !== ':') {
+        commentStart = index;
+        break;
+      }
+    }
+    if (commentStart === 0) return null;
+    if (commentStart > 0 && line[commentStart - 1] !== ':') line = line.slice(0, commentStart).trimEnd();
+    if (!line) return null;
 
     const parseError = message => ({ parseError: message, rawLine: line, lineNum });
-    const decodeArgument = value => {
-      const trimmed = value.trim();
-      if (trimmed.length < 2 || !['"', "'"].includes(trimmed[0])) return trimmed;
-      let escaped = false;
-      for (let index = 1; index < trimmed.length; index++) {
-        const char = trimmed[index];
-        if (escaped) {
-          escaped = false;
-        } else if (char === '\\') {
-          escaped = true;
-        } else if (char === trimmed[0]) {
-          return index === trimmed.length - 1
-            ? trimmed.slice(1, -1).replace(/\\(["'\\()])/g, '$1')
-            : trimmed;
-        }
-      }
-      return trimmed;
-    };
-
-    const assignMatch = line.match(/^([a-z0-9_]+)\s*=\s*(.*)$/);
-    if (assignMatch) {
-      let quote = '';
-      let escaped = false;
-      let hasCommandCall = false;
-      for (const char of assignMatch[2]) {
-        if (escaped) {
-          escaped = false;
-          continue;
-        }
-        if (quote && char === '\\') {
-          escaped = true;
-          continue;
-        }
-        if (quote) {
-          if (char === quote) quote = '';
-        } else if (char === '"' || char === "'") {
-          quote = char;
-        } else if (char === '(') {
-          hasCommandCall = true;
-          break;
-        }
-      }
-      if (!hasCommandCall) {
-        return {
-          isAssignment: true,
-          varName: assignMatch[1].toLowerCase(),
-          varVal: cleanParam(decodeArgument(assignMatch[2])),
-          rawLine: line,
-          lineNum
-        };
-      }
-    }
-
-    let bracketId = '';
-    let cursor = 0;
-    const commandMatch = line.match(/^([a-zA-Z][a-zA-Z0-9_]*)/);
-    if (!commandMatch) {
-      return parseError('Los comandos deben escribirse en minúsculas');
-    }
+    let commandMatch = line.match(/^([a-zA-Z][a-zA-Z0-9_]*)/);
+    if (!commandMatch) return parseError('Se esperaba un comando en minúsculas');
     const rawCommand = commandMatch[1];
     const cmd = rawCommand.toLowerCase();
-    cursor = rawCommand.length;
-    if (rawCommand !== cmd) {
-      return parseError('Los comandos deben escribirse en minúsculas');
-    }
-
-    while (/\s/.test(line[cursor] || '')) cursor++;
+    if (rawCommand !== cmd) return parseError('Los comandos deben escribirse en minúsculas');
+    let cursor = rawCommand.length;
+    let bracketId = '';
     if (line[cursor] === '[') {
-      const bracketMatch = line.slice(cursor).match(/^\[([\u00C0-\u024F\u1E00-\u1EFFa-zA-Z0-9_]+)\]/);
-      if (!bracketMatch) return parseError('Sintaxis de corchetes inválida');
-      bracketId = bracketMatch[1];
-      cursor += bracketMatch[0].length;
-      while (/\s/.test(line[cursor] || '')) cursor++;
-    } else if (line.slice(cursor).includes(']')) {
-      return parseError('Sintaxis de corchetes inválida');
+      const bracketEnd = line.indexOf(']', cursor + 1);
+      if (bracketEnd < 0) return parseError('Identificador entre corchetes sin cierre');
+      bracketId = line.slice(cursor + 1, bracketEnd);
+      if (!RC_BRACKET_ID_COMMANDS.has(cmd)) {
+        return parseError(`El comando '${cmd}' no admite un identificador entre corchetes`);
+      }
+      if (!/^[a-z0-9_-]+$/.test(bracketId)) {
+        if (/[A-Z]/.test(bracketId)) {
+          return parseError(`El identificador '${bracketId}' debe escribirse en minúsculas según el manual oficial de RC`);
+        }
+        return parseError(`El identificador '${bracketId}' solo admite letras minúsculas, números, guiones y guiones bajos`);
+      }
+      cursor = bracketEnd + 1;
+    }
+    while (/\s/.test(line[cursor] || '')) cursor++;
+    if (line[cursor] && line[cursor] !== '(') {
+      return parseError(`Carácter no permitido fuera de un argumento: '${line[cursor]}'`);
     }
 
     let args = [];
@@ -858,33 +988,69 @@
       }
       const argumentStart = ++cursor;
       let depth = 1;
-      let quote = '';
-      let escaped = false;
       for (; cursor < line.length; cursor++) {
         const char = line[cursor];
-        if (escaped) {
-          escaped = false;
-          continue;
-        }
-        if (quote && char === '\\') {
-          escaped = true;
-          continue;
-        }
-        if (quote) {
-          if (char === quote) quote = '';
-          continue;
-        }
-        if (char === '"' || char === "'") quote = char;
-        else if (char === '(') depth++;
+        if (char === '(') depth++;
         else if (char === ')' && --depth === 0) break;
       }
-      if (depth !== 0 || quote) return parseError('Paréntesis o comillas sin pareja');
-      args.push(decodeArgument(line.slice(argumentStart, cursor)));
+      if (depth !== 0) return parseError('Paréntesis sin pareja');
+      const argument = line.slice(argumentStart, cursor).trim();
       cursor++;
       while (/\s/.test(line[cursor] || '')) cursor++;
+      if (argument !== '' || cursor < line.length) args.push(argument);
+    }
+
+    const spec = RC_COMMANDS_SPEC[cmd];
+    if (!spec && !CLOSING_COMMANDS.has(cmd)) {
+      return parseError(`Comando no registrado en el catálogo RC: '${cmd}'`);
+    }
+    if (spec && !bracketId && RC_BRACKET_ID_COMMANDS.has(cmd)
+      && args.length > (spec.maxArgs ?? spec.params.length)) {
+      bracketId = args.shift();
+      if (!/^[a-z0-9_-]+$/.test(bracketId)) {
+        if (/[A-Z]/.test(bracketId)) {
+          return parseError(`El identificador '${bracketId}' debe escribirse en minúsculas según el manual oficial de RC`);
+        }
+        return parseError(`El identificador '${bracketId}' solo admite letras minúsculas, números, guiones y guiones bajos`);
+      }
+    }
+    if (CLOSING_COMMANDS.has(cmd) && args.length) {
+      return parseError(`El comando '${cmd}' espera exactamente 0 argumentos; recibió ${args.length}`);
+    }
+    if (spec) {
+      const hasBracketId = Boolean(bracketId && RC_BRACKET_ID_COMMANDS.has(cmd));
+      const argumentOffset = hasBracketId && spec.params[0] === 'id' ? 1 : 0;
+      const minArgs = Math.max(0, (spec.minArgs ?? 0) - argumentOffset);
+      const maxArgs = Math.max(0, (spec.maxArgs ?? spec.params.length) - argumentOffset);
+      if (args.length < minArgs || args.length > maxArgs) {
+        const expected = minArgs === maxArgs
+          ? `exactamente ${minArgs}`
+          : `entre ${minArgs} y ${maxArgs}`;
+        return parseError(`El comando '${cmd}' espera ${expected} argumentos; recibió ${args.length}`);
+      }
+    }
+    for (const [argumentIndex, argument] of args.entries()) {
+      const parameter = (spec?.params[argumentIndex]
+        || (argumentIndex === 1 && spec?.eventSignature ? spec.params[0] : ''))
+        .toLowerCase();
+      const allowedPunctuation = cmd === 'incluir' ? ' -' : RC_ARGUMENT_PUNCTUATION[parameter] || '';
+      for (const char of argument) {
+        const allowsUppercase = cmd.startsWith('manifest_');
+        if (!allowsUppercase && /\p{L}/u.test(char) && char !== char.toLowerCase()) {
+          return parseError('El código RC debe escribirse en minúsculas');
+        }
+        if (/[\p{L}\p{N}_\s()]/u.test(char)) continue;
+        if (!allowedPunctuation.includes(char)) {
+          return parseError(`Carácter no permitido en el argumento ${argumentIndex + 1}: '${char}'`);
+        }
+      }
+    }
+    if (cmd === 'incluir' && args[0] && !/^[\p{L}\p{N}_ -]+$/u.test(args[0])) {
+      return parseError('incluir solo admite un nombre de archivo del proyecto sin ruta ni extensión');
     }
 
     return { cmd, bracketId, args, rawLine: line, lineNum };
+
   }
 
   // ==========================================
@@ -908,14 +1074,7 @@
     const scenes3d = new Map();
     let activeScene3d = null;
     const generatedKeyframes = new Map();
-    const bracketIdCommands = new Set([
-      'seccion', 'contenedor', 'texto', 'encabezado', 'negrita', 'cursiva', 'subrayado',
-      'etiqueta', 'bloque', 'cita', 'codigo', 'enlace', 'imagen', 'listadesordenada',
-      'listaordenada', 'elementolista', 'tabla', 'filatabla', 'encabezadotabla',
-      'celdatabla', 'boton', 'etiquetacampo', 'cargando', 'lienzo', 'areatexto',
-      'entrada', 'camponumero', 'campocorreo', 'campocontrasena', 'campofecha',
-      'campochequeo', 'desplegable'
-    ]);
+    const expandedFiles = new Set(rootFile ? [rootFile] : []);
 
     function expandIncludes(source, filename, includeChain) {
       source.split('\n').forEach((rawLine, index) => {
@@ -925,28 +1084,23 @@
           return;
         }
 
-        let requestedName = cleanParam(parsed.args[0] || '').replace(/^['"]|['"]$/g, '').replace(/\\/g, '/');
-        if (!requestedName) {
-          warnings.push(`${filename || 'RC'}:${index + 1}: incluir requiere el nombre de un archivo.`);
+        const requestedName = cleanParam(parsed.args[0] || '');
+        if (parsed.args.length !== 1 || !requestedName) {
+          warnings.push(`${filename || 'RC'}:${index + 1}: incluir requiere exactamente el nombre de un archivo RC, sin comillas ni extensión.`);
           return;
         }
-        if (!requestedName.toLowerCase().endsWith('.rc')) requestedName += '.rc';
-        const directory = filename && filename.includes('/') ? filename.slice(0, filename.lastIndexOf('/') + 1) : '';
-        const targetName = (directory + requestedName).split('/').reduce((parts, segment) => {
-          if (segment === '..') parts.pop();
-          else if (segment && segment !== '.') parts.push(segment);
-          return parts;
-        }, []).join('/');
-
-        if (!files.has(targetName)) {
-          warnings.push(`${filename || 'RC'}:${index + 1}: el archivo incluido '${requestedName}' no existe.`);
+        const targetName = resolveIncludePath(filename || rootFile, requestedName);
+        if (!targetName) {
+          warnings.push(`${filename || 'RC'}:${index + 1}: no se encontró un archivo RC del proyecto llamado '${requestedName}' junto al módulo o con un nombre único.`);
           return;
         }
         if (includeChain.has(targetName)) {
           warnings.push(`${filename || 'RC'}:${index + 1}: ciclo de inclusión detectado con '${targetName}'.`);
           return;
         }
+        if (expandedFiles.has(targetName)) return;
 
+        expandedFiles.add(targetName);
         const nextChain = new Set(includeChain);
         nextChain.add(targetName);
         expandIncludes(files.get(targetName).content, targetName, nextChain);
@@ -957,7 +1111,201 @@
     if (rootFile) initialChain.add(rootFile);
     expandIncludes(rcCode, rootFile, initialChain);
 
+    function buildRcAst(linesToParse) {
+      const root = { kind: 'program', children: [] };
+      const stack = [{ node: root, branch: 'main' }];
+      const openToClose = {
+        seccion: 'finseccion', contenedor: 'fincontenedor', rejilla: 'finrejilla',
+        listadesordenada: 'finlista', listaordenada: 'finlista', tabla: 'fintabla',
+        filatabla: 'finfilatabla', modal: 'finmodal', escena3d: 'finescena3d',
+        pestana: 'finpestana', acordeon: 'finacordeon', ventana: 'finventana',
+        holonet: 'finholonet', manifiesto: 'finmanifiesto', manifest_inicio: 'manifest_fin', vista: 'finvista',
+        si: 'fin_si', repetir: 'fin_repetir'
+      };
+      const closeToOpen = new Map();
+      Object.entries(openToClose).forEach(([open, close]) => {
+        const openings = closeToOpen.get(close) || [];
+        openings.push(open);
+        closeToOpen.set(close, openings);
+      });
+      const targetChildren = entry => {
+        if (entry.node.kind === 'if' && entry.branch === 'else') {
+          return entry.node.alternate;
+        }
+        return entry.node.children;
+      };
+      const append = node => targetChildren(stack[stack.length - 1]).push(node);
+      const createStatementNode = sourceLine => {
+        const parsed = sourceLine.parsed;
+        if (!parsed) return { kind: 'comment', sourceLine };
+        if (parsed.parseError) return { kind: 'error', sourceLine };
+        if (parsed.isAssignment) return { kind: 'state', sourceLine };
+        const spec = RC_COMMANDS_SPEC[parsed.cmd];
+        if (['state', 'stateCondition', 'binding', 'memory', 'storage'].includes(spec?.type)) {
+          return { kind: 'state', sourceLine };
+        }
+        if (['event', 'script', 'math', 'audioControl', 'audioVolume', 'vibration', 'navigation', 'restart'].includes(spec?.type)) {
+          return { kind: 'event', sourceLine };
+        }
+        if (spec?.tag || ['element', 'input', 'checkbox', 'toggle'].includes(spec?.type)) {
+          return { kind: 'element', sourceLine };
+        }
+        return { kind: 'command', sourceLine };
+      };
+
+      linesToParse.forEach(sourceLine => {
+        const parsed = sourceLine.parsed;
+        if (!parsed || parsed.parseError || parsed.isAssignment) {
+          append(createStatementNode(sourceLine));
+          return;
+        }
+        const { cmd } = parsed;
+        if (cmd === 'sino') {
+          const active = stack[stack.length - 1];
+          if (parsed.args.length !== 0) {
+            warnings.push(`${sourceLine.filename || 'RC'}:${sourceLine.lineNum}: 'sino' no recibe parámetros.`);
+            append(createStatementNode(sourceLine));
+            return;
+          }
+          if (active?.node.kind !== 'if' || active.branch === 'else') {
+            warnings.push(`${sourceLine.filename || 'RC'}:${sourceLine.lineNum}: 'sino' requiere una condición 'si' abierta sin rama alternativa.`);
+            append(createStatementNode(sourceLine));
+            return;
+          }
+          active.branch = 'else';
+          return;
+        }
+
+        if (CLOSING_COMMANDS.has(cmd)) {
+          const active = stack[stack.length - 1];
+          const expectedOpen = closeToOpen.get(cmd) || [];
+          const genericCloseAllowed = cmd === 'fin'
+            && active?.node.kind === 'container'
+            && active.node.openCommand !== 'manifiesto';
+          const matches = active && active.node.kind !== 'program'
+            && (genericCloseAllowed || expectedOpen.includes(active.node.openCommand)
+              || (cmd === 'fin' && active.node.kind === 'manifest' && active.node.openCommand === 'manifest_inicio'));
+          if (!matches) {
+            const activeNode = active?.node;
+            warnings.push(activeNode && activeNode.kind !== 'program'
+              ? `${sourceLine.filename || 'RC'}:${sourceLine.lineNum}: cierre fuera de orden; '${activeNode.openCommand}' sigue abierto desde ${activeNode.filename || 'RC'}:${activeNode.lineNum}.`
+              : `${sourceLine.filename || 'RC'}:${sourceLine.lineNum}: '${cmd}' no tiene una estructura abierta compatible.`);
+            append(createStatementNode(sourceLine));
+            return;
+          }
+          active.node.closeLine = sourceLine;
+          stack.pop();
+          return;
+        }
+
+        if (Object.hasOwn(openToClose, cmd)) {
+          if (cmd === 'si' && (parsed.args.length !== 2 || !/^[a-z][a-z0-9_]*$/.test(parsed.args[0]))) {
+            warnings.push(`${sourceLine.filename || 'RC'}:${sourceLine.lineNum}: 'si' requiere una clave de estado en minúsculas y un valor.`);
+            append(createStatementNode(sourceLine));
+            return;
+          }
+          const kind = cmd === 'si' ? 'if' : cmd === 'repetir' ? 'repeat'
+            : ['manifiesto', 'manifest_inicio'].includes(cmd) ? 'manifest' : 'container';
+          const block = {
+            kind,
+            openCommand: cmd,
+            sourceLine,
+            children: [],
+            alternate: [],
+            parsed,
+            filename: sourceLine.filename,
+            lineNum: sourceLine.lineNum
+          };
+          append(block);
+          stack.push({ node: block, branch: 'main' });
+          return;
+        }
+        append(createStatementNode(sourceLine));
+      });
+
+      stack.slice(1).forEach(({ node }) => {
+        warnings.push(`${node.filename || 'RC'}:${node.lineNum}: '${node.openCommand}' sigue abierto; falta '${openToClose[node.openCommand]}'.`);
+      });
+      return root;
+    }
+
+    function collectAstDefinedIdsForLine(sourceLine) {
+      const parsed = sourceLine.parsed;
+      const spec = parsed && !parsed.parseError ? RC_COMMANDS_SPEC[parsed.cmd] : null;
+      const ids = new Set();
+      if (parsed?.bracketId) ids.add(parsed.bracketId);
+      if (!spec || !ID_DEFINITION_TYPES_FOR_AST.has(spec.type)) return ids;
+      if ((spec.params[0] === 'id' || spec.params[0] === 'id_vista') && parsed.args[0]) ids.add(parsed.args[0].trim());
+      else if (parsed.cmd === 'seccion' && parsed.args[0]) ids.add(parsed.args[0].trim());
+      else if (parsed.cmd === 'rejilla' && parsed.args[1]) ids.add(parsed.args[1].trim());
+      return ids;
+    }
+
+    function collectAstDefinedIds(node, ids = new Set()) {
+      if (node.sourceLine) {
+        collectAstDefinedIdsForLine(node.sourceLine).forEach(id => ids.add(id));
+      }
+      node.children?.forEach(child => collectAstDefinedIds(child, ids));
+      node.alternate?.forEach(child => collectAstDefinedIds(child, ids));
+      return ids;
+    }
+
+    const ID_DEFINITION_TYPES_FOR_AST = new Set([
+      'element', 'input', 'checkbox', 'container', 'scene3d', 'toggle', 'holonet', 'window',
+      'tab', 'accordion', 'view'
+    ]);
+
+    function flattenRcAst(node, output, conditions = [], idMap = new Map()) {
+      if (node.kind === 'program') {
+        node.children.forEach(child => flattenRcAst(child, output, conditions, idMap));
+        return;
+      }
+      if (node.sourceLine && !['container', 'if', 'repeat', 'manifest'].includes(node.kind)) {
+        let sourceLine = node.sourceLine;
+        if (idMap.size) {
+          let rawLine = sourceLine.rawLine;
+          idMap.forEach((newId, id) => {
+            const escapedId = id.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            rawLine = rawLine.replace(new RegExp(`(^|[^A-Za-z0-9_])${escapedId}(?=$|[^A-Za-z0-9_])`, 'g'), `$1${newId}`);
+          });
+          sourceLine = { ...sourceLine, rawLine, parsed: parseRcLine(rawLine, sourceLine.lineNum) };
+        }
+        output.push({ ...sourceLine, conditions });
+        return;
+      }
+      if (node.kind === 'if') {
+        const [key = '', value = ''] = node.parsed.args;
+        flattenRcAst({ kind: 'program', children: node.children }, output,
+          [...conditions, { key: cleanParam(key), value: cleanParam(value), negate: false }], idMap);
+        flattenRcAst({ kind: 'program', children: node.alternate }, output,
+          [...conditions, { key: cleanParam(key), value: cleanParam(value), negate: true }], idMap);
+        return;
+      }
+      if (node.kind === 'repeat') {
+        const count = Number(node.parsed.args[0]);
+        if (!Number.isSafeInteger(count) || count < 0 || count > 50) {
+          warnings.push(`${node.filename || 'RC'}:${node.lineNum}: 'repetir' requiere un entero entre 0 y 50.`);
+          return;
+        }
+        const ids = collectAstDefinedIds({ kind: 'program', children: node.children });
+        for (let iteration = 1; iteration <= count; iteration++) {
+          const repeatMap = new Map(idMap);
+          ids.forEach(id => repeatMap.set(id, `${idMap.get(id) || id}_rep${iteration}`));
+          flattenRcAst({ kind: 'program', children: node.children }, output, conditions, repeatMap);
+        }
+        return;
+      }
+      if (node.sourceLine) output.push({ ...node.sourceLine, conditions });
+      node.children?.forEach(child => flattenRcAst(child, output, conditions, idMap));
+      if (node.closeLine) output.push({ ...node.closeLine, conditions, closedCommand: node.openCommand });
+    }
+
+    const programAst = buildRcAst(sourceLines);
+    const astSourceLines = [];
+    flattenRcAst(programAst, astSourceLines);
+
     const nodesById = new Map();
+    let currentAstConditions = [];
     let currentFilename = rootFile;
     let currentLineNum = 0;
 
@@ -975,7 +1323,8 @@
         rawHtml: '',
         parent: null,
         lineNum: currentLineNum,
-        filename: currentFilename
+        filename: currentFilename,
+        conditions: currentAstConditions
       };
       if (id) {
         if (nodesById.has(id)) {
@@ -1041,10 +1390,11 @@
       return popContainer();
     }
 
-    sourceLines.forEach(sourceLine => {
+    astSourceLines.forEach(sourceLine => {
       const { rawLine, lineNum, filename } = sourceLine;
       currentFilename = filename;
       currentLineNum = lineNum;
+      currentAstConditions = sourceLine.conditions || [];
       const line = rawLine.trim();
       if (!line) return;
 
@@ -1059,7 +1409,11 @@
       const parsed = sourceLine.parsed;
       if (!parsed) return;
       if (parsed.parseError) {
-        warnings.push(`${filename || 'RC'}:${lineNum}: ${parsed.parseError}.`);
+        const diagnostic = `${filename || 'RC'}:${lineNum}: ${parsed.parseError}.`;
+        warnings.push(diagnostic);
+        if (/espera .+ argumentos; recibió|identificador .+ debe escribirse en minúsculas/.test(parsed.parseError)) {
+          console.warn(diagnostic);
+        }
         return;
       }
 
@@ -1079,7 +1433,7 @@
         warnings.push(`${filename || 'RC'}:${lineNum}: '${cmd}' no recibe parámetros.`);
         return;
       }
-      const bracketIdUsed = Boolean(bracketId && bracketIdCommands.has(cmd));
+      const bracketIdUsed = Boolean(bracketId && RC_BRACKET_ID_COMMANDS.has(cmd));
       const argumentOffset = bracketIdUsed && spec?.params[0] === 'id' ? 1 : 0;
       const minArgs = Math.max(0, (spec?.minArgs ?? 0) - argumentOffset);
       const maxArgs = (spec?.maxArgs ?? spec?.params.length ?? 0) - argumentOffset;
@@ -1113,8 +1467,10 @@
         sumar: [a1, a2, a3, a4], restar: [a1, a2, a3, a4], multiplicar: [a1, a2, a3, a4], dividir: [a1, a2, a3, a4],
         incrementar: [a1, a2], decrementar: [a1, a2], guardarlocal: [a1, a3], cargarlocal: [a2],
         exportarcanvas: [a1], luz: [a1], notificacion: [a1],
-        al_clic_fuera: [a1], deslizar: [a1], estado: [a1], si_estado: [a1],
+        al_clic_fuera: [a1], deslizar: [a1], estado: args.length === 2 && splitTopLevel(a2).length !== 2 ? [] : [a1],
+        si_estado: [a1], enlazar: [a1], navegar: [a1],
         reproducir: [a1], pausar: [a1], detener: [a1], volumen: [a1],
+        retardar: [a2], desvanecer: [a1], aparecer_lento: [a1],
         fondo: args.length === 2 ? [a1] : [],
         color: args.length === 2 ? [a1] : [],
         tema: args.length === 2 ? [a1] : []
@@ -1124,7 +1480,7 @@
       const listCmds = ['elementolista'];
       const tableCmds = ['filatabla', 'encabezadotabla', 'celdatabla'];
       const elementCmds = [
-        'seccion', 'contenedor', 'rejilla', 'boton', 'parrafo', 'texto',
+        'seccion', 'contenedor', 'rejilla', 'vista', 'boton', 'parrafo', 'texto',
         'encabezado', 'entrada', 'camponumero', 'campocorreo', 'campocontrasena',
         'campofecha', 'campochequeo', 'desplegable', 'areatexto', 'lienzo',
         'capa', 'audio', 'cargar_audio', 'modal', 'cargando', 'tabla', 'listadesordenada', 'listaordenada'
@@ -1156,6 +1512,15 @@
         androidManifestOpen = false;
         return;
       }
+      if (cmd === 'manifest_fin') {
+        if (!androidManifestOpen) warnings.push(`${filename || 'RC'}:${lineNum}: 'manifest_fin' no tiene un bloque manifest_inicio abierto.`);
+        androidManifestOpen = false;
+        return;
+      }
+      if (cmd === 'fin' && sourceLine.closedCommand === 'manifest_inicio') {
+        androidManifestOpen = false;
+        return;
+      }
       if (CLOSING_COMMANDS.has(cmd)) {
         if (nodeStack.length <= 1) {
           warnings.push(`${filename || 'RC'}:${lineNum}: '${cmd}' no tiene una estructura abierta.`);
@@ -1170,6 +1535,7 @@
           fintabla: ['tabla'],
           finfilatabla: ['fila'],
           finmodal: ['modal'],
+          finvista: ['view'],
           finescena3d: ['scene3d'],
           finpestana: ['tab'],
           finacordeon: ['accordion'],
@@ -1190,6 +1556,87 @@
       }
 
       switch (cmd) {
+        case 'esperar': {
+          const delay = Number(a1);
+          if (!/^\d+(?:\.\d+)?$/.test(cleanParam(a1)) || !Number.isFinite(delay) || delay > 2147483647) {
+            warnings.push(`${filename || 'RC'}:${lineNum}: 'esperar' requiere milisegundos entre 0 y 2147483647.`);
+            break;
+          }
+          scriptLines.push(`await new Promise(resolve => setTimeout(resolve, ${Math.floor(delay)}));`);
+          break;
+        }
+
+        case 'retardar': {
+          const delay = Number(a1);
+          if (!/^\d+(?:\.\d+)?$/.test(cleanParam(a1)) || !cleanParam(a2)
+            || !Number.isFinite(delay) || delay > 2147483647) {
+            warnings.push(`${filename || 'RC'}:${lineNum}: 'retardar' requiere milisegundos válidos e ID de elemento.`);
+            break;
+          }
+          scriptLines.push(`{
+            const el = document.getElementById(${escapeJsString(a2)});
+            if (el) {
+              el.style.setProperty('display', 'none');
+              setTimeout(() => el.style.removeProperty('display'), ${Math.floor(delay)});
+            }
+          }`);
+          break;
+        }
+
+        case 'desvanecer': {
+          const duration = Number(a2);
+          if (!cleanParam(a1) || !/^\d+(?:\.\d+)?$/.test(cleanParam(a2))
+            || !Number.isFinite(duration) || duration > 2147483647) {
+            warnings.push(`${filename || 'RC'}:${lineNum}: 'desvanecer' requiere ID de elemento y milisegundos válidos.`);
+            break;
+          }
+          scriptLines.push(`{
+            const el = document.getElementById(${escapeJsString(a1)});
+            if (el) {
+              el.style.setProperty('transition', 'opacity ${Math.floor(duration)}ms ease');
+              el.style.setProperty('opacity', '0');
+              setTimeout(() => {
+                el.style.setProperty('display', 'none');
+                el.style.removeProperty('opacity');
+                el.style.removeProperty('transition');
+              }, ${Math.floor(duration)});
+            }
+          }`);
+          break;
+        }
+
+        case 'aparecer_lento': {
+          const duration = Number(a2);
+          if (!cleanParam(a1) || !/^\d+(?:\.\d+)?$/.test(cleanParam(a2))
+            || !Number.isFinite(duration) || duration > 2147483647) {
+            warnings.push(`${filename || 'RC'}:${lineNum}: 'aparecer_lento' requiere ID de elemento y milisegundos válidos.`);
+            break;
+          }
+          scriptLines.push(`{
+            const el = document.getElementById(${escapeJsString(a1)});
+            if (el) {
+              el.style.removeProperty('display');
+              el.style.setProperty('transition', 'opacity ${Math.floor(duration)}ms ease');
+              el.style.setProperty('opacity', '0');
+              requestAnimationFrame(() => el.style.setProperty('opacity', '1'));
+              setTimeout(() => {
+                el.style.removeProperty('opacity');
+                el.style.removeProperty('transition');
+              }, ${Math.floor(duration)});
+            }
+          }`);
+          break;
+        }
+
+        case 'reiniciar_app':
+          scriptLines.push(`if (sessionStorage.getItem('rc-studio-restart-pending') === 'true') {
+            sessionStorage.removeItem('rc-studio-restart-pending');
+          } else {
+            sessionStorage.setItem('rc-studio-restart-pending', 'true');
+            window.location.reload();
+          }`);
+          break;
+
         case 'manifiesto': {
           if (androidManifestOpen) {
             warnings.push(`${filename || 'RC'}:${lineNum}: no se puede anidar otro bloque 'manifiesto'.`);
@@ -1206,10 +1653,63 @@
           break;
         }
 
+        case 'manifest_inicio': {
+          const appName = cleanParam(a1);
+          const packageName = cleanParam(a2);
+          if (androidManifestOpen) {
+            warnings.push(`${filename || 'RC'}:${lineNum}: no se pueden anidar bloques Manifest.`);
+            break;
+          }
+          if (!appName || !/^[a-z][a-z0-9_]*(?:\.[a-z][a-z0-9_]*)+$/.test(packageName)) {
+            warnings.push(`${filename || 'RC'}:${lineNum}: 'manifest_inicio' requiere un nombre de aplicación y un paquete válido.`);
+            break;
+          }
+          androidManifestOpen = true;
+          break;
+        }
+
+        case 'manifest_version': {
+          const versionCode = Number(a1);
+          if (!androidManifestOpen) {
+            warnings.push(`${filename || 'RC'}:${lineNum}: 'manifest_version' requiere un bloque Manifest abierto.`);
+          } else if (!/^\d+$/.test(a1) || !Number.isSafeInteger(versionCode) || versionCode < 1 || versionCode > 2100000000 || !cleanParam(a2)) {
+            warnings.push(`${filename || 'RC'}:${lineNum}: 'manifest_version' requiere un código entero entre 1 y 2100000000 y un nombre.`);
+          }
+          break;
+        }
+
+        case 'manifest_permiso': {
+          const permission = cleanParam(a1);
+          if (!androidManifestOpen) {
+            warnings.push(`${filename || 'RC'}:${lineNum}: 'manifest_permiso' requiere un bloque Manifest abierto.`);
+          } else if (!normalizeManifestPermission(permission)) {
+            warnings.push(`${filename || 'RC'}:${lineNum}: nombre de permiso Manifest no válido.`);
+          }
+          break;
+        }
+
+        case 'manifest_actividad': {
+          const className = cleanParam(a1);
+          const orientation = cleanParam(a2);
+          if (!androidManifestOpen) {
+            warnings.push(`${filename || 'RC'}:${lineNum}: 'manifest_actividad' requiere un bloque Manifest abierto.`);
+          } else if (!/^[a-zA-Z_$][a-zA-Z0-9_.$]*$/.test(className) || !['portrait', 'landscape'].includes(orientation)) {
+            warnings.push(`${filename || 'RC'}:${lineNum}: 'manifest_actividad' requiere una clase válida y orientación portrait o landscape.`);
+          }
+          break;
+        }
+
+        case 'manifest_icono':
+        case 'manifest_pwa_meta':
+        case 'manifest_autor':
+          if (!androidManifestOpen) {
+            warnings.push(`${filename || 'RC'}:${lineNum}: '${cmd}' requiere un bloque Manifest abierto.`);
+          }
+          break;
+
         case 'permiso': {
           const permission = cleanParam(a1);
-          const normalizedPermission = permission.startsWith('android.permission.')
-            ? permission : `android.permission.${permission}`;
+          const normalizedPermission = normalizeAndroidPermission(permission);
           if (!androidManifestOpen) {
             warnings.push(`${filename || 'RC'}:${lineNum}: 'permiso' requiere un bloque 'manifiesto' abierto.`);
           } else if (!/^android\.permission\.[A-Z0-9_]+$/.test(normalizedPermission)) {
@@ -2046,6 +2546,18 @@
           break;
         }
 
+        case 'vista': {
+          const viewId = cleanParam(a1);
+          if (!/^[a-z][a-z0-9_]*$/.test(viewId)) {
+            warnings.push(`${filename || 'RC'}:${lineNum}: 'vista' requiere un identificador en minúsculas con guiones bajos.`);
+            break;
+          }
+          const viewNode = createNode('section', viewId, 'rc-view', true, 'view');
+          viewNode.attrs['data-rc-view'] = viewId;
+          addChild(viewNode);
+          break;
+        }
+
         case 'linea':
           addChild(createNode('hr'));
           break;
@@ -2444,6 +2956,14 @@
 
         case 'estado':
         case 'si_estado': {
+          if (cmd === 'estado' && args.length === 2 && splitTopLevel(cleanParam(a2)).length !== 2) {
+            if (!/^[a-z][a-z0-9_]*$/.test(cleanParam(a1))) {
+              warnings.push(`${filename || 'RC'}:${lineNum}: 'estado' requiere una clave global en minúsculas con guiones bajos.`);
+              break;
+            }
+            scriptLines.push(`window.rcState[${escapeJsString(cleanParam(a1))}] = ${escapeJsString(cleanParam(a2))};`);
+            break;
+          }
           const stateParts = args.length === 3
             ? [cleanParam(a2), cleanParam(a3)]
             : splitTopLevel(cleanParam(a2));
@@ -2451,6 +2971,7 @@
             warnings.push(`${filename || 'RC'}:${lineNum}: '${cmd}' requiere clave y valor separados por coma.`);
             break;
           }
+
           const [stateKey, stateValue] = stateParts;
           const stateKeyJs = escapeJsString(stateKey);
           const stateValueJs = escapeJsString(stateValue);
@@ -2486,6 +3007,29 @@
           }
           break;
         }
+
+        case 'enlazar': {
+          const boundNode = nodesById.get(cleanParam(a1));
+          if (!boundNode) {
+            warnings.push(`${filename || 'RC'}:${lineNum}: 'enlazar' no encuentra el elemento '${escapeHtml(a1)}'.`);
+            break;
+          }
+          const stateKey = cleanParam(a2);
+          if (!/^[a-z][a-z0-9_]*$/.test(stateKey)) {
+            warnings.push(`${filename || 'RC'}:${lineNum}: 'enlazar' requiere una clave de estado en minúsculas con guiones bajos.`);
+            break;
+          }
+          boundNode.attrs['data-rc-bind'] = stateKey;
+          break;
+        }
+
+        case 'navegar':
+          if (!/^[a-z][a-z0-9_]*$/.test(cleanParam(a1))) {
+            warnings.push(`${filename || 'RC'}:${lineNum}: 'navegar' requiere un identificador de vista en minúsculas con guiones bajos.`);
+            break;
+          }
+          scriptLines.push(`window.rcNavigate(${escapeJsString(cleanParam(a1))});`);
+          break;
 
         case 'fondo': {
           const colorValue = args.length === 2 ? a2 : a1;
@@ -3318,12 +3862,98 @@
       warnings.push(`${currentFilename || 'RC'}:${currentLineNum || '?'}: 'manifiesto' sigue abierto; falta 'finmanifiesto'.`);
     }
 
+    scriptLines.unshift(`{
+      const refreshRcBindings = () => {
+        document.querySelectorAll('[data-rc-bind]').forEach(element => {
+          const key = element.dataset.rcBind;
+          if (!Object.prototype.hasOwnProperty.call(window.rcState, key)) return;
+          const value = String(window.rcState[key] ?? '');
+          if (element.type === 'checkbox' || element.type === 'radio') element.checked = ['true', '1', 'si', 'sí'].includes(value.toLowerCase());
+          else if ('value' in element) element.value = value;
+          else element.textContent = value;
+        });
+        document.querySelectorAll('[data-rc-condition]').forEach(element => {
+          let conditions;
+          try {
+            conditions = JSON.parse(element.dataset.rcCondition);
+          } catch (error) {
+            console.error('Condición RC inválida en el DOM.', error);
+            return;
+          }
+          const matches = conditions.every(condition => {
+            const equal = String(window.rcState[condition.key] ?? '') === condition.value;
+            return condition.negate ? !equal : equal;
+          });
+          if (!Object.prototype.hasOwnProperty.call(element.dataset, 'rcConditionDisplay')) {
+            element.dataset.rcConditionDisplay = element.style.display;
+          }
+          element.style.display = matches ? element.dataset.rcConditionDisplay : 'none';
+        });
+      };
+      window.rcState = new Proxy(Object.create(null), {
+        set(target, key, value) {
+          target[key] = value;
+          refreshRcBindings();
+          return true;
+        },
+        deleteProperty(target, key) {
+          delete target[key];
+          refreshRcBindings();
+          return true;
+        }
+      });
+      document.addEventListener('input', event => {
+        const element = event.target.closest?.('[data-rc-bind]');
+        if (!element) return;
+        window.rcState[element.dataset.rcBind] = element.type === 'checkbox' || element.type === 'radio'
+          ? String(element.checked) : element.value ?? element.textContent;
+      });
+      document.addEventListener('change', event => {
+        const element = event.target.closest?.('[data-rc-bind]');
+        if (element && (element.type === 'checkbox' || element.tagName === 'SELECT')) {
+          window.rcState[element.dataset.rcBind] = element.type === 'checkbox' ? String(element.checked) : element.value;
+        }
+      });
+
+      const rcViews = [...document.querySelectorAll('[data-rc-view]')];
+      const setRcView = viewId => {
+        const target = rcViews.find(view => view.dataset.rcView === viewId);
+        if (!target) {
+          console.warn('La vista RC no existe:', viewId);
+          return false;
+        }
+        rcViews.forEach(view => { view.style.display = view === target ? '' : 'none'; });
+        return true;
+      };
+      window.rcNavigate = viewId => {
+        if (!setRcView(String(viewId))) return false;
+        if (window.history?.pushState) window.history.pushState({ rcView: String(viewId) }, '', '#vista=' + encodeURIComponent(viewId));
+        return true;
+      };
+      window.addEventListener('popstate', event => {
+        const viewId = event.state?.rcView || rcViews[0]?.dataset.rcView;
+        if (viewId) setRcView(viewId);
+      });
+      if (rcViews.length) {
+        const initialView = window.location.hash.startsWith('#vista=')
+          ? decodeURIComponent(window.location.hash.slice(7)) : rcViews[0].dataset.rcView;
+        if (!setRcView(initialView)) setRcView(rcViews[0].dataset.rcView);
+      }
+      refreshRcBindings();
+    }`);
+
     function renderNode(node, depth = 1) {
       const indent = ' '.repeat(depth * 2);
       if (node.rawHtml) return `${indent}${node.rawHtml}`;
 
       let attrs = '';
       if (node.id) attrs += ` id="${escapeHtml(node.id)}"`;
+      if (node.lineNum > 0) {
+        attrs += ` data-rc-line="${node.lineNum}" data-rc-file="${escapeHtml(node.filename || '')}"`;
+      }
+      if (node.isContainer || ['a', 'button', 'div', 'img', 'input', 'section', 'select', 'textarea'].includes(node.tag)) {
+        attrs += ' data-rc-draggable="true"';
+      }
       if (node.className) attrs += ` class="${escapeHtml(node.className)}"`;
       if (node.inputType) attrs += ` type="${escapeHtml(node.inputType)}"`;
       if (node.val !== undefined && node.val !== '') attrs += ` value="${escapeHtml(node.val)}"`;
@@ -3338,6 +3968,9 @@
         }
       }
 
+      if (node.conditions?.length) {
+        attrs += ` data-rc-condition="${escapeHtml(JSON.stringify(node.conditions))}"`;
+      }
       if (node.styles.length > 0) attrs += ` style="${escapeHtml(node.styles.join(' '))}"`;
 
       const selfClosing = ['hr', 'img', 'input'];
@@ -3379,9 +4012,149 @@
         }).join('\n') + `\n  </div>\n`;
     }
 
+    scriptLines.push(`{
+      let editMode = false;
+      let drag = null;
+      let resize = null;
+      let resizeTarget = null;
+      let suppressClick = false;
+      const getDragTarget = target => target.closest('a, button, img, input, select, textarea, [data-rc-draggable="true"]');
+      const resizeHandle = document.createElement('button');
+      resizeHandle.type = 'button';
+      resizeHandle.setAttribute('aria-label', 'Redimensionar elemento');
+      resizeHandle.title = 'Arrastra para redimensionar';
+      Object.assign(resizeHandle.style, {
+        position: 'fixed', zIndex: '2147483647', width: '16px', height: '16px',
+        padding: '0', margin: '0', border: '2px solid #fff', borderRadius: '3px',
+        background: '#1677ff', boxShadow: '0 0 0 1px #111', cursor: 'nwse-resize',
+        display: 'none', touchAction: 'none'
+      });
+      document.body.appendChild(resizeHandle);
+      const readOffset = (value, size) => {
+        if (!value || value === 'none') return 0;
+        const amount = parseFloat(value) || 0;
+        return value.trim().endsWith('%') ? amount * size / 100 : amount;
+      };
+      window.addEventListener('message', event => {
+        if (event.source !== window.parent || event.data?.type !== 'rc-studio-edit-mode') return;
+        editMode = Boolean(event.data.enabled);
+        resizeHandle.style.display = 'none';
+        resizeTarget = null;
+      });
+      window.addEventListener('pointerdown', event => {
+        if (!editMode || event.button !== 0) return;
+        if (event.target === resizeHandle && resizeTarget) {
+          event.preventDefault();
+          event.stopPropagation();
+          resize = {
+            element: resizeTarget,
+            pointerId: event.pointerId,
+            startX: event.clientX,
+            startY: event.clientY,
+            width: resizeTarget.getBoundingClientRect().width,
+            height: resizeTarget.getBoundingClientRect().height,
+            moved: false
+          };
+          resizeHandle.setPointerCapture(event.pointerId);
+          return;
+        }
+        const element = getDragTarget(event.target);
+        if (!element?.dataset.rcLine || !element.dataset.rcFile) return;
+        const rect = element.getBoundingClientRect();
+        const offset = (getComputedStyle(element).translate || 'none').split(/\\s+/);
+        drag = {
+          element,
+          pointerId: event.pointerId,
+          startX: event.clientX,
+          startY: event.clientY,
+          baseX: readOffset(offset[0], rect.width),
+          baseY: readOffset(offset[1], rect.height),
+          moved: false
+        };
+      });
+      window.addEventListener('pointermove', event => {
+        if (resize && resize.pointerId === event.pointerId) {
+          const width = Math.max(16, resize.width + event.clientX - resize.startX);
+          const height = Math.max(16, resize.height + event.clientY - resize.startY);
+          resize.moved = true;
+          event.preventDefault();
+          resize.element.style.setProperty('width', width + 'px');
+          resize.element.style.setProperty('height', height + 'px');
+          return;
+        }
+        if (!drag) {
+          if (!editMode || event.target === resizeHandle) return;
+          const element = getDragTarget(event.target);
+          if (!element?.dataset.rcLine || !element.dataset.rcFile) {
+            resizeHandle.style.display = 'none';
+            resizeTarget = null;
+            return;
+          }
+          resizeTarget = element;
+          const rect = element.getBoundingClientRect();
+          resizeHandle.style.left = Math.max(0, Math.min(window.innerWidth - 16, rect.right - 8)) + 'px';
+          resizeHandle.style.top = Math.max(0, Math.min(window.innerHeight - 16, rect.bottom - 8)) + 'px';
+          resizeHandle.style.display = 'block';
+          return;
+        }
+        if (!drag || drag.pointerId !== event.pointerId) return;
+        const deltaX = event.clientX - drag.startX;
+        const deltaY = event.clientY - drag.startY;
+        if (!drag.moved && Math.hypot(deltaX, deltaY) < 3) return;
+        drag.moved = true;
+        event.preventDefault();
+        const x = drag.baseX + deltaX;
+        const y = drag.baseY + deltaY;
+        drag.element.style.setProperty('translate', x + 'px ' + y + 'px');
+        drag.element.style.setProperty('cursor', 'grabbing');
+      }, { passive: false });
+      const finishDrag = event => {
+        if (!drag || (event.pointerId !== undefined && drag.pointerId !== event.pointerId)) return;
+        const completedDrag = drag;
+        drag = null;
+        if (!completedDrag.moved) return;
+        suppressClick = true;
+        setTimeout(() => { suppressClick = false; }, 400);
+        completedDrag.element.style.removeProperty('cursor');
+        window.parent.postMessage({
+          type: 'rc-studio-position',
+          filename: completedDrag.element.dataset.rcFile,
+          line: Number(completedDrag.element.dataset.rcLine),
+          x: completedDrag.baseX + event.clientX - completedDrag.startX,
+          y: completedDrag.baseY + event.clientY - completedDrag.startY
+        }, '*');
+      };
+      const finishResize = event => {
+        if (!resize || (event.pointerId !== undefined && resize.pointerId !== event.pointerId)) return;
+        const completedResize = resize;
+        resize = null;
+        if (!completedResize.moved) return;
+        const rect = completedResize.element.getBoundingClientRect();
+        resizeHandle.style.left = Math.max(0, Math.min(window.innerWidth - 16, rect.right - 8)) + 'px';
+        resizeHandle.style.top = Math.max(0, Math.min(window.innerHeight - 16, rect.bottom - 8)) + 'px';
+        window.parent.postMessage({
+          type: 'rc-studio-size',
+          filename: completedResize.element.dataset.rcFile,
+          line: Number(completedResize.element.dataset.rcLine),
+          width: rect.width,
+          height: rect.height
+        }, '*');
+      };
+      window.addEventListener('pointerup', finishDrag);
+      window.addEventListener('pointercancel', finishDrag);
+      window.addEventListener('pointerup', finishResize);
+      window.addEventListener('pointercancel', finishResize);
+      window.addEventListener('click', event => {
+        if (!suppressClick) return;
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        suppressClick = false;
+      }, true);
+    }`);
+
     let scriptBlock = '';
     if (scriptLines.length > 0) {
-      scriptBlock = `\n  <script>\n    window.addEventListener('DOMContentLoaded', () => {\n      ${scriptLines.join('\n      ')}\n    });\n  <\/script>`;
+      scriptBlock = `\n  <script>\n    window.addEventListener('DOMContentLoaded', async () => {\n      ${scriptLines.join('\n      ')}\n    });\n  <\/script>`;
     }
 
     return `<!DOCTYPE html>
@@ -3495,11 +4268,24 @@ ${warningBlock}${bodyChildren}${scriptBlock}
   let activeFile = "main.rc";
   let splitRatio = 0.5;
   let stateSaveTimer = null;
+  let storageRecoveryBlocked = false;
+  let storageRecoveryNotice = '';
   const panelSel = document.getElementById("panelSelector");
+
+  function setSaveStatus(message, state) {
+    const status = document.getElementById('saveStatus');
+    if (!status) return;
+    status.textContent = message;
+    status.dataset.state = state;
+  }
 
   function saveState() {
     clearTimeout(stateSaveTimer);
     stateSaveTimer = null;
+    if (storageRecoveryBlocked) {
+      setSaveStatus('Estado anterior protegido; no se pudo guardar', 'error');
+      return;
+    }
     try {
       if (!files.has(activeFile)) activeFile = "";
       const state = {
@@ -3509,32 +4295,82 @@ ${warningBlock}${bodyChildren}${scriptBlock}
         splitRatio
       };
       localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      setSaveStatus('Guardado local', 'saved');
     } catch (e) {
       console.warn("No se pudo guardar el estado en localStorage", e);
+      setSaveStatus('Error al guardar', 'error');
     }
   }
 
   function scheduleSaveState() {
     clearTimeout(stateSaveTimer);
+    if (storageRecoveryBlocked) {
+      setSaveStatus('Estado anterior protegido; no se pudo guardar', 'error');
+      return;
+    }
+    setSaveStatus('Cambios pendientes…', 'pending');
     stateSaveTimer = setTimeout(saveState, 500);
   }
 
   window.addEventListener("pagehide", saveState);
 
-  function loadState() {
+  function preserveStoredState(raw, reason) {
     try {
-      const raw = localStorage.getItem(STORAGE_KEY);
+      const backupKey = `${STORAGE_KEY}_recovery_${Date.now()}`;
+      localStorage.setItem(backupKey, raw);
+      storageRecoveryNotice = `Se conservó el estado anterior en ${backupKey}.`;
+      console.warn(storageRecoveryNotice, reason);
+      return true;
+    } catch (backupError) {
+      storageRecoveryBlocked = true;
+      setSaveStatus('Estado anterior protegido; no se pudo guardar', 'error');
+      console.warn('No se pudo crear una copia de recuperación del estado anterior.', reason, backupError);
+      return false;
+    }
+  }
+
+  function loadState() {
+    let raw = null;
+    try {
+      raw = localStorage.getItem(STORAGE_KEY);
       if (!raw) return false;
-      const parsed = JSON.parse(raw);
-      if (!parsed || !Array.isArray(parsed.files)) return false;
+      let parsed;
+      try {
+        parsed = JSON.parse(raw);
+      } catch (error) {
+        return preserveStoredState(raw, error) ? false : null;
+      }
+      if (!parsed || !Array.isArray(parsed.files)) {
+        return preserveStoredState(raw, new Error('Formato de proyecto no reconocido')) ? false : null;
+      }
 
       files.clear();
-      for (const [name, fileObj] of parsed.files) {
-        if (name && fileObj && fileObj.content !== undefined) {
-          if (name.endsWith('.html') && fileObj.type !== 'rc') continue;
-          const fileName = name.endsWith('.rc') ? name : name + '.rc';
-          files.set(fileName, { type: 'rc', content: fileObj.content });
+      let discardedEntries = 0;
+      for (const entry of parsed.files) {
+        if (!Array.isArray(entry) || entry.length < 2) {
+          discardedEntries++;
+          continue;
         }
+        const [storedName, fileObj] = entry;
+        if (typeof storedName !== 'string' || !fileObj || typeof fileObj.content !== 'string') {
+          discardedEntries++;
+          continue;
+        }
+        let fileName = normalizeProjectPath(storedName);
+        const legacyAuxiliaryName = storedName.match(/\.(html|css|js|json)\.rc$/i);
+        if (!fileName && legacyAuxiliaryName && fileObj.type === 'rc') {
+          fileName = normalizeProjectPath(storedName.slice(0, -3), legacyAuxiliaryName[1].toLowerCase());
+        }
+        const type = getProjectFileType(fileName);
+        if (!fileName || !type) {
+          discardedEntries++;
+          continue;
+        }
+        files.set(fileName, { type, content: fileObj.content });
+      }
+      if (discardedEntries || (parsed.files.length && files.size === 0)) {
+        if (!preserveStoredState(raw, new Error('Se omitieron entradas de archivos no reconocidas'))) return null;
+        if (files.size === 0) return false;
       }
 
       if (Number.isFinite(parsed.splitRatio)) splitRatio = Math.max(0.2, Math.min(0.8, parsed.splitRatio));
@@ -3554,18 +4390,6 @@ ${warningBlock}${bodyChildren}${scriptBlock}
         activeFile = [...files.keys()][0] || "main.rc";
       }
 
-      const mainFile = files.get("main.rc");
-      const mainContent = typeof mainFile?.content === "string" ? mainFile.content.trim() : "";
-      const hasLegacyCalculatorDemo = mainContent.startsWith(
-        "// calculadora profesional en rapid code (rc)\ntitulo(calculadora rc studio)"
-      ) && mainContent.endsWith("limpiar(btn_clr)(inp_disp)")
-        && mainContent.includes("seccion(sec_calc)")
-        && mainContent.includes("sumar(btn_sum)(inp_disp)(inp_a)(inp_disp)");
-      if (hasLegacyCalculatorDemo) {
-        mainFile.content = "";
-        saveState();
-      }
-
       if (parsed.panelMode && panelSel) {
         panelSel.value = (parsed.panelMode === 'rc-html' || parsed.panelMode === 'all') ? 'rc-preview' : parsed.panelMode;
       }
@@ -3573,7 +4397,10 @@ ${warningBlock}${bodyChildren}${scriptBlock}
       return files.size > 0;
     } catch (e) {
       console.warn("Error al cargar estado desde localStorage", e);
-      return false;
+      if (raw) return preserveStoredState(raw, e) ? false : null;
+      storageRecoveryBlocked = true;
+      setSaveStatus('No se pudo acceder al almacenamiento', 'error');
+      return null;
     }
   }
 
@@ -3582,8 +4409,12 @@ ${warningBlock}${bodyChildren}${scriptBlock}
     activeFile = "main.rc";
   }
 
-  if (!loadState()) {
+  const stateLoaded = loadState();
+  if (stateLoaded === false) {
     initDefaultFiles();
+  } else if (stateLoaded === null) {
+    files.clear();
+    activeFile = '';
   }
 
   const editorEl = document.getElementById("rcEditor");
@@ -3602,15 +4433,94 @@ ${warningBlock}${bodyChildren}${scriptBlock}
   let renderedLineCount = 0;
   let lastValidHtml = "";
   let lastPreviewHtml = null;
+  let visualEditMode = false;
+
+  function syncPreviewEditMode() {
+    const frame = document.getElementById("previewFrame");
+    frame?.contentWindow?.postMessage({ type: "rc-studio-edit-mode", enabled: visualEditMode }, "*");
+  }
 
   function updateLivePreview(htmlContent) {
     if (htmlContent === lastPreviewHtml) return;
     const frame = document.getElementById("previewFrame");
     if (frame) {
-      frame.srcdoc = htmlContent || '';
+      const localStorageShim = `<script>(()=>{let values=Object.create(null);try{const saved=JSON.parse(window.name||'{}');if(saved&&typeof saved==='object')Object.keys(saved).forEach(key=>values[key]=String(saved[key]));}catch(error){console.warn('No se pudo recuperar el almacenamiento de la vista previa',error);}const persist=()=>{window.name=JSON.stringify(values);};Object.defineProperty(window,'localStorage',{configurable:true,value:{getItem:key=>Object.hasOwn(values,String(key))?values[String(key)]:null,setItem:(key,value)=>{values[String(key)]=String(value);persist();},removeItem:key=>{delete values[String(key)];persist();},clear:()=>{values=Object.create(null);persist();}}});})();<\/script>`;
+      const source = htmlContent || '';
+      frame.srcdoc = source
+        ? /<head\b[^>]*>/i.test(source)
+          ? source.replace(/<head\b[^>]*>/i, head => `${head}${localStorageShim}`)
+          : `<head>${localStorageShim}</head>${source}`
+        : '';
       lastPreviewHtml = htmlContent;
     }
   }
+
+  function applyPreviewEdit(data, sourceWindow) {
+    if (!visualEditMode || !data || !["rc-studio-position", "rc-studio-size"].includes(data.type)) return;
+    const frame = document.getElementById("previewFrame");
+    if (!frame || sourceWindow !== frame.contentWindow) return;
+    const targetFileName = typeof data.filename === 'string' ? data.filename : '';
+    const targetFile = files.get(targetFileName);
+    if (!targetFile || targetFile.type !== 'rc') return;
+    if (!Number.isInteger(data.line)) return;
+    if (data.type === "rc-studio-position"
+      && (!Number.isFinite(data.x) || !Number.isFinite(data.y) || Math.abs(data.x) > 100000 || Math.abs(data.y) > 100000)) return;
+    if (data.type === "rc-studio-size"
+      && (!Number.isFinite(data.width) || !Number.isFinite(data.height)
+        || data.width < 1 || data.height < 1 || data.width > 100000 || data.height > 100000)) return;
+
+    const source = targetFile.content;
+    const lines = source.split("\n");
+    const commandIndex = data.line - 1;
+    if (commandIndex < 0 || commandIndex >= lines.length) return;
+    const parsed = parseRcLine(lines[commandIndex], data.line);
+    const spec = parsed && !parsed.parseError ? RC_COMMANDS_SPEC[parsed.cmd] : null;
+    if (!spec || !["element", "container", "toggle", "tab", "accordion", "window", "holonet"].includes(spec.type)) return;
+
+    const updates = data.type === "rc-studio-position"
+      ? [{ marker: "// rcstudio_drag_position", command: `desplazar(${Math.round(data.x)}px)(${Math.round(data.y)}px)`, name: "desplazar" }]
+      : [
+        { marker: "// rcstudio_drag_width", command: `ancho(${Math.round(data.width)}px)`, name: "ancho" },
+        { marker: "// rcstudio_drag_height", command: `alto(${Math.round(data.height)}px)`, name: "alto" }
+      ];
+    updates.forEach(({ marker, command, name }) => {
+      for (let index = commandIndex + 1; index < lines.length;) {
+        const existing = parseRcLine(lines[index]);
+        if (!existing || existing.parseError) {
+          index++;
+          continue;
+        }
+        const existingSpec = RC_COMMANDS_SPEC[existing.cmd];
+        if (CLOSING_COMMANDS.has(existing.cmd) || (existingSpec && ID_DEFINITION_TYPES.has(existingSpec.type))) break;
+        if (existing.cmd !== name) {
+          index++;
+          continue;
+        }
+        const markerIndex = index - 1;
+        lines.splice(lines[markerIndex] === marker ? markerIndex : index,
+          lines[markerIndex] === marker ? 2 : 1);
+        if (lines[markerIndex] === marker) index = markerIndex;
+      }
+      lines.splice(commandIndex + 1, 0, command);
+    });
+
+    const updatedSource = lines.join("\n");
+    if (updatedSource === source) return;
+    targetFile.content = updatedSource;
+    if (targetFileName === activeFile) {
+      const editor = document.getElementById("rcEditor");
+      editor.value = updatedSource;
+      editor.dispatchEvent(new Event("input", { bubbles: true }));
+    } else {
+      scheduleSaveState();
+      debounceTranslate();
+    }
+    notify(data.type === "rc-studio-position" ? "Posición RC actualizada." : "Tamaño RC actualizado.");
+  }
+
+  window.addEventListener("message", event => {
+    applyPreviewEdit(event.data, event.source);
+  });
 
   function applySplitRatio() {
     const editorPane = document.getElementById("rcEditorSection");
@@ -3720,7 +4630,11 @@ ${warningBlock}${bodyChildren}${scriptBlock}
       : lines.length;
     codeEl.style.paddingTop = virtualized ? `${firstLine * lineHeight}px` : "0";
     codeEl.style.paddingBottom = virtualized ? `${(lines.length - lastLine) * lineHeight}px` : "0";
-    codeEl.innerHTML = highlightRc(lines.slice(firstLine, lastLine).join("\n"))
+    const visibleSource = lines.slice(firstLine, lastLine).join("\n");
+    const highlightedSource = files.get(activeFile)?.type === 'rc'
+      ? highlightRc(visibleSource)
+      : escapeHtml(visibleSource);
+    codeEl.innerHTML = highlightedSource
       + (lastLine === lines.length && lines[lines.length - 1] === "" ? "\n " : "");
     syncEditorScroll();
   }
@@ -3769,6 +4683,194 @@ ${warningBlock}${bodyChildren}${scriptBlock}
     });
   }
 
+  function resolveProjectResource(sourceFile, reference) {
+    const value = String(reference || '').trim();
+    if (!value || /^(?:[a-z][a-z0-9+.-]*:|\/\/|#)/i.test(value)) return '';
+    let pathname = value.split(/[?#]/, 1)[0].replace(/\\/g, '/');
+    try {
+      pathname = decodeURIComponent(pathname);
+    } catch {
+      return '';
+    }
+    if (!pathname) return '';
+    const base = pathname.startsWith('/')
+      ? []
+      : (sourceFile.includes('/') ? sourceFile.slice(0, sourceFile.lastIndexOf('/')).split('/') : []);
+    for (const part of pathname.split('/')) {
+      if (!part || part === '.') continue;
+      if (part === '..') {
+        if (!base.length) return '';
+        base.pop();
+      } else {
+        if (!/^[\p{L}\p{N}_ .-]+$/u.test(part)) return '';
+        base.push(part);
+      }
+    }
+    const target = base.join('/');
+    return files.has(target) ? target : '';
+  }
+
+  function relativeProjectPath(sourceFile, targetFile) {
+    const sourceParts = sourceFile.includes('/') ? sourceFile.split('/').slice(0, -1) : [];
+    const targetParts = targetFile.split('/');
+    let shared = 0;
+    while (shared < sourceParts.length && shared < targetParts.length
+      && sourceParts[shared] === targetParts[shared]) shared++;
+    return [...Array(sourceParts.length - shared).fill('..'), ...targetParts.slice(shared)].join('/');
+  }
+
+  function rewriteProjectReferences(sourceName, sourceFile, oldName, newName) {
+    const newSourceName = sourceName === oldName ? newName : sourceName;
+    const updateReference = reference => {
+      const trimmed = reference.trim();
+      if (resolveProjectResource(sourceName, trimmed) !== oldName) return reference;
+      const suffixAt = trimmed.search(/[?#]/);
+      const suffix = suffixAt < 0 ? '' : trimmed.slice(suffixAt);
+      return `${relativeProjectPath(newSourceName, newName)}${suffix}`;
+    };
+    let content = sourceFile.content;
+    if (['html', 'js'].includes(sourceFile.type)) {
+      content = content.replace(/(\b(?:href|src)\s*=\s*)(["'])([^"']+)\2/gi,
+        (match, prefix, quote, reference) => `${prefix}${quote}${updateReference(reference)}${quote}`);
+      content = content.replace(/(\bfetch\s*\(\s*)(["'])([^"']+)\2/gi,
+        (match, prefix, quote, reference) => `${prefix}${quote}${updateReference(reference)}${quote}`);
+    }
+    if (sourceFile.type === 'css' || sourceFile.type === 'html') {
+      content = content.replace(/(url\(\s*)(['"]?)([^'")]+)(\2\s*\))/gi,
+        (match, prefix, quote, reference, suffix) => `${prefix}${quote}${updateReference(reference)}${suffix}`);
+      content = content.replace(/(@import\s+(?:url\(\s*)?)(['"]?)([^'")\s;]+)(\2\s*\)?\s*;)/gi,
+        (match, prefix, quote, reference, suffix) => `${prefix}${quote}${updateReference(reference)}${suffix}`);
+    }
+    return content;
+  }
+
+  function inlineProjectResources(html, sourceFile) {
+    const doc = new DOMParser().parseFromString(html, 'text/html');
+    const missing = new Set();
+    const external = new Set();
+    const isExternalResource = reference => /^(?:https?:)?\/\//i.test(String(reference || '').trim());
+    function inlineCss(resourceName, chain = new Set()) {
+      if (chain.has(resourceName)) {
+        missing.add(`${resourceName} (ciclo @import)`);
+        return '';
+      }
+      const nextChain = new Set(chain);
+      nextChain.add(resourceName);
+      return files.get(resourceName).content.replace(
+        /@import\s+(?:url\(\s*)?(['"]?)([^'")\s;]+)\1\s*\)?\s*;/gi,
+        (match, _quote, reference) => {
+          if (isExternalResource(reference)) {
+            external.add(reference);
+            return match;
+          }
+          if (/^(?:[a-z][a-z0-9+.-]*:|#)/i.test(reference)) return match;
+          const importedFile = resolveProjectResource(resourceName, reference);
+          if (!importedFile || getProjectFileType(importedFile) !== 'css') {
+            missing.add(reference);
+            return '';
+          }
+          return inlineCss(importedFile, nextChain);
+        }
+      );
+    }
+    doc.querySelectorAll('link[rel~="stylesheet"][href]').forEach(link => {
+      const resourceName = resolveProjectResource(sourceFile, link.getAttribute('href'));
+      if (!resourceName || getProjectFileType(resourceName) !== 'css') {
+        const href = link.getAttribute('href') || '';
+        if (isExternalResource(href)) external.add(href);
+        else if (!/^(?:[a-z][a-z0-9+.-]*:|#)/i.test(href)) missing.add(href);
+        return;
+      }
+      const cssContent = inlineCss(resourceName);
+      const style = doc.createElement('style');
+      style.textContent = cssContent;
+      cssContent.replace(/url\(\s*(['"]?)([^'")]+)\1\s*\)/gi, (match, _quote, reference) => {
+        if (isExternalResource(reference)) external.add(reference.trim());
+        else if (!/^(?:[a-z][a-z0-9+.-]*:|#)/i.test(reference)) missing.add(reference.trim());
+        return match;
+      });
+      link.replaceWith(style);
+    });
+    doc.querySelectorAll('script[src]').forEach(script => {
+      const resourceName = resolveProjectResource(sourceFile, script.getAttribute('src'));
+      if (!resourceName || getProjectFileType(resourceName) !== 'js') {
+        const src = script.getAttribute('src') || '';
+        if (isExternalResource(src)) external.add(src);
+        else if (!/^(?:[a-z][a-z0-9+.-]*:|#)/i.test(src)) missing.add(src);
+        return;
+      }
+      script.removeAttribute('src');
+      script.textContent = files.get(resourceName).content;
+    });
+    doc.querySelectorAll('script:not([src])').forEach(script => {
+      script.textContent = script.textContent.replace(
+        /(\bfetch\s*\(\s*)(['"])([^'"]+)\2/gi,
+        (match, prefix, quote, reference) => {
+          const resourceName = resolveProjectResource(sourceFile, reference);
+          if (resourceName && getProjectFileType(resourceName) === 'json') {
+            return `${prefix}${quote}data:application/json,${encodeURIComponent(files.get(resourceName).content)}${quote}`;
+          }
+          if (isExternalResource(reference)) external.add(reference);
+          else if (!/^(?:[a-z][a-z0-9+.-]*:|#)/i.test(reference) && !resourceName) missing.add(reference);
+          return match;
+        }
+      );
+    });
+    doc.querySelectorAll('img[src],source[src]').forEach(element => {
+      const src = element.getAttribute('src') || '';
+      if (isExternalResource(src)) external.add(src);
+      else if (!/^(?:[a-z][a-z0-9+.-]*:|#)/i.test(src)) {
+        missing.add(src);
+      }
+    });
+    return { html: `<!DOCTYPE html>\n${doc.documentElement.outerHTML}`, missing: [...missing], external: [...external] };
+  }
+
+  function getHtmlCompanion(filename) {
+    const extension = getProjectFileType(filename);
+    if (!['css', 'js', 'json'].includes(extension)) return '';
+    const htmlName = filename.replace(/\.(?:css|js|json)$/i, '.html');
+    return files.get(htmlName)?.type === 'html' ? htmlName : '';
+  }
+
+  function getRcRootFile(preferredFile = activeFile) {
+    if (files.get(preferredFile)?.type === 'rc') return preferredFile;
+    if (files.get('main.rc')?.type === 'rc') return 'main.rc';
+    return [...files.entries()].find(([, file]) => file.type === 'rc')?.[0] || '';
+  }
+
+  function buildProjectHtml(sourceFile = activeFile, sourceOverride) {
+    const file = files.get(sourceFile);
+    const source = typeof sourceOverride === 'string' ? sourceOverride : file?.content || '';
+    const htmlFile = file?.type === 'html' ? sourceFile : getHtmlCompanion(sourceFile);
+    if (htmlFile) {
+      const htmlSource = htmlFile === sourceFile ? source : files.get(htmlFile).content;
+      if (!htmlSource.trim()) return { html: '', missing: [], external: [] };
+      return inlineProjectResources(htmlSource, htmlFile);
+    }
+    const rootFile = getRcRootFile(sourceFile);
+    const html = rootFile ? rcToHtml(
+      rootFile === sourceFile && file?.type === 'rc' ? source : files.get(rootFile).content,
+      new Set(),
+      rootFile
+    ) : '';
+    if (!html.trim()) return { html: '', missing: [], external: [] };
+    return inlineProjectResources(html, rootFile || sourceFile);
+  }
+
+  function notifyResourceWarnings(format, result) {
+    const messages = [];
+    if (result.missing.length) {
+      console.warn(`Recursos locales que no se pudieron incorporar al ${format}:`, result.missing);
+      messages.push(`faltan recursos locales (${result.missing.slice(0, 3).join(', ')}${result.missing.length > 3 ? ', …' : ''})`);
+    }
+    if (result.external.length) {
+      console.warn(`Recursos externos que siguen requiriendo conexión en ${format}:`, result.external);
+      messages.push(`requiere internet (${result.external.length} recurso${result.external.length === 1 ? '' : 's'} externo${result.external.length === 1 ? '' : 's'})`);
+    }
+    if (messages.length) notify(`${format} exportado; ${messages.join('; ')}.`);
+  }
+
   function autoTranslate() {
     if (isTranslating) return;
     isTranslating = true;
@@ -3780,15 +4882,22 @@ ${warningBlock}${bodyChildren}${scriptBlock}
         const rcVal = editorEl.value;
         files.get(activeFile).content = rcVal;
 
-        if (!rcVal.trim()) {
+        const activeType = files.get(activeFile).type;
+        if (!rcVal.trim() && ['rc', 'html'].includes(activeType)) {
           lastValidHtml = "";
           updateLivePreview("");
           return;
         }
 
-        const generatedHtml = rcToHtml(rcVal);
+        const generatedHtml = activeType === 'html'
+          ? inlineProjectResources(rcVal, activeFile).html
+          : activeType === 'rc'
+            ? rcToHtml(rcVal, new Set(), activeFile)
+            : buildProjectHtml(activeFile).html;
         if (generatedHtml) {
           lastValidHtml = generatedHtml;
+        } else {
+          lastValidHtml = '';
         }
       }
     } catch (e) {
@@ -3850,7 +4959,7 @@ ${warningBlock}${bodyChildren}${scriptBlock}
 
       const ext = document.createElement("span");
       ext.className = "ext";
-      ext.textContent = "";
+      ext.textContent = getProjectFileType(name).toUpperCase();
 
       const renameBtn = document.createElement("button");
       renameBtn.className = "mini";
@@ -3876,9 +4985,11 @@ ${warningBlock}${bodyChildren}${scriptBlock}
     if (hasActiveFile) {
       editorEl.value = files.get(activeFile).content;
       document.getElementById("rcStatusName").textContent = activeFile;
+      editorEl.setAttribute('aria-label', `Editor de ${getProjectFileType(activeFile).toUpperCase()}`);
     } else {
       editorEl.value = "";
       document.getElementById("rcStatusName").textContent = "Sin archivo abierto";
+      editorEl.setAttribute('aria-label', 'Editor de código');
       hideAutocomplete();
     }
     updateCursor();
@@ -3897,25 +5008,30 @@ ${warningBlock}${bodyChildren}${scriptBlock}
     renderAll();
   }
 
-  function uniqueName(base) {
-    let name = base;
-    if (!name.toLowerCase().endsWith('.rc')) name += '.rc';
+  function uniqueName(base, defaultExtension = 'rc') {
+    const name = normalizeProjectPath(base, defaultExtension);
+    if (!name) return '';
     if (!files.has(name)) return name;
+    const extension = getProjectFileType(name);
+    const pathParts = name.split('/');
+    const leaf = pathParts.pop();
+    const stem = leaf.slice(0, -(extension.length + 1));
+    const directory = pathParts.length ? `${pathParts.join('/')}/` : '';
     let i = 2;
-    while (files.has(name.slice(0, -3) + "-" + i + ".rc")) i++;
-    return name.slice(0, -3) + "-" + i + ".rc";
+    while (files.has(`${directory}${stem}-${i}.${extension}`)) i++;
+    return `${directory}${stem}-${i}.${extension}`;
   }
 
   function createFile() {
     if (activeFile && files.has(activeFile)) {
       files.get(activeFile).content = editorEl.value;
     }
-    const requested = prompt("Nombre del nuevo archivo RC:", "modulo.rc");
+    const requested = prompt("Nombre del archivo (.rc, .html, .css, .js o .json):", "modulo.rc");
     if (requested === null) return;
-    let base = requested.trim().replace(/[\\/:*?"<>|]/g, "");
-    if (!base) { notify("Escribe un nombre válido."); return; }
-    const name = uniqueName(base);
-    files.set(name, { type: "rc", content: `// nuevo archivo rc\n\n` });
+    const name = uniqueName(requested);
+    if (!name) { notify("Escribe un nombre válido y usa una extensión admitida."); return; }
+    const type = getProjectFileType(name);
+    files.set(name, { type, content: type === 'rc' ? `// nuevo archivo rc\n\n` : '' });
     activeFile = name;
     saveState();
     renderAll();
@@ -3927,15 +5043,46 @@ ${warningBlock}${bodyChildren}${scriptBlock}
     if (activeFile && files.has(activeFile)) {
       files.get(activeFile).content = editorEl.value;
     }
-    const requested = prompt("Nuevo nombre del archivo RC:", oldName);
+    const requested = prompt("Nuevo nombre del archivo:", oldName);
     if (requested === null) return;
-    let base = requested.trim().replace(/[\\/:*?"<>|]/g, "");
-    if (!base) { notify("Escribe un nombre válido."); return; }
-    if (!base.toLowerCase().endsWith('.rc')) base += '.rc';
+    const oldFile = files.get(oldName);
+    const oldType = oldFile?.type || getProjectFileType(oldName);
+    let requestedPath = requested.trim();
+    if (!requestedPath.includes('/') && !requestedPath.includes('\\') && oldName.includes('/')) {
+      requestedPath = `${oldName.slice(0, oldName.lastIndexOf('/') + 1)}${requestedPath}`;
+    }
+    const base = normalizeProjectPath(requestedPath, oldType);
+    if (!base) { notify("Escribe un nombre válido y usa una extensión admitida."); return; }
     if (base !== oldName && files.has(base)) { notify("Ya existe un archivo con ese nombre."); return; }
+    const includeUpdates = [];
+    if (oldType === 'rc' && getProjectFileType(base) === 'rc') {
+      for (const [sourceName, sourceFile] of files) {
+        if (sourceFile.type !== 'rc') continue;
+        const nextLines = sourceFile.content.split('\n').map(line => {
+          const parsed = parseRcLine(line);
+          if (!parsed || parsed.parseError || parsed.cmd !== 'incluir' || parsed.args.length !== 1) return line;
+          if (resolveIncludePath(sourceName, parsed.args[0]) !== oldName) return line;
+          const includeMatch = line.match(/^(\s*)incluir\s*\([^()]*\)(.*)$/);
+          return includeMatch ? `${includeMatch[1]}incluir(${base.split('/').pop().replace(/\.rc$/i, '')})${includeMatch[2]}` : line;
+        });
+        const content = nextLines.join('\n');
+        if (content !== sourceFile.content) includeUpdates.push([sourceName, content]);
+      }
+    }
+    const resourceUpdates = [];
+    for (const [sourceName, sourceFile] of files) {
+      if (!['html', 'css', 'js'].includes(sourceFile.type)) continue;
+      const content = rewriteProjectReferences(sourceName, sourceFile, oldName, base);
+      if (content !== sourceFile.content) resourceUpdates.push([sourceName, content]);
+    }
     const file = files.get(oldName);
     files.delete(oldName);
+    file.type = getProjectFileType(base);
     files.set(base, file);
+    [...includeUpdates, ...resourceUpdates].forEach(([sourceName, content]) => {
+      if (sourceName === oldName) file.content = content;
+      else if (files.has(sourceName)) files.get(sourceName).content = content;
+    });
     if (activeFile === oldName) activeFile = base;
     saveState();
     renderAll();
@@ -3964,7 +5111,7 @@ ${warningBlock}${bodyChildren}${scriptBlock}
   let autocompleteRange = null;
   let autocompleteTimer = null;
   const ID_DEFINITION_TYPES = new Set([
-    'element', 'input', 'checkbox', 'container', 'scene3d', 'toggle', 'holonet', 'window', 'tab', 'accordion',
+    'element', 'input', 'checkbox', 'container', 'scene3d', 'toggle', 'holonet', 'window', 'tab', 'accordion', 'view',
     'plane3d', 'transform3d', 'mesh3d', 'material3d', 'shadow3d', 'layer3d', 'texture3d', 'vertex3d',
     'focus3d', 'particles3d', 'physics3d'
   ]);
@@ -4006,24 +5153,24 @@ ${warningBlock}${bodyChildren}${scriptBlock}
     const before = value.slice(0, caret);
     const prefix = (before.match(/[\u00C0-\u024F\u1E00-\u1EFFA-Za-z0-9_]*$/) || [""])[0];
     const query = prefix.toLowerCase();
-    if (!query.length) return null;
-
     const start = caret - prefix.length;
     const suffix = (value.slice(caret).match(/^[\u00C0-\u024F\u1E00-\u1EFFA-Za-z0-9_]*/) || [""])[0];
+    const lineStart = value.lastIndexOf("\n", start - 1) + 1;
+    if (!query.length && !/\(\s*$/.test(before.slice(lineStart))) return null;
     return {
       value,
       caret,
       before,
       start,
       end: caret + suffix.length,
-      lineStart: value.lastIndexOf("\n", start - 1) + 1,
+      lineStart,
       query
     };
   }
 
-  function scheduleAutocomplete(delay = 70) {
+  function scheduleAutocomplete(delay = 0) {
     clearTimeout(autocompleteTimer);
-    if (!getAutocompleteContext()) {
+    if (files.get(activeFile)?.type !== 'rc' || !getAutocompleteContext()) {
       hideAutocomplete();
       return;
     }
@@ -4142,10 +5289,11 @@ ${warningBlock}${bodyChildren}${scriptBlock}
     const caretTop = markerRect.top - wrapRect.top;
     const popupWidth = autocompleteEl.offsetWidth;
     const popupHeight = autocompleteEl.offsetHeight;
-    autocompleteEl.style.left = `${Math.max(4, Math.min(left, wrap.clientWidth - popupWidth - 4))}px`;
+    autocompleteEl.style.maxWidth = `${Math.max(0, wrap.clientWidth - 8)}px`;
+    autocompleteEl.style.left = `${Math.max(4, Math.min(left, Math.max(4, wrap.clientWidth - popupWidth - 4)))}px`;
     autocompleteEl.style.top = `${caretTop + lineHeight + popupHeight > editorEl.clientHeight
       ? Math.max(4, caretTop - popupHeight)
-      : caretTop + lineHeight}px`;
+      : Math.min(caretTop + lineHeight, Math.max(4, editorEl.clientHeight - popupHeight - 4))}px`;
   }
 
   function acceptAutocomplete(completionName, kind = 'command') {
@@ -4180,7 +5328,7 @@ ${warningBlock}${bodyChildren}${scriptBlock}
     updateCursor();
     updateLineNumbers();
     updateHighlight();
-    scheduleAutocomplete();
+    scheduleAutocomplete(0);
     debounceTranslate();
   });
 
@@ -4193,6 +5341,8 @@ ${warningBlock}${bodyChildren}${scriptBlock}
     updateCursor();
     scheduleAutocomplete();
   });
+  editorEl.addEventListener("select", () => scheduleAutocomplete(0));
+  editorEl.addEventListener("compositionend", () => scheduleAutocomplete(0));
   editorEl.addEventListener("keyup", () => {
     updateCursor();
     scheduleAutocomplete();
@@ -4259,7 +5409,7 @@ ${warningBlock}${bodyChildren}${scriptBlock}
     a.href = url;
     a.download = filename;
     a.click();
-    URL.revokeObjectURL(url);
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
     notify("Descargando " + filename);
   }
 
@@ -4322,8 +5472,7 @@ ${warningBlock}${bodyChildren}${scriptBlock}
         if (!manifestOpen) throw new Error("'permiso' requiere un bloque 'manifiesto' abierto.");
         if (parsed.args.length !== 1 || !parsed.args[0]) throw new Error("'permiso' requiere un nombre.");
         const permission = cleanParam(parsed.args[0]);
-        const normalized = permission.startsWith('android.permission.')
-          ? permission : `android.permission.${permission}`;
+        const normalized = normalizeAndroidPermission(permission);
         if (!/^android\.permission\.[A-Z0-9_]+$/.test(normalized)) {
           throw new Error(`Permiso Android no válido: ${permission}`);
         }
@@ -4335,10 +5484,210 @@ ${warningBlock}${bodyChildren}${scriptBlock}
     return metadata;
   }
 
+  function normalizeManifestPermission(value) {
+    const permission = cleanParam(value).replace(/^android\.permission\./i, '');
+    return /^[a-zA-Z0-9_]+$/.test(permission) ? `android.permission.${permission.toUpperCase()}` : '';
+  }
+
+  function readRcManifest(source, sourceFile = activeFile || 'app.rc') {
+    const rootFile = sourceFile.replace(/\\/g, '/');
+    const expandedFiles = new Set(rootFile ? [rootFile] : []);
+    const flattenedLines = [];
+
+    function expand(currentSource, filename, includeChain) {
+      currentSource.split('\n').forEach((rawLine, index) => {
+        const parsed = parseRcLine(rawLine, index + 1);
+        if (parsed?.cmd === 'incluir' || /^\s*incluir\b/i.test(rawLine)) {
+          if (!parsed || parsed.parseError || parsed.args.length !== 1 || !parsed.args[0]) {
+            throw new Error(`${filename || 'RC'}:${index + 1}: incluir requiere exactamente el nombre de un archivo RC válido.`);
+          }
+          const targetName = resolveIncludePath(filename || rootFile, parsed.args[0]);
+          if (!targetName) {
+            throw new Error(`${filename || 'RC'}:${index + 1}: no se encontró el archivo RC '${parsed.args[0]}'.`);
+          }
+          if (includeChain.has(targetName)) {
+            throw new Error(`${filename || 'RC'}:${index + 1}: ciclo de inclusión detectado con '${targetName}'.`);
+          }
+          if (expandedFiles.has(targetName)) return;
+          expandedFiles.add(targetName);
+          const nextChain = new Set(includeChain);
+          nextChain.add(targetName);
+          expand(files.get(targetName).content, targetName, nextChain);
+          return;
+        }
+        if (parsed?.parseError && /^\s*manifest_(?:inicio|version|permiso|actividad|icono|pwa_meta|autor|fin)\b/i.test(rawLine)) {
+          throw new Error(`${filename || 'RC'}:${index + 1}: ${parsed.parseError}.`);
+        }
+        flattenedLines.push({ rawLine, parsed, filename, lineNum: index + 1 });
+      });
+    }
+
+    const includeChain = new Set(rootFile ? [rootFile] : []);
+    expand(source, rootFile, includeChain);
+
+    const openToClose = {
+      seccion: 'finseccion', contenedor: 'fincontenedor', rejilla: 'finrejilla',
+      listadesordenada: 'finlista', listaordenada: 'finlista', tabla: 'fintabla',
+      filatabla: 'finfilatabla', modal: 'finmodal', escena3d: 'finescena3d',
+      pestana: 'finpestana', acordeon: 'finacordeon', ventana: 'finventana',
+      holonet: 'finholonet', vista: 'finvista', si: 'fin_si', repetir: 'fin_repetir',
+      manifest_inicio: 'manifest_fin'
+    };
+    const closeToOpen = new Map(Object.entries(openToClose).map(([open, close]) => [close, open]));
+    const structureStack = [];
+    let metadata = null;
+    let manifestClosed = false;
+    const location = item => `${item.filename || 'RC'}:${item.lineNum}`;
+
+    flattenedLines.forEach(item => {
+      const { parsed, rawLine } = item;
+      if (!parsed || parsed.parseError) return;
+      const { cmd, args } = parsed;
+      if (Object.hasOwn(openToClose, cmd)) {
+        if (cmd === 'manifest_inicio') {
+          if (metadata) throw new Error(`${location(item)}: solo se permite un bloque manifest_inicio.`);
+          const [appName, packageName] = args.map(cleanParam);
+          if (!appName || !/^[a-z][a-z0-9_]*(?:\.[a-z][a-z0-9_]*)+$/.test(packageName)) {
+            throw new Error(`${location(item)}: manifest_inicio requiere un nombre de aplicación y un paquete válido.`);
+          }
+          metadata = {
+            appName, packageName, versionCode: '1', versionName: '1.0',
+            permissions: [], activities: [], icon: '', pwa: null, author: null,
+            source: item
+          };
+        }
+        structureStack.push({ command: cmd, close: openToClose[cmd], source: item });
+        return;
+      }
+
+      if (cmd === 'fin' || CLOSING_COMMANDS.has(cmd)) {
+        const active = structureStack[structureStack.length - 1];
+        const expectedOpen = cmd === 'fin' ? active?.command : closeToOpen.get(cmd);
+        if (!active || (cmd !== 'fin' && active.command !== expectedOpen)) {
+          throw new Error(`${location(item)}: cierre '${cmd}' fuera de orden o sin estructura abierta compatible.`);
+        }
+        structureStack.pop();
+        if (active.command === 'manifest_inicio') {
+          if (cmd !== 'fin' && cmd !== 'manifest_fin') {
+            throw new Error(`${location(item)}: el bloque Manifest debe cerrarse con manifest_fin() o fin().`);
+          }
+          manifestClosed = true;
+        }
+        return;
+      }
+
+      if (!cmd.startsWith('manifest_') || cmd === 'manifest_fin') return;
+      if (!metadata || manifestClosed) {
+        throw new Error(`${location(item)}: '${cmd}' requiere un bloque manifest_inicio abierto.`);
+      }
+
+      switch (cmd) {
+        case 'manifest_version': {
+          const [versionCode, versionName] = args.map(cleanParam);
+          if (!/^\d+$/.test(versionCode) || Number(versionCode) < 1 || Number(versionCode) > 2100000000 || !versionName) {
+            throw new Error(`${location(item)}: manifest_version requiere un código entre 1 y 2100000000 y un nombre.`);
+          }
+          metadata.versionCode = versionCode;
+          metadata.versionName = versionName;
+          break;
+        }
+        case 'manifest_permiso': {
+          const permission = normalizeManifestPermission(args[0]);
+          if (!permission) throw new Error(`${location(item)}: permiso Manifest no válido '${args[0]}'.`);
+          metadata.permissions.push(permission);
+          break;
+        }
+        case 'manifest_actividad': {
+          const [rawClassName, orientation] = args.map(cleanParam);
+          if (!/^[a-zA-Z_$][a-zA-Z0-9_.$]*$/.test(rawClassName) || !['portrait', 'landscape'].includes(orientation)) {
+            throw new Error(`${location(item)}: manifest_actividad requiere una clase válida y orientación portrait o landscape.`);
+          }
+          const className = rawClassName.startsWith('.') || rawClassName.includes('.')
+            ? rawClassName : `.${rawClassName}`;
+          metadata.activities.push({ className, orientation });
+          break;
+        }
+        case 'manifest_icono': {
+          const icon = cleanParam(args[0]);
+          const resourceMatch = icon.match(/^@(drawable|mipmap)\/([a-z0-9_]+)$/);
+          const fileMatch = icon.match(/^res\/(drawable|mipmap)\/([a-z0-9_]+)\.(?:png|webp|xml)$/);
+          if (!resourceMatch && !fileMatch) {
+            throw new Error(`${location(item)}: manifest_icono requiere @drawable/nombre, @mipmap/nombre o una ruta res/drawable válida.`);
+          }
+          metadata.icon = resourceMatch ? icon : `@${fileMatch[1]}/${fileMatch[2]}`;
+          break;
+        }
+        case 'manifest_pwa_meta': {
+          const [themeColor, backgroundColor, display] = args.map(cleanParam);
+          const validColor = /^#[0-9a-fA-F]{6}(?:[0-9a-fA-F]{2})?$/;
+          if (!validColor.test(themeColor) || !validColor.test(backgroundColor)
+            || !['standalone', 'fullscreen', 'minimal-ui', 'browser'].includes(display)) {
+            throw new Error(`${location(item)}: manifest_pwa_meta requiere dos colores hexadecimales y display standalone, fullscreen, minimal-ui o browser.`);
+          }
+          metadata.pwa = { themeColor, backgroundColor, display };
+          break;
+        }
+        case 'manifest_autor': {
+          const [name, contact] = args.map(cleanParam);
+          if (!name || !contact) throw new Error(`${location(item)}: manifest_autor requiere nombre y contacto.`);
+          metadata.author = { name, contact };
+          break;
+        }
+        default:
+          throw new Error(`${location(item)}: comando Manifest no implementado '${cmd}'.`);
+      }
+    });
+
+    if (structureStack.length) {
+      const open = structureStack[structureStack.length - 1];
+      throw new Error(`${location(open.source)}: '${open.command}' sigue abierto; falta '${open.close}' o fin().`);
+    }
+    if (!metadata) throw new Error('No se encontró un bloque manifest_inicio(...) en el código RC.');
+    if (!manifestClosed) {
+      throw new Error(`${location(metadata.source)}: 'manifest_inicio' sigue abierto; falta 'manifest_fin()' o fin().`);
+    }
+    metadata.permissions = [...new Set(metadata.permissions)];
+    return metadata;
+  }
+
+  function createRcManifest(metadata) {
+    const permissionLines = metadata.permissions
+      .map(permission => `    <uses-permission android:name="${escapeXml(permission)}" />`);
+    const activityLines = metadata.activities.map(activity =>
+      `        <activity android:name="${escapeXml(activity.className)}" android:screenOrientation="${activity.orientation}" />`
+    );
+    const metadataLines = [];
+    if (metadata.pwa) {
+      metadataLines.push(
+        `        <meta-data android:name="theme_color" android:value="${escapeXml(metadata.pwa.themeColor)}" />`,
+        `        <meta-data android:name="background_color" android:value="${escapeXml(metadata.pwa.backgroundColor)}" />`,
+        `        <meta-data android:name="display" android:value="${escapeXml(metadata.pwa.display)}" />`
+      );
+    }
+    if (metadata.author) {
+      metadataLines.push(
+        `        <meta-data android:name="rc.author" android:value="${escapeXml(metadata.author.name)}" />`,
+        `        <meta-data android:name="rc.author.contact" android:value="${escapeXml(metadata.author.contact)}" />`
+      );
+    }
+    const applicationLines = [...activityLines, ...metadataLines];
+    return `<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android" package="${escapeXml(metadata.packageName)}" android:versionCode="${escapeXml(metadata.versionCode)}" android:versionName="${escapeXml(metadata.versionName)}">
+${permissionLines.join('\n')}${permissionLines.length ? '\n' : ''}    <application android:label="${escapeXml(metadata.appName)}"${metadata.icon ? ` android:icon="${escapeXml(metadata.icon)}"` : ''}>
+${applicationLines.join('\n')}${applicationLines.length ? '\n' : ''}    </application>
+</manifest>
+`;
+  }
+
   function escapeXml(value) {
     return String(value).replace(/[&<>"']/g, character => ({
       '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&apos;'
     }[character]));
+  }
+
+  function normalizeAndroidPermission(value) {
+    const permission = cleanParam(value).toLowerCase().replace(/^android_permission_/, '');
+    return /^[a-z0-9_]+$/.test(permission) ? `android.permission.${permission.toUpperCase()}` : '';
   }
 
   function createAndroidManifest(metadata, appLabel, allowCleartext = false) {
@@ -4361,6 +5710,7 @@ ${permissionLines ? `${permissionLines}\n` : ''}    <application android:allowBa
   }
 
   function createStoredZip(entries) {
+    if (entries.length > 65535) throw new Error('El ZIP supera el límite de archivos admitido.');
     const encoder = new TextEncoder();
     const crcTable = Array.from({ length: 256 }, (_, value) => {
       let crc = value;
@@ -4381,9 +5731,17 @@ ${permissionLines ? `${permissionLines}\n` : ''}    <application android:allowBa
     const centralParts = [];
     let localOffset = 0;
 
-    entries.forEach(([path, content]) => {
+    entries.forEach(([rawPath, content]) => {
+      const path = String(rawPath).replace(/\\/g, '/');
+      if (!path || path.startsWith('/') || path.split('/').some(part => !part || part === '.' || part === '..')) {
+        throw new Error(`Ruta de archivo no válida para ZIP: ${path}`);
+      }
       const name = encoder.encode(path);
+      if (name.length > 65535) throw new Error(`El nombre de archivo es demasiado largo para ZIP: ${path}`);
       const data = typeof content === 'string' ? encoder.encode(content) : content;
+      if (data.length > 0xffffffff || localOffset + 30 + name.length + data.length > 0xffffffff) {
+        throw new Error('El proyecto supera el límite de tamaño del formato ZIP clásico.');
+      }
       const checksum = crc32(data);
       const header = new Uint8Array(30 + name.length);
       const headerView = new DataView(header.buffer);
@@ -4440,7 +5798,10 @@ ${permissionLines ? `${permissionLines}\n` : ''}    <application android:allowBa
   }
 
   function buildAndroidProject(source) {
-    const sourceDocuments = [...new Set([...files.values()].map(file => file.content).concat(source))];
+    const sourceDocuments = [...new Set([
+      ...[...files.values()].filter(file => file.type === 'rc').map(file => file.content),
+      ...(files.get(activeFile)?.type === 'rc' ? [source] : [])
+    ])];
     const parsedMetadata = sourceDocuments.map(readAndroidMetadata);
     const metadata = parsedMetadata.reduce((result, current) => ({
       packageName: current.packageName !== 'com.rcstudio.exported' ? current.packageName : result.packageName,
@@ -4460,13 +5821,15 @@ ${permissionLines ? `${permissionLines}\n` : ''}    <application android:allowBa
     const appTitle = projectSource.split('\n').map(line => parseRcLine(line))
       .find(parsed => parsed?.cmd === 'titulo')?.args[0];
     const appLabel = appTitle || 'Aplicación RC Studio';
-    const htmlOutput = rcToHtml(source);
+    const packagedHtml = buildProjectHtml(activeFile, source);
+    const htmlOutput = packagedHtml.html;
     const requiredPermissions = new Set(metadata.permissions);
     if (/https?:\/\//i.test(htmlOutput)) requiredPermissions.add('android.permission.INTERNET');
     if (/^\s*vibracion\s*\(/m.test(projectSource)) requiredPermissions.add('android.permission.VIBRATE');
     metadata.permissions = [...requiredPermissions];
     const packagePath = metadata.packageName.replace(/\./g, '/');
     const escapedVersion = JSON.stringify(metadata.version);
+    if (!htmlOutput.trim()) throw new Error('No hay una aplicación HTML o RC válida para preparar el proyecto Android.');
     const entries = [
       ['settings.gradle', `pluginManagement { repositories { google(); mavenCentral(); gradlePluginPortal() } }
 dependencyResolutionManagement { repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS); repositories { google(); mavenCentral() } }
@@ -4516,12 +5879,15 @@ public class MainActivity extends Activity {
       ['app/src/main/assets/index.html', htmlOutput]
     ];
     files.forEach((file, name) => {
-      if (file.type !== 'rc') return;
-      const safeName = name.replace(/\\/g, '/').split('/').filter(part => part && part !== '.' && part !== '..')
-        .map(part => part.replace(/[^A-Za-z0-9._-]/g, '_')).join('/');
-      entries.push([`app/src/main/assets/source/${safeName || 'project.rc'}`, file.content]);
+      const safeName = name;
+      entries.push([`app/src/main/assets/project-source/${safeName || 'project.txt'}`, file.content]);
+      if (file.type === 'json') entries.push([`app/src/main/assets/${safeName}`, file.content]);
     });
-    return createStoredZip(entries);
+    return {
+      archive: createStoredZip(entries),
+      missing: packagedHtml.missing,
+      external: packagedHtml.external
+    };
   }
 
   const exportModal = document.getElementById("exportModal");
@@ -4551,42 +5917,87 @@ public class MainActivity extends Activity {
   }
 
   document.getElementById("exportRcBtn").onclick = () => {
+    const name = getRcRootFile(activeFile);
+    if (!name) {
+      notify('El proyecto no contiene un archivo RC para exportar.');
+      return;
+    }
+    if (name === activeFile) files.get(name).content = editorEl.value;
+    saveState();
     hideExportModal();
-    const name = activeFile || "main.rc";
-    const content = editorEl.value;
-    downloadFile(name.endsWith('.rc') ? name : name + '.rc', content);
+    downloadFile(name, files.get(name).content);
   };
 
   document.getElementById("exportHtmlBtn").onclick = () => {
-    hideExportModal();
-    const baseName = (activeFile || "app.rc").replace(/\.rc$/i, '');
-    const content = rcToHtml(editorEl.value);
-    downloadFile(`${baseName}.html`, content, "text/html;charset=utf-8");
-  };
-
-  document.getElementById("exportAndroidBtn").onclick = () => {
     try {
       if (activeFile && files.has(activeFile)) files.get(activeFile).content = editorEl.value;
-      const archive = buildAndroidProject(editorEl.value);
-      const baseName = (activeFile || "app.rc").replace(/\.rc$/i, '');
-      const url = URL.createObjectURL(archive);
-      const link = document.createElement("a");
-      link.href = url;
-      link.download = `${baseName}-android.zip`;
-      link.click();
-      setTimeout(() => URL.revokeObjectURL(url), 1000);
+      const result = buildProjectHtml(activeFile);
+      if (!result.html || !result.html.trim()) {
+        notify('No hay código HTML o RC para exportar.');
+        return;
+      }
+      const name = (activeFile || 'app').split('/').pop().replace(/\.(?:rc|html|css|js|json)$/i, '');
       saveState();
       hideExportModal();
-      notify("Proyecto Android descargado.");
+      downloadFile(`${name || 'app'}.html`, result.html, 'text/html;charset=utf-8');
+      notifyResourceWarnings('HTML', result);
     } catch (error) {
-      console.error("No se pudo exportar el proyecto Android", error);
-      notify(error.message || "No se pudo exportar el proyecto Android.");
+      console.error('No se pudo exportar el HTML', error);
+      notify(error instanceof Error ? error.message : 'No se pudo exportar el HTML.');
+    }
+  };
+
+  document.getElementById("exportZipBtn").onclick = () => {
+    try {
+      if (activeFile && files.has(activeFile)) files.get(activeFile).content = editorEl.value;
+      if (!files.size) throw new Error('El proyecto no contiene archivos para exportar.');
+      const entries = [...files.entries()].map(([name, file]) => [name, file.content]);
+      const preview = buildProjectHtml(activeFile);
+      if (preview.html.trim()) {
+        let generatedName = 'dist/index.html';
+        let suffix = 2;
+        while (files.has(generatedName)) generatedName = `dist/index-${suffix++}.html`;
+        entries.push([generatedName, preview.html]);
+      }
+      const archive = createStoredZip(entries);
+      const baseName = (activeFile || 'proyecto').split('/').pop().replace(/\.(?:rc|html|css|js|json)$/i, '');
+      saveState();
+      hideExportModal();
+      downloadFile(`${baseName || 'proyecto'}.zip`, archive, 'application/zip');
+      notifyResourceWarnings('ZIP', preview);
+    } catch (error) {
+      console.error('No se pudo exportar el proyecto ZIP', error);
+      notify(error instanceof Error ? error.message : 'No se pudo exportar el proyecto ZIP.');
+    }
+  };
+
+  document.getElementById("exportManifestBtn").onclick = () => {
+    try {
+      if (activeFile && files.has(activeFile)) files.get(activeFile).content = editorEl.value;
+      const metadata = readRcManifest(editorEl.value, activeFile || 'app.rc');
+      const manifestXml = createRcManifest(metadata);
+      const baseName = (activeFile || "app.rc").split('/').pop().replace(/\.(?:rc|html|css|js|json)$/i, '');
+      downloadFile(`${baseName || 'app'}-manifest.xml`, manifestXml, 'application/xml;charset=utf-8');
+      saveState();
+      hideExportModal();
+      notify("Manifest XML descargado.");
+    } catch (error) {
+      console.error("No se pudo exportar el Manifest RC", error);
+      notify(error instanceof Error ? error.message : "No se pudo exportar el Manifest RC.");
     }
   };
 
   const previewStage = document.getElementById("previewStage");
+  const visualEditBtn = document.getElementById("visualEditBtn");
+  const previewFrame = document.getElementById("previewFrame");
   const previewDesktopBtn = document.getElementById("previewDesktopBtn");
   const previewMobileBtn = document.getElementById("previewMobileBtn");
+  previewFrame.addEventListener("load", syncPreviewEditMode);
+  visualEditBtn.addEventListener("click", () => {
+    visualEditMode = !visualEditMode;
+    visualEditBtn.setAttribute("aria-pressed", String(visualEditMode));
+    syncPreviewEditMode();
+  });
   function setPreviewMode(mode) {
     const isMobile = mode === "mobile";
     previewStage.dataset.previewMode = isMobile ? "mobile" : "desktop";
@@ -4769,22 +6180,31 @@ public class MainActivity extends Activity {
 
   function buildDocumentationPdf() {
     const commandSpecs = Object.values(RC_COMMANDS_SPEC);
-    if (commandSpecs.length !== 160) {
-      throw new Error(`La documentación requiere 160 comandos; se encontraron ${commandSpecs.length}.`);
+    const baseCount = RC_CATALOG_AUDIT.manualBase.size;
+    const manifestCount = RC_CATALOG_AUDIT.manifestOfficial.size;
+    const extensionCount = commandSpecs.filter(spec => spec.catalogGroup === 'extension').length;
+    if (commandSpecs.length !== 182 || baseCount !== 160 || manifestCount !== 8 || extensionCount !== 14) {
+      throw new Error(`El catálogo requiere 182 comandos ( ); se encontraron ${commandSpecs.length} (${baseCount} base, ${manifestCount} Manifest y ${extensionCount} extensiones).`);
     }
     const lines = [
-      'RC LANGUAGE - MANUAL DE REFERENCIA OFICIAL',
+      'RC LANGUAGE - MANUAL DE REFERENCIA',
       'RC Studio | Diccionario, reglas y guia de implementacion',
+      '',
+      '- Catalogo auditado: 160 comandos base del manual, 8 comandos oficiales Manifest y 14 extensiones.',
+      '- No hay alias ni comandos auxiliares del IDE registrados en RC_COMMANDS_SPEC en esta version.',
       '',
       '1. SINTAXIS Y REGLAS DEL LENGUAJE',
       '- Escribe comandos e identificadores en minusculas; usa guion bajo en IDs.',
       '- Forma general: comando(parametro1)(parametro2). Se admiten parentesis anidados.',
-      '- Los IDs opcionales pueden escribirse entre corchetes: entrada[id](valor).',
+      '- Los IDs opcionales entre corchetes aceptan solo [a-z0-9_-]: entrada[mi_id](valor).',
       '- Las asignaciones usan nombre = valor; comentarios de linea comienzan con //.',
       '- Los contenedores se cierran con su etiqueta correspondiente o con fin.',
+      '- Las condiciones usan si(clave)(valor), sino() y fin_si(); repetir(veces) acepta enteros de 0 a 50 y se expande con IDs independientes.',
+      '- El estado global usa estado(clave)(valor); enlazar(id_elemento)(clave) mantiene controles y etiquetas sincronizados.',
+      '- Las pantallas usan vista(id_vista), finvista() y navegar(id_vista).',
       '- Los colores CSS modernos y los nombres de color admitidos pueden usarse en estilos.',
       '',
-      '2. CATALOGO COMPLETO DE COMANDOS (160)'
+      '2. CATALOGO COMPLETO DE COMANDOS (182)'
     ];
     const categoryTitles = {
       1: 'I. Estructura y contenido', 2: 'II. Estilo y diseno visual',
@@ -4807,9 +6227,10 @@ public class MainActivity extends Activity {
       '',
       '3. ARQUITECTURA DEL COMPILADOR',
       '- El editor mantiene sincronizados el textarea, numeracion, resaltado y vista previa.',
-      '- El parser procesa cada linea, valida parentesis, argumentos, asignaciones y comentarios.',
-      '- El compilador expande incluir(), genera nodos DOM/CSS y despacha JavaScript por comando.',
-      '- Los diagnósticos conservan el nombre de archivo y numero de linea; la vista se actualiza al escribir.',
+      '- El lexer/parser en dos fases construye un AST con bloques anidados y diagnosticos de archivo y linea.',
+      '- El AST expande dependencias incluir(), detecta ciclos y genera nodos DOM/CSS y JavaScript seguro.',
+      '- window.rcState propaga cambios a controles enlazados y condiciones sin listeners por cada dato.',
+      '- Las vistas internas conservan navegacion de historial; la vista previa se actualiza al escribir.',
       '- Las escenas 3D usan Three.js cuando esta disponible; el resto del proyecto sigue funcionando sin WebGL.',
       '',
       `4. CATALOGO DE LIBRERIAS (${libraryCatalog.length})`
@@ -4820,13 +6241,11 @@ public class MainActivity extends Activity {
     });
     lines.push(
       '',
-      '5. EXPORTACION ANDROID',
-      '- En Guardar archivo, selecciona Guardar como archivo de Android.',
-      '- El exportador descarga un proyecto Gradle ZIP con MainActivity, HTML y fuentes RC.',
-      '- Declara metadatos con manifiesto(paquete)(version)(codigover), permisos con permiso(nombre) y cierra con finmanifiesto.',
-      '- Ejemplo: manifiesto(com.ejemplo.app)(1.0)(1), permiso(INTERNET), finmanifiesto.',
-      '- Se validan el nombre de paquete, el codigo de version y los permisos antes de generar AndroidManifest.xml.',
-      '- Las dependencias remotas requieren conectividad; el permiso INTERNET se agrega cuando aplica.',
+      '5. EXPORTACION MANIFEST',
+      '- En Guardar archivo, selecciona Guardar como Manifest para descargar XML; no se genera un proyecto APK/Gradle.',
+      '- Declara metadatos con manifest_inicio(nombre_app)(paquete), manifest_version(codigo)(nombre) y cierra con manifest_fin() o fin().',
+      '- Dentro del bloque se admiten manifest_permiso, manifest_actividad, manifest_icono, manifest_pwa_meta y manifest_autor.',
+      '- Los archivos incluir() se resuelven recursivamente; se validan los cierres, las rutas y los valores antes de exportar.',
       '',
       'Manual generado localmente por RC Studio. El catalogo refleja la especificacion incluida en esta version.'
     );
@@ -4934,7 +6353,12 @@ public class MainActivity extends Activity {
   const dictLibsPanel = document.getElementById('dictLibsPanel');
   let activeDictionaryTab = dictCommandsTab;
   const dictCommandCount = document.getElementById('dictCommandCount');
-  if (dictCommandCount) dictCommandCount.textContent = `Referencia rápida · ${Object.keys(RC_COMMANDS_SPEC).length} comandos oficiales`;
+  if (dictCommandCount) {
+    const baseCount = RC_CATALOG_AUDIT.manualBase.size;
+    const manifestCount = RC_CATALOG_AUDIT.manifestOfficial.size;
+    const extensionCount = Object.values(RC_COMMANDS_SPEC).filter(spec => spec.catalogGroup === 'extension').length;
+    dictCommandCount.textContent = ` ${baseCount} base · ${manifestCount} Manifest oficiales · ${extensionCount} extensiones`;
+  }
 
   function selectDictionaryTab(activeTab) {
     activeDictionaryTab = activeTab;
@@ -4996,7 +6420,7 @@ public class MainActivity extends Activity {
   }
 
   document.getElementById('copyColorBtn')?.addEventListener('click', async () => {
-    const value = selectedColor;
+    const value = selectedColor.replace(/^#/, '').toLowerCase();
     let copied = false;
     if (navigator.clipboard?.writeText) {
       try {
@@ -5037,7 +6461,9 @@ public class MainActivity extends Activity {
   const normalizeDictionarySearch = value => value
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '')
-    .toLowerCase();
+    .toLowerCase()
+    .trim()
+    .replace(/\s+/g, ' ');
   const dictionarySearchGroups = [
     ...Array.from(document.querySelectorAll('#dictCommandsPanel .dict-category'), category => ({
       category,
@@ -5058,12 +6484,13 @@ public class MainActivity extends Activity {
   ];
   const dictionaryColorSearchItems = colorPalette ? [{
     element: colorPalette,
-    text: normalizeDictionarySearch('selector cromatico color hexadecimal copiar #ff0061')
+    text: normalizeDictionarySearch('selector cromatico color hexadecimal copiar #ff0061 negro negro puro negro absoluto #000000 blanco gris gris oscuro')
   }] : [];
 
   if (dictSearch) {
+    const dictSearchStatus = document.getElementById('dictSearchStatus');
     dictSearch.addEventListener("input", () => {
-      const query = normalizeDictionarySearch(dictSearch.value.trim());
+      const query = normalizeDictionarySearch(dictSearch.value);
       const matchesByPanel = new Map([
         [dictCommandsPanel, 0],
         [dictPalettePanel, 0],
@@ -5090,14 +6517,22 @@ public class MainActivity extends Activity {
       });
       const activePanel = activeDictionaryTab === dictCommandsTab ? dictCommandsPanel
         : activeDictionaryTab === dictPaletteTab ? dictPalettePanel : dictLibsPanel;
-      if (query && matchesByPanel.get(activePanel) === 0) {
-        const nextPanel = [dictCommandsPanel, dictPalettePanel, dictLibsPanel]
-          .sort((a, b) => matchesByPanel.get(b) - matchesByPanel.get(a))
-          .find(panel => matchesByPanel.get(panel) > 0);
+      if (query) {
+        const panels = [dictCommandsPanel, dictPalettePanel, dictLibsPanel];
+        const bestCount = Math.max(...panels.map(panel => matchesByPanel.get(panel)));
+        const nextPanel = matchesByPanel.get(activePanel) === bestCount
+          ? activePanel
+          : panels.find(panel => matchesByPanel.get(panel) === bestCount && bestCount > 0);
         const nextTab = nextPanel === dictCommandsPanel ? dictCommandsTab
           : nextPanel === dictPalettePanel ? dictPaletteTab
             : nextPanel === dictLibsPanel ? dictLibsTab : null;
         if (nextTab) selectDictionaryTab(nextTab);
+      }
+      if (dictSearchStatus) {
+        const total = [...matchesByPanel.values()].reduce((sum, count) => sum + count, 0);
+        dictSearchStatus.textContent = query
+          ? total ? `${total} resultado${total === 1 ? '' : 's'} en el diccionario` : 'Sin resultados'
+          : '';
       }
     });
   }
@@ -5108,6 +6543,7 @@ public class MainActivity extends Activity {
   window.RC_COMMANDS_SPEC = RC_COMMANDS_SPEC;
 
   renderAll();
+  if (storageRecoveryNotice) notify(storageRecoveryNotice);
 })();
 </script>
 </body>
