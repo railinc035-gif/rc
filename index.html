@@ -31,6 +31,7 @@
   .highlight-layer code { display: block; min-width: max-content; padding: 0; margin: 0; border: 0; font: inherit; font-variant-ligatures: none; font-feature-settings: "liga" 0, "clig" 0, "calt" 0; text-rendering: optimizeSpeed; background: none; }
   .highlight-layer span { font: inherit; font-variant-ligatures: none; font-feature-settings: "liga" 0, "clig" 0, "calt" 0; text-rendering: optimizeSpeed; }
   .editor textarea { position: absolute; top: 0; left: 0; right: 0; bottom: 0; width: 100%; height: 100%; overflow: auto; background: transparent; color: transparent; caret-color: #ffffff; outline: 0; resize: none; z-index: 1; }
+  .editor textarea:focus { caret-color: var(--blue); }
   .caret-measure { position: absolute; top: 0; left: 0; z-index: -1; overflow: hidden; visibility: hidden; pointer-events: none; }
   .caret-measure span { display: inline-block; width: 0; height: var(--editor-line-height); padding: 0; margin: 0; border: 0; vertical-align: top; }
   .editor textarea:disabled { cursor: not-allowed; caret-color: transparent; }
@@ -4534,6 +4535,16 @@ ${warningBlock}${bodyChildren}
     frame?.contentWindow?.postMessage({ type: "rc-studio-edit-mode", enabled: visualEditMode }, "*");
   }
 
+  function setVisualEditMode(enabled) {
+    visualEditMode = enabled;
+    visualEditBtn.setAttribute("aria-pressed", String(enabled));
+    visualEditBtn.textContent = enabled ? "Finalizar edición" : "Editar visual";
+    visualEditBtn.title = enabled
+      ? "Desactiva la edición visual"
+      : "Arrastra elementos o el texto de los botones para moverlos; usa doble clic para editar texto y el control de esquina para redimensionar";
+    syncPreviewEditMode();
+  }
+
   function updateLivePreview(htmlContent) {
     if (htmlContent === lastPreviewHtml) return;
     const frame = document.getElementById("previewFrame");
@@ -5247,6 +5258,7 @@ ${warningBlock}${bodyChildren}
     updateCursor();
     scheduleAutocomplete();
   });
+  editorEl.addEventListener("focus", updateCursor);
   editorEl.addEventListener("select", () => scheduleAutocomplete(0));
   editorEl.addEventListener("compositionend", () => scheduleAutocomplete(0));
   editorEl.addEventListener("keyup", () => {
@@ -5593,9 +5605,7 @@ ${extraMetadata ? `${extraMetadata}\n` : ''}${activityLines}
   const previewMobileBtn = document.getElementById("previewMobileBtn");
   previewFrame.addEventListener("load", syncPreviewEditMode);
   visualEditBtn.addEventListener("click", () => {
-    visualEditMode = !visualEditMode;
-    visualEditBtn.setAttribute("aria-pressed", String(visualEditMode));
-    syncPreviewEditMode();
+    setVisualEditMode(!visualEditMode);
   });
   function setPreviewMode(mode) {
     const isMobile = mode === "mobile";
