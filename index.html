@@ -26,11 +26,13 @@
   .editor-body{--editor-font:14px;--editor-line-height:24.5px;--editor-pad-y:17px;--editor-pad-x:17px;display:flex;flex:1;min-height:0;position:relative;overflow:hidden;background:#0e1015}
   .gutter{width:42px;flex:0 0 42px;padding:var(--editor-pad-y) 8px;background:#15171e;color:#5a6275;font:var(--editor-font)/var(--editor-line-height) ui-monospace,SFMono-Regular,Consolas,monospace;text-align:right;user-select:none;border:0;border-right:1px solid var(--line);overflow:hidden;white-space:pre;box-sizing:border-box}
   .editor-input-wrap { position: relative; flex: 1; min-width: 0; height: 100%; overflow: hidden; background: #0e1015; }
-  .highlight-layer, .editor textarea { padding: var(--editor-pad-y) var(--editor-pad-x); font: 400 var(--editor-font)/var(--editor-line-height) ui-monospace,SFMono-Regular,Consolas,monospace; letter-spacing: normal; word-spacing: normal; tab-size: 2; white-space: pre; word-wrap: normal; box-sizing: border-box; }
-  .highlight-layer { position: absolute; top: 0; left: 0; right: 0; bottom: 0; margin: 0; border: 0; overflow: hidden; pointer-events: none; background: transparent; color: #d9e2f2; }
-  .highlight-layer code { display: block; padding: 0; font: inherit; font-weight: 400; font-style: normal; background: none; }
-  .highlight-layer span { font-weight: inherit; font-style: inherit; }
-  .editor textarea { position: absolute; top: 0; left: 0; right: 0; bottom: 0; width: 100%; height: 100%; margin: 0; overflow: auto; background: transparent; color: transparent; caret-color: #ffffff; border: 0; outline: 0; resize: none; z-index: 1; }
+  .highlight-layer, .editor textarea { padding: var(--editor-pad-y) var(--editor-pad-x); margin: 0; border: 0; font-family: ui-monospace,SFMono-Regular,Consolas,monospace; font-size: var(--editor-font); font-weight: 400; font-style: normal; line-height: var(--editor-line-height); letter-spacing: normal; word-spacing: normal; font-variant-ligatures: none; font-feature-settings: "liga" 0, "clig" 0, "calt" 0; text-rendering: optimizeSpeed; tab-size: 2; white-space: pre; word-wrap: normal; overflow-wrap: normal; box-sizing: border-box; }
+  .highlight-layer { position: absolute; top: 0; left: 0; right: 0; bottom: 0; overflow: hidden; pointer-events: none; background: transparent; color: #d9e2f2; }
+  .highlight-layer code { display: block; min-width: max-content; padding: 0; margin: 0; border: 0; font: inherit; font-variant-ligatures: none; font-feature-settings: "liga" 0, "clig" 0, "calt" 0; text-rendering: optimizeSpeed; background: none; }
+  .highlight-layer span { font: inherit; font-variant-ligatures: none; font-feature-settings: "liga" 0, "clig" 0, "calt" 0; text-rendering: optimizeSpeed; }
+  .editor textarea { position: absolute; top: 0; left: 0; right: 0; bottom: 0; width: 100%; height: 100%; overflow: auto; background: transparent; color: transparent; caret-color: #ffffff; outline: 0; resize: none; z-index: 1; }
+  .caret-measure { position: absolute; top: 0; left: 0; z-index: -1; overflow: hidden; visibility: hidden; pointer-events: none; }
+  .caret-measure span { display: inline-block; width: 0; height: var(--editor-line-height); padding: 0; margin: 0; border: 0; vertical-align: top; }
   .editor textarea:disabled { cursor: not-allowed; caret-color: transparent; }
   .editor textarea:disabled::placeholder { color: var(--muted); opacity: 1; }
   .editor textarea::selection { background: rgba(104, 181, 255, 0.35); color: transparent; }
@@ -43,6 +45,7 @@
   /* Tokens Resaltado de Sintaxis */
   .hl-comment { color: #7b8da8; }
   .hl-cmd     { color: #5eead4; }
+  .hl-special { color: #ff4d6d; }
   .hl-string  { color: #f1fa8c; }
   .hl-num     { color: #7dd3fc; }
   .hl-color   { color: #34d399; }
@@ -67,7 +70,15 @@
   .empty{padding:15px;color:var(--muted);text-align:center}
   .toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:#292d38;border:1px solid #454b5a;padding:9px 14px;border-radius:8px;display:none;z-index:99}
   @media(max-width:720px){.layout{padding:5px;gap:5px}.explorer{width:205px;flex-basis:205px}.editor-body{--editor-font:12px;--editor-line-height:21px;--editor-pad-y:10px;--editor-pad-x:10px}.gutter{width:34px;flex-basis:34px;padding-right:6px}.tab{padding:8px}.topbar{padding:0 7px}}
-  @media(max-width:560px){.layout{position:relative}.editor{min-width:0}.explorer{position:absolute;z-index:5;right:5px;top:5px;bottom:5px;box-shadow:0 10px 35px #0009}.explorer.hidden{display:none}}
+  @media(max-width:560px){.layout{position:relative}.editor{min-width:0}.explorer{position:absolute;z-index:5;right:5px;top:5px;bottom:5px;box-shadow:0 10px 35px #0009}.explorer.hidden{display:none}.color-palette{grid-template-columns:minmax(0,1fr)}.color-picker-side{min-height:0;align-items:flex-start}.color-copy{margin-top:0}}
+  .preview-mode-controls{display:flex;gap:6px;margin-left:auto}
+  .preview-mode-button{padding:5px 9px;font-size:12px}
+  .preview-mode-button[aria-pressed="true"]{border-color:var(--blue);background:#21354a;color:var(--text)}
+  .preview-body{justify-content:center;background:#d9dde5!important}
+  .preview-stage{display:flex;align-items:center;justify-content:center;width:100%;height:100%;min-width:0;min-height:0;overflow:auto;padding:12px;background:#d9dde5}
+  #previewFrame{display:block;width:100%;height:100%;flex:0 0 auto;border:0;background:#fff;transition:all 0.3s ease}
+  .preview-stage[data-preview-mode="mobile"]{align-items:flex-start}
+  .preview-stage[data-preview-mode="mobile"] #previewFrame{width:min(390px,calc(100% - 24px));height:auto;aspect-ratio:390/844;border:1px solid #bbc2cf;border-radius:28px;box-shadow:0 14px 36px #171b2580}
 
   /* Modal Overlay y Contenido Diccionario */
   .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.75); backdrop-filter: blur(4px); display: flex; align-items: center; justify-content: center; z-index: 1000; padding: 16px; }
@@ -75,6 +86,8 @@
   .modal-content { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; width: 100%; max-width: 820px; max-height: 85vh; display: flex; flex-direction: column; box-shadow: 0 16px 40px rgba(0,0,0,0.6); overflow: hidden; }
   .modal-header { display: flex; align-items: center; padding: 14px 18px; border-bottom: 1px solid var(--line); background: #15161c; }
   .modal-header h2 { flex: 1; margin: 0; font-size: 16px; font-weight: 600; color: var(--text); }
+  .dict-header-actions { display: flex; align-items: center; gap: 8px; }
+  .doc-download-button { padding: 5px 9px; font-size: 12px; white-space: nowrap; }
   .modal-close { background: transparent; border: 0; font-size: 22px; color: var(--muted); cursor: pointer; padding: 0 6px; line-height: 1; border-radius: 4px; }
   .modal-close:hover { color: var(--text); background: var(--panel2); }
   .modal-body { padding: 18px; overflow-y: auto; display: flex; flex-direction: column; gap: 16px; }
@@ -98,20 +111,29 @@
   .dict-library-card code { display: block; width: 100%; overflow-wrap: anywhere; color: var(--orange); font: 11px ui-monospace, SFMono-Regular, Consolas, monospace; }
   .dict-library-example { white-space: pre-wrap; }
   .dict-library-card button { margin-top: auto; font-size: 12px; }
-  .dict-category[hidden], .cmd-item[hidden], .palette-color[hidden], .dict-library-card[hidden] { display: none !important; }
+  .dict-category[hidden], .cmd-item[hidden], .dict-library-card[hidden] { display: none !important; }
   .dict-tabs { display: flex; gap: 8px; border-bottom: 1px solid var(--line); }
   .dict-tab { padding: 8px 12px; border: 0; border-bottom: 2px solid transparent; border-radius: 6px 6px 0 0; background: transparent; color: var(--muted); }
   .dict-tab.active { border-bottom-color: var(--blue); color: var(--text); }
   .dict-panel[hidden] { display: none; }
-  .color-palette { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 10px; }
-  .palette-color { display: grid; grid-template-columns: 42px 1fr; align-items: center; gap: 10px; width: 100%; padding: 10px; border: 1px solid var(--line); border-radius: 8px; background: #12141a; color: var(--text); text-align: left; }
-  .palette-color:hover { border-color: var(--blue); background: var(--panel2); }
-  .palette-swatch { width: 42px; height: 42px; border: 1px solid #ffffff40; border-radius: 6px; background: var(--swatch-color); }
-  .palette-color strong, .palette-color code { display: block; }
-  .palette-color code { margin-top: 3px; color: var(--muted); font: 12px ui-monospace, SFMono-Regular, Consolas, monospace; }
+  .color-palette { display: grid; grid-template-columns: minmax(220px, 1fr) auto; align-items: start; gap: 16px; }
+  .color-wheel { display: block; width: min(100%, 340px); aspect-ratio: 1; border: 0; border-radius: 50%; cursor: crosshair; touch-action: none; }
+  .color-picker-side { display: flex; min-width: 150px; min-height: 340px; flex-direction: column; align-items: flex-end; gap: 12px; }
+  .color-wheel:focus-visible { outline: 2px solid var(--blue); outline-offset: 4px; }
+  .color-preview { width: 42px; height: 42px; border: 1px solid #ffffff55; border-radius: 8px; background: var(--selected-color, #ff0061); }
+  .color-code { color: var(--text); font: 600 15px ui-monospace, SFMono-Regular, Consolas, monospace; }
+  .color-copy { width: 100%; margin-top: auto; }
+  .color-picker-status { min-height: 1.3em; color: var(--muted); font-size: 12px; }
   .palette-hint { margin: 0; color: var(--muted); font-size: 12px; }
   .dict-copy-toast { position: fixed; z-index: 1200; right: 24px; bottom: 24px; padding: 10px 16px; border: 1px solid var(--line); border-radius: 8px; background: var(--panel2); color: var(--text); box-shadow: 0 8px 24px #0009; }
   .dict-copy-toast[hidden] { display: none; }
+  .confirm-overlay { position: fixed; inset: 0; z-index: 1100; display: flex; align-items: center; justify-content: center; padding: 16px; background: #000a; }
+  .confirm-overlay[hidden] { display: none; }
+  .confirm-dialog { width: min(100%, 440px); padding: 20px; border: 1px solid var(--line); border-radius: 12px; background: var(--panel); box-shadow: 0 16px 40px #0009; }
+  .confirm-dialog h3 { margin: 0 0 12px; font-size: 16px; }
+  .confirm-dialog p { margin: 0; color: var(--muted); }
+  .confirm-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 20px; }
+  .confirm-actions button:last-child { border-color: var(--blue); background: #21354a; }
 </style>
 </head>
 <body>
@@ -136,6 +158,7 @@
       <div class="editor-input-wrap">
         <pre class="highlight-layer" id="rcHighlight" aria-hidden="true"><code id="rcHighlightCode"></code></pre>
         <textarea id="rcEditor" spellcheck="false" aria-label="Código RC" aria-controls="rcAutocomplete" aria-expanded="false" autocapitalize="off" autocomplete="off" placeholder="Crea o selecciona un archivo para empezar" disabled></textarea>
+        <div class="highlight-layer caret-measure" id="rcCaretMeasure" aria-hidden="true"><code></code></div>
         <div id="rcAutocomplete" class="autocomplete-popup" role="listbox" aria-label="Comandos RC" hidden></div>
       </div>
     </div>
@@ -145,9 +168,15 @@
   <section class="editor" id="previewPaneSection" aria-label="Vista Previa en Vivo">
     <div class="tabs">
       <button class="tab active" style="pointer-events:none;">Vista Previa ▶</button>
+      <div class="preview-mode-controls" role="group" aria-label="Tamaño de vista previa">
+        <button class="preview-mode-button" id="previewDesktopBtn" type="button" aria-pressed="true" title="Vista de escritorio">💻 Escritorio</button>
+        <button class="preview-mode-button" id="previewMobileBtn" type="button" aria-pressed="false" title="Vista de teléfono">📱 Teléfono</button>
+      </div>
     </div>
-    <div class="editor-body" style="background:#ffffff;">
-      <iframe id="previewFrame" title="Vista Previa App" style="width:100%; height:100%; border:none; background:#ffffff;"></iframe>
+    <div class="editor-body preview-body">
+      <div class="preview-stage" id="previewStage" data-preview-mode="desktop">
+        <iframe id="previewFrame" title="Vista Previa App"></iframe>
+      </div>
     </div>
     <div class="status"><span>Ejecución en tiempo real</span></div>
   </section>
@@ -170,9 +199,6 @@
       <button class="modal-close" id="closeExportModal" title="Cerrar modal">×</button>
     </div>
     <div class="modal-body">
-      <p style="margin: 0 0 12px 0; color: var(--muted); font-size: 13px;">
-        
-      </p>
       <div style="display: flex; flex-direction: column; gap: 10px;">
         <button id="exportRcBtn" style="text-align: left; padding: 12px 16px; border: 1px solid var(--line); border-radius: 8px; background: var(--panel2);">
           <div style="font-weight: 600; color: var(--blue); font-size: 14px;"> Guardar como RC </div>
@@ -182,9 +208,9 @@
           <div style="font-weight: 600; color: var(--orange); font-size: 14px;"> Guardar como HTML </div>
           <div style="font-size: 12px; color: var(--muted); margin-top: 4px;">Exporta un documento HTML standalone funcional con sus estilos CSS y scripts.</div>
         </button>
-        <button id="exportCssBtn" style="text-align: left; padding: 12px 16px; border: 1px solid var(--line); border-radius: 8px; background: var(--panel2);">
-          <div style="font-weight: 600; color: #50fa7b; font-size: 14px;"> Guardar como CSS </div>
-          <div style="font-size: 12px; color: var(--muted); margin-top: 4px;">Exporta las reglas y estilos CSS extraídos de las propiedades de diseño de la app RC.</div>
+        <button id="exportAndroidBtn" style="text-align: left; padding: 12px 16px; border: 1px solid var(--line); border-radius: 8px; background: var(--panel2);">
+          <div style="font-weight: 600; color: #50fa7b; font-size: 14px;"> Guardar como archivo de Android </div>
+          <div style="font-size: 12px; color: var(--muted); margin-top: 4px;">Empaqueta el proyecto Android e incluye su AndroidManifest.xml.</div>
         </button>
       </div>
     </div>
@@ -197,7 +223,10 @@
   <div class="modal-content">
     <div class="modal-header">
       <h2 id="dictTitle">Diccionario y Reglas</h2>
-      <button class="modal-close" id="closeDictModal" title="Cerrar diccionario">×</button>
+      <div class="dict-header-actions">
+        <button type="button" class="doc-download-button" id="downloadDocsBtn">Descargar documentación</button>
+        <button class="modal-close" id="closeDictModal" title="Cerrar diccionario">×</button>
+      </div>
     </div>
     <div class="modal-body">
       <div class="dict-rules">
@@ -269,8 +298,16 @@
       </div>
       </section>
       <section class="dict-panel" id="dictPalettePanel" role="tabpanel" aria-labelledby="dictPaletteTab" hidden>
-        <p class="palette-hint">Haz clic en un color para copiar su código hexadecimal.</p>
-        <div class="color-palette" id="colorPalette"></div>
+        <p class="palette-hint">Selecciona un tono y su intensidad en el círculo cromático.</p>
+        <div class="color-palette" id="colorPalette">
+          <canvas class="color-wheel" id="colorWheel" role="slider" tabindex="0" aria-label="Selector de color" aria-valuetext="#FF0061"></canvas>
+          <div class="color-picker-side">
+            <div class="color-preview" id="colorPreview" aria-hidden="true"></div>
+            <output class="color-code" id="colorCode">#FF0061</output>
+            <button type="button" class="color-copy" id="copyColorBtn">Copiar</button>
+            <span class="color-picker-status" id="colorCopyStatus" role="status" aria-live="polite"></span>
+          </div>
+        </div>
       </section>
       <section class="dict-panel" id="dictLibsPanel" role="tabpanel" aria-labelledby="dictLibsTab" hidden>
         <p class="palette-hint">50 librerías CDN en 8 categorías. Copia una o varias URL para incluirlas en tu proyecto.</p>
@@ -280,10 +317,21 @@
   </div>
 </div>
 
+<div class="confirm-overlay" id="docsConfirmModal" role="dialog" aria-modal="true" aria-labelledby="docsConfirmTitle" aria-describedby="docsConfirmMessage" hidden>
+  <div class="confirm-dialog">
+    <h3 id="docsConfirmTitle">Descargar documentación</h3>
+    <p id="docsConfirmMessage">¿Deseas descargar el Manual de Referencia Oficial de RC Language (PDF) con los 160 comandos y reglas del sistema?</p>
+    <div class="confirm-actions">
+      <button type="button" id="cancelDocsDownload">Cancelar</button>
+      <button type="button" id="acceptDocsDownload">Aceptar</button>
+    </div>
+  </div>
+</div>
+
 <script>
 (() => {
   // ==========================================
-  // ESPECIFICACIÓN CENTRAL DE 147 COMANDOS RC
+  // ESPECIFICACIÓN CENTRAL DE 160 COMANDOS RC
   // ==========================================
   const RC_COMMANDS_SPEC = {
     // Categoría I: Estructura y Contenido (Comandos 1 - 30)
@@ -340,7 +388,7 @@
     flotante: { cat: 2, name: 'flotante', params: ['posicion'], minArgs: 1, type: 'style', action: 'displayOrFloat', desc: 'Establece posicionamiento (relative, absolute, fixed, flex, grid)' },
     desplazamiento: { cat: 2, name: 'desplazamiento', params: [], minArgs: 0, type: 'style', prop: 'overflow', val: 'auto', desc: 'Habilita barras de desplazamiento (overflow auto)' },
 
-    // Categoría III: Campos, Eventos y Lógica (Comandos 51 - 80)
+    // Categoría III: Campos, Eventos y Lógica (Comandos 51 - 83)
     entrada: { cat: 3, name: 'entrada', params: ['id', 'valor'], minArgs: 1, type: 'input', inputType: 'text', desc: 'Crea un campo de texto (<input type="text">)' },
     camponumero: { cat: 3, name: 'camponumero', params: ['id', 'valor'], minArgs: 1, type: 'input', inputType: 'number', desc: 'Crea un campo numérico (<input type="number">)' },
     campocorreo: { cat: 3, name: 'campocorreo', params: ['id', 'valor'], minArgs: 1, type: 'input', inputType: 'email', desc: 'Crea un campo de correo (<input type="email">)' },
@@ -371,8 +419,10 @@
     decrementar: { cat: 3, name: 'decrementar', params: ['idbtn', 'idtarget', 'paso'], minArgs: 2, type: 'math', op: 'dec', desc: 'Decrementa valor en destino según el paso especificado' },
     guardarlocal: { cat: 3, name: 'guardarlocal', params: ['idbtn', 'clave', 'idin'], minArgs: 3, type: 'storage', action: 'save', desc: 'Guarda en localStorage el valor del campo al pulsar el botón' },
     cargarlocal: { cat: 3, name: 'cargarlocal', params: ['clave', 'lbl'], minArgs: 2, type: 'storage', action: 'load', desc: 'Lee el valor almacenado y lo muestra en la etiqueta de destino' },
+    vibracion: { cat: 3, name: 'vibracion', params: ['patron'], minArgs: 1, type: 'vibration', desc: 'Activa vibración háptica con patrones predefinidos' },
+    almacenamiento: { cat: 3, name: 'almacenamiento', params: ['clave', 'valor'], minArgs: 2, type: 'storage', desc: 'Guarda un valor persistente en localStorage' },
 
-    // Categoría IV: Dibujo, efectos y utilidades (Comandos 81 - 102)
+    // Categoría IV: Dibujo, efectos y utilidades (Comandos 84 - 105)
     capa: { cat: 4, name: 'capa', params: ['nivel'], signatures: ['capa(nivel)', 'capa(id)'], minArgs: 1, type: 'layer', desc: 'Establece z-index o crea una capa canvas superpuesta con un ID' },
     posicion: { cat: 4, name: 'posicion', params: ['tipo'], minArgs: 1, type: 'position', desc: 'Establece posicionamiento fijo, absoluto o relativo' },
     desplazar: { cat: 4, name: 'desplazar', params: ['x', 'y'], signatures: ['desplazar(x)(y)', 'desplazar(x, y)'], minArgs: 1, maxArgs: 2, type: 'translate', desc: 'Desplaza el elemento activo en los ejes X e Y' },
@@ -396,7 +446,7 @@
     finmodal: { cat: 4, name: 'finmodal', params: [], minArgs: 0, type: 'closing', desc: 'Cierra la estructura modal abierta' },
     tema: { cat: 4, name: 'tema', params: ['modo'], eventSignature: 'tema(idbtn)(modo)', minArgs: 1, maxArgs: 2, type: 'theme', desc: 'Configura el tema directamente o al pulsar un botón' },
 
-    // Categoría V: Espacio 3D, cámaras y motores geométricos (103 - 117)
+    // Categoría V: Espacio 3D, cámaras y motores geométricos (106 - 122)
     escena3d: { cat: 5, name: 'escena3d', params: ['id'], minArgs: 1, type: 'scene3d', desc: 'Crea una escena geométrica 3D interactiva en Canvas' },
     finescena3d: { cat: 5, name: 'finescena3d', params: [], minArgs: 0, type: 'closing', desc: 'Cierra la escena 3D activa' },
     camara3d: { cat: 5, name: 'camara3d', params: ['tipo'], minArgs: 1, type: 'camera3d', desc: 'Configura la cámara 3D en perspectiva u ortográfica' },
@@ -405,6 +455,8 @@
     posicion3d: { cat: 5, name: 'posicion3d', params: ['id', 'x', 'y', 'z'], minArgs: 4, type: 'transform3d', desc: 'Establece la posición XYZ de un objeto 3D' },
     rotar3d: { cat: 5, name: 'rotar3d', params: ['id', 'eje', 'grados'], minArgs: 3, type: 'transform3d', desc: 'Rota un objeto alrededor de un eje 3D' },
     escala3d: { cat: 5, name: 'escala3d', params: ['id', 'x', 'y', 'z'], minArgs: 4, type: 'transform3d', desc: 'Escala un objeto 3D en los ejes XYZ' },
+    lienzo3d: { cat: 5, name: 'lienzo3d', params: ['id'], minArgs: 1, type: 'scene3d', desc: 'Crea un lienzo espacial 3D interactivo' },
+    giroscopio: { cat: 5, name: 'giroscopio', params: ['id', 'eje'], minArgs: 2, type: 'gyroscope', desc: 'Vincula la orientación del dispositivo a un nodo o malla' },
     orbita: { cat: 5, name: 'orbita', params: ['idbtn'], minArgs: 1, type: 'event', desc: 'Activa o pausa la órbita automática de una escena 3D' },
     malla3d: { cat: 5, name: 'malla3d', params: ['id', 'tipo'], minArgs: 2, type: 'mesh3d', desc: 'Configura la geometría de un objeto 3D' },
     material3d: { cat: 5, name: 'material3d', params: ['id', 'color', 'rugosidad'], minArgs: 3, type: 'material3d', desc: 'Configura color y rugosidad del material 3D' },
@@ -413,7 +465,7 @@
     vertice: { cat: 5, name: 'vertice', params: ['id', 'x', 'y', 'z'], minArgs: 4, type: 'vertex3d', desc: 'Añade un vértice XYZ a la geometría identificada' },
     render3d: { cat: 5, name: 'render3d', params: ['id'], minArgs: 1, type: 'render3d', desc: 'Renderiza o actualiza la escena 3D indicada' },
 
-    // Categoría VI: Diseño moderno, UI avanzada y efectos visuales (118 - 129)
+    // Categoría VI: Diseño moderno, UI avanzada y efectos visuales (123 - 136)
     gradiente: { cat: 6, name: 'gradiente', params: ['tipo', 'colores'], minArgs: 2, type: 'gradient', desc: 'Aplica un gradiente lineal o radial con los colores indicados' },
     glassmorphism: { cat: 6, name: 'glassmorphism', params: ['nivel'], minArgs: 1, type: 'glass', desc: 'Aplica un acabado de vidrio esmerilado configurable' },
     animacion: { cat: 6, name: 'animacion', params: ['nombre', 'duracion'], minArgs: 2, type: 'animation', desc: 'Anima el elemento activo con una duración en segundos' },
@@ -426,8 +478,10 @@
     acordeon: { cat: 6, name: 'acordeon', params: ['id', 'titulo'], minArgs: 2, type: 'accordion', desc: 'Inicia un panel desplegable tipo acordeón' },
     finacordeon: { cat: 6, name: 'finacordeon', params: [], minArgs: 0, type: 'closing', desc: 'Cierra el panel acordeón abierto' },
     tooltip: { cat: 6, name: 'tooltip', params: ['texto'], minArgs: 1, type: 'tooltip', desc: 'Añade un tooltip accesible al elemento activo' },
+    holonet: { cat: 6, name: 'holonet', params: ['id', 'tipo_proyeccion', 'modo_interaccion'], minArgs: 3, type: 'holonet', desc: 'Inicia un panel de interfaz holográfica interactiva' },
+    finholonet: { cat: 6, name: 'finholonet', params: [], minArgs: 0, type: 'closing', desc: 'Cierra el panel holográfico abierto' },
 
-    // Categoría VII: Capacidades de sistema operativo y gestión (130 - 142)
+    // Categoría VII: Capacidades de sistema operativo y gestión (137 - 152)
     ventana: { cat: 7, name: 'ventana', params: ['id', 'titulo'], minArgs: 2, type: 'window', desc: 'Crea una ventana flotante arrastrable con controles' },
     finventana: { cat: 7, name: 'finventana', params: [], minArgs: 0, type: 'closing', desc: 'Cierra el contenido de la ventana flotante' },
     barraestado: { cat: 7, name: 'barraestado', params: [], minArgs: 0, type: 'statusbar', desc: 'Inserta una barra de estado del sistema simulado' },
@@ -441,18 +495,25 @@
     sistema: { cat: 7, name: 'sistema', params: ['parametro'], minArgs: 1, type: 'system', desc: 'Muestra información no sensible del entorno de navegador' },
     notificacionos: { cat: 7, name: 'notificacionos', params: ['titulo', 'mensaje'], minArgs: 2, type: 'osNotification', desc: 'Muestra una notificación local dentro de la aplicación' },
     nucleo: { cat: 7, name: 'nucleo', params: [], minArgs: 0, type: 'kernel', desc: 'Inserta un panel de estado del sistema simulado' },
+    manifiesto: { cat: 7, name: 'manifiesto', params: ['paquete', 'version', 'codigover'], minArgs: 3, type: 'manifest', desc: 'Define los metadatos Android del proyecto' },
+    permiso: { cat: 7, name: 'permiso', params: ['nombre'], minArgs: 1, type: 'permission', desc: 'Declara un permiso para el manifiesto Android' },
+    finmanifiesto: { cat: 7, name: 'finmanifiesto', params: [], minArgs: 0, type: 'closing', desc: 'Cierra el bloque de metadatos Android' },
+    interruptor: { cat: 3, name: 'interruptor', params: ['id', 'texto'], minArgs: 2, type: 'toggle', desc: 'Crea un interruptor accesible con etiqueta' },
 
-    // Categoría VIII: Herramientas avanzadas de dibujo 3D y capas (143 - 147)
+    // Categoría VIII: Herramientas avanzadas de dibujo 3D y capas (153 - 160)
     sombra3d: { cat: 8, name: 'sombra3d', params: ['id', 'suavizado'], minArgs: 2, type: 'shadow3d', desc: 'Activa sombra suave en un objeto de la escena 3D' },
     enfocar3d: { cat: 8, name: 'enfocar3d', params: ['id'], minArgs: 1, type: 'focus3d', desc: 'Centra la cámara 3D en el objeto indicado' },
     exportar3d: { cat: 8, name: 'exportar3d', params: ['idbtn', 'formato'], minArgs: 2, type: 'event', desc: 'Exporta la imagen PNG o geometría JSON de una escena 3D' },
     capa3d: { cat: 8, name: 'capa3d', params: ['id', 'profundidad'], minArgs: 2, type: 'layer3d', desc: 'Asigna profundidad a una capa u objeto de la escena 3D' },
-    textura3d: { cat: 8, name: 'textura3d', params: ['id', 'url'], minArgs: 2, type: 'texture3d', desc: 'Asocia una textura de imagen a un objeto 3D' }
+    textura3d: { cat: 8, name: 'textura3d', params: ['id', 'url'], minArgs: 2, type: 'texture3d', desc: 'Asocia una textura de imagen a un objeto 3D' },
+    colision3d: { cat: 8, name: 'colision3d', params: ['objeto1', 'objeto2'], minArgs: 2, type: 'collision3d', desc: 'Detecta colisión AABB entre dos objetos de una escena' },
+    particulas3d: { cat: 8, name: 'particulas3d', params: ['id', 'cantidad', 'velocidad'], minArgs: 3, type: 'particles3d', desc: 'Genera un sistema animado de partículas alrededor de un objeto' },
+    fisica3d: { cat: 8, name: 'fisica3d', params: ['id', 'gravedad', 'rebotar'], minArgs: 3, type: 'physics3d', desc: 'Aplica gravedad y rebote a un objeto 3D' }
   };
 
   const CLOSING_COMMANDS = new Set([
     'fin', 'finseccion', 'fincontenedor', 'finrejilla', 'finlista', 'fintabla', 'finfilatabla', 'finmodal',
-    'finescena3d', 'finpestana', 'finacordeon', 'finventana'
+    'finescena3d', 'finpestana', 'finacordeon', 'finventana', 'finholonet', 'finmanifiesto'
   ]);
 
   const commandsByCategory = new Map();
@@ -486,43 +547,92 @@
     }));
   });
 
-  const paletteColors = [
-    { name: 'Blanco puro', value: '#FFFFFF' },
-    { name: 'Negro profundo', value: '#000000' },
-    { name: 'Gris fondo', value: '#1E1E1E' },
-    { name: 'Gris panel', value: '#2D2D30' },
-    { name: 'Gris borde', value: '#3E3E42' },
-    { name: 'Gris texto', value: '#C5C5C5' },
-    { name: 'Azul acento', value: '#68B5FF' },
-    { name: 'Azul enlace', value: '#007ACC' },
-    { name: 'Naranja acento', value: '#FFAD70' },
-    { name: 'Verde éxito', value: '#4CAF50' },
-    { name: 'Rojo alerta', value: '#F44336' },
-    { name: 'Amarillo aviso', value: '#FFC107' },
-    { name: 'Morado creativo', value: '#9C27B0' },
-    { name: 'Cian brillante', value: '#00BCD4' },
-    { name: 'Rosa resaltado', value: '#FF79C6' },
-    { name: 'Verde menta', value: '#50FA7B' }
-  ];
   const colorPalette = document.getElementById('colorPalette');
-  paletteColors.forEach(({ name, value }) => {
-    const button = document.createElement('button');
-    button.type = 'button';
-    button.className = 'palette-color';
-    button.dataset.color = value;
-    button.style.setProperty('--swatch-color', value);
-    button.setAttribute('aria-label', `Copiar ${name}, ${value}`);
-    const swatch = document.createElement('span');
-    swatch.className = 'palette-swatch';
-    swatch.setAttribute('aria-hidden', 'true');
-    const label = document.createElement('span');
-    const colorName = document.createElement('strong');
-    colorName.textContent = name;
-    const colorCode = document.createElement('code');
-    colorCode.textContent = value;
-    label.append(colorName, colorCode);
-    button.append(swatch, label);
-    colorPalette.appendChild(button);
+  const colorWheel = document.getElementById('colorWheel');
+  const colorCode = document.getElementById('colorCode');
+  const colorPreview = document.getElementById('colorPreview');
+  const colorCopyStatus = document.getElementById('colorCopyStatus');
+  let selectedColor = '#FF0061';
+  let selectedWheelPoint = { x: 267, y: 84 };
+
+  function drawColorWheel() {
+    const size = 280;
+    colorWheel.width = size;
+    colorWheel.height = size;
+    const context = colorWheel.getContext('2d');
+    const image = context.createImageData(size, size);
+    const center = (size - 1) / 2;
+    const radius = size / 2;
+    for (let y = 0; y < size; y++) {
+      for (let x = 0; x < size; x++) {
+        const dx = x - center;
+        const dy = y - center;
+        const distance = Math.sqrt(dx * dx + dy * dy) / radius;
+        const offset = (y * size + x) * 4;
+        if (distance > 1) continue;
+        const hue = (Math.atan2(dy, dx) * 180 / Math.PI + 360) % 360;
+        const saturation = Math.min(1, distance);
+        const chroma = saturation;
+        const section = hue / 60;
+        const secondary = chroma * (1 - Math.abs(section % 2 - 1));
+        const rgb = section < 1 ? [chroma, secondary, 0]
+          : section < 2 ? [secondary, chroma, 0]
+            : section < 3 ? [0, chroma, secondary]
+              : section < 4 ? [0, secondary, chroma]
+                : section < 5 ? [secondary, 0, chroma] : [chroma, 0, secondary];
+        const match = 1 - chroma;
+        image.data[offset] = Math.round((rgb[0] + match) * 255);
+        image.data[offset + 1] = Math.round((rgb[1] + match) * 255);
+        image.data[offset + 2] = Math.round((rgb[2] + match) * 255);
+        image.data[offset + 3] = 255;
+      }
+    }
+    context.putImageData(image, 0, 0);
+  }
+
+  function setPickedColor(x, y) {
+    const [red, green, blue, alpha] = colorWheel.getContext('2d').getImageData(x, y, 1, 1).data;
+    if (!alpha) return;
+    selectedWheelPoint = { x, y };
+    selectedColor = `#${[red, green, blue].map(channel => channel.toString(16).padStart(2, '0')).join('')}`.toUpperCase();
+    colorCode.textContent = selectedColor;
+    colorPreview.style.setProperty('--selected-color', selectedColor);
+    colorWheel.setAttribute('aria-valuetext', selectedColor);
+    colorCopyStatus.textContent = '';
+  }
+
+  function updatePickedColor(event) {
+    const bounds = colorWheel.getBoundingClientRect();
+    const x = Math.max(0, Math.min(colorWheel.width - 1, Math.floor((event.clientX - bounds.left) * colorWheel.width / bounds.width)));
+    const y = Math.max(0, Math.min(colorWheel.height - 1, Math.floor((event.clientY - bounds.top) * colorWheel.height / bounds.height)));
+    setPickedColor(x, y);
+  }
+
+  drawColorWheel();
+  setPickedColor(selectedWheelPoint.x, selectedWheelPoint.y);
+  colorWheel.addEventListener('pointerdown', event => {
+    colorWheel.setPointerCapture(event.pointerId);
+    updatePickedColor(event);
+  });
+  colorWheel.addEventListener('pointermove', event => {
+    if (colorWheel.hasPointerCapture(event.pointerId)) updatePickedColor(event);
+  });
+  colorWheel.addEventListener('keydown', event => {
+    if (event.key !== 'ArrowUp' && event.key !== 'ArrowDown' && event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return;
+    event.preventDefault();
+    const movement = 6 * (event.key === 'ArrowRight' || event.key === 'ArrowDown' ? 1 : -1);
+    let x = selectedWheelPoint.x + (event.key === 'ArrowRight' || event.key === 'ArrowLeft' ? movement : 0);
+    let y = selectedWheelPoint.y + (event.key === 'ArrowDown' || event.key === 'ArrowUp' ? movement : 0);
+    const center = colorWheel.width / 2;
+    const dx = x - center;
+    const dy = y - center;
+    const distance = Math.hypot(dx, dy);
+    const radius = (colorWheel.width - 1) / 2;
+    if (distance > radius) {
+      x = Math.round(center + dx * radius / distance);
+      y = Math.round(center + dy * radius / distance);
+    }
+    setPickedColor(x, y);
   });
 
   const FORM_CONTROL_TAGS = ['INPUT', 'TEXTAREA', 'SELECT'];
@@ -723,6 +833,9 @@
     const rawCommand = commandMatch[1];
     const cmd = rawCommand.toLowerCase();
     cursor = rawCommand.length;
+    if (rawCommand !== cmd) {
+      return parseError('Los comandos deben escribirse en minúsculas');
+    }
 
     while (/\s/.test(line[cursor] || '')) cursor++;
     if (line[cursor] === '[') {
@@ -768,10 +881,6 @@
       while (/\s/.test(line[cursor] || '')) cursor++;
     }
 
-    if (rawCommand !== cmd) {
-      return parseError('Los comandos deben escribirse en minúsculas');
-    }
-
     return { cmd, bracketId, args, rawLine: line, lineNum };
   }
 
@@ -792,6 +901,7 @@
     let hasDrawingSurface = false;
     let drawingBrush = { type: 'lapiz', size: 4 };
     let layerIndex = 0;
+    let androidManifestOpen = false;
     const scenes3d = new Map();
     let activeScene3d = null;
     const generatedKeyframes = new Map();
@@ -925,8 +1035,7 @@
         warnings.push(`${currentFilename || 'RC'}:${currentLineNum}: cierre fuera de orden; '${top.structureType}' sigue abierto desde ${top.filename || 'RC'}:${top.lineNum}.`);
         return false;
       }
-      popContainer();
-      return true;
+      return popContainer();
     }
 
     sourceLines.forEach(sourceLine => {
@@ -961,6 +1070,10 @@
 
       if (!spec && !CLOSING_COMMANDS.has(cmd)) {
         warnings.push(`${filename || 'RC'}:${lineNum}: comando desconocido '${escapeHtml(cmd)}'.`);
+        return;
+      }
+      if (CLOSING_COMMANDS.has(cmd) && args.length > 0) {
+        warnings.push(`${filename || 'RC'}:${lineNum}: '${cmd}' no recibe parámetros.`);
         return;
       }
       const bracketIdUsed = Boolean(bracketId && bracketIdCommands.has(cmd));
@@ -1035,6 +1148,11 @@
       }
 
       // Procesar cierre de contenedor
+      if (cmd === 'finmanifiesto') {
+        if (!androidManifestOpen) warnings.push(`${filename || 'RC'}:${lineNum}: 'finmanifiesto' no tiene un bloque manifiesto abierto.`);
+        androidManifestOpen = false;
+        return;
+      }
       if (CLOSING_COMMANDS.has(cmd)) {
         if (nodeStack.length <= 1) {
           warnings.push(`${filename || 'RC'}:${lineNum}: '${cmd}' no tiene una estructura abierta.`);
@@ -1052,7 +1170,8 @@
           finescena3d: ['scene3d'],
           finpestana: ['tab'],
           finacordeon: ['accordion'],
-          finventana: ['window']
+          finventana: ['window'],
+          finholonet: ['holonet']
         };
         if (cmd === 'fin') {
           closeContainerTag();
@@ -1063,10 +1182,63 @@
           }
         }
         if (cmd === 'finescena3d') activeScene3d = null;
+        if (cmd === 'finholonet') lastCreatedNode = null;
         return;
       }
 
       switch (cmd) {
+        case 'manifiesto': {
+          if (androidManifestOpen) {
+            warnings.push(`${filename || 'RC'}:${lineNum}: no se puede anidar otro bloque 'manifiesto'.`);
+            break;
+          }
+          const packageName = cleanParam(a1);
+          const versionCode = Number(a3);
+          if (!/^[a-zA-Z][a-zA-Z0-9_]*(?:\.[a-zA-Z][a-zA-Z0-9_]*)+$/.test(packageName)
+            || !cleanParam(a2) || !Number.isSafeInteger(versionCode) || versionCode < 1 || versionCode > 2100000000) {
+            warnings.push(`${filename || 'RC'}:${lineNum}: 'manifiesto' requiere paquete válido, versión y código entre 1 y 2100000000.`);
+            break;
+          }
+          androidManifestOpen = true;
+          break;
+        }
+
+        case 'permiso': {
+          const permission = cleanParam(a1);
+          const normalizedPermission = permission.startsWith('android.permission.')
+            ? permission : `android.permission.${permission}`;
+          if (!androidManifestOpen) {
+            warnings.push(`${filename || 'RC'}:${lineNum}: 'permiso' requiere un bloque 'manifiesto' abierto.`);
+          } else if (!/^android\.permission\.[A-Z0-9_]+$/.test(normalizedPermission)) {
+            warnings.push(`${filename || 'RC'}:${lineNum}: nombre de permiso Android no válido.`);
+          }
+          break;
+        }
+
+        case 'interruptor': {
+          const toggle = createNode('label', '', 'rc-toggle');
+          const checkbox = createNode('input', cleanParam(a1));
+          checkbox.inputType = 'checkbox';
+          checkbox.attrs.role = 'switch';
+          checkbox.attrs['aria-label'] = cleanParam(a2);
+          const label = createNode('span');
+          label.innerText = cleanParam(a2);
+          toggle.children.push(checkbox, label);
+          checkbox.parent = toggle;
+          label.parent = toggle;
+          addChild(toggle);
+          break;
+        }
+
+        case 'holonet': {
+          const hologram = createNode('section', cleanParam(a1), 'rc-holonet', true, 'holonet');
+          hologram.attrs['data-projection'] = cleanParam(a2);
+          hologram.attrs['data-interaction'] = cleanParam(a3);
+          hologram.styles.push('position: relative; overflow: hidden; border: 1px solid #38e8ff; border-radius: 14px; padding: 16px; background: linear-gradient(135deg, #08283a, #15152e); box-shadow: 0 0 24px #14d9ff44, inset 0 0 18px #14d9ff22;');
+          addChild(hologram);
+          break;
+        }
+
         case 'incluir': {
           const targetFileName = cleanParam(a1);
           if (!targetFileName) break;
@@ -1108,7 +1280,8 @@
           title = cleanParam(a1);
           break;
 
-        case 'escena3d': {
+        case 'escena3d':
+        case 'lienzo3d': {
           const sceneId = cleanParam(a1);
           const sceneNode = createNode('div', sceneId, 'rc-scene3d', true, 'scene3d');
           sceneNode.lineNum = lineNum;
@@ -1127,6 +1300,7 @@
             lights: [],
             objects: {},
             vertices: {},
+            collisions: [],
             ribbon: { width: 0, tension: 0.5 },
             focus: '',
             orbit: false
@@ -1186,7 +1360,9 @@
         case 'material3d':
         case 'sombra3d':
         case 'capa3d':
-        case 'textura3d': {
+        case 'textura3d':
+        case 'particulas3d':
+        case 'fisica3d': {
           if (!activeScene3d) {
             warnings.push(`${filename || 'RC'}:${lineNum}: '${cmd}' requiere una escena3d abierta.`);
             break;
@@ -1195,7 +1371,7 @@
           const object = activeScene3d.objects[objectId] || (activeScene3d.objects[objectId] = {
             id: objectId, type: 'cubo', color: '#68b5ff', roughness: 0.5,
             position: [0, 0, 0], rotation: [0, 0, 0], scale: [1, 1, 1],
-            shadow: 0, depth: 0, texture: ''
+            shadow: 0, depth: 0, texture: '', particles: null, physics: null
           });
           if (cmd === 'posicion3d') {
             const values = [a2, a3, a4].map(Number);
@@ -1256,7 +1432,40 @@
             } else {
               warnings.push(`${filename || 'RC'}:${lineNum}: 'textura3d' requiere una URL relativa, HTTP(S), blob o data:image.`);
             }
+          } else if (cmd === 'particulas3d') {
+            const count = Number(a2);
+            const speed = Number(a3);
+            const allocatedParticles = Object.values(activeScene3d.objects)
+              .reduce((total, sceneObject) => total + (sceneObject.particles?.count || 0), 0);
+            const replacingParticles = object.particles?.count || 0;
+            if (!Number.isInteger(count) || count < 1 || count > 2000 || allocatedParticles - replacingParticles + count > 5000
+              || !Number.isFinite(speed) || speed < 0 || speed > 10) {
+              warnings.push(`${filename || 'RC'}:${lineNum}: 'particulas3d' requiere entre 1 y 2000 partículas, un total máximo de 5000 y velocidad de 0 a 10.`);
+              break;
+            }
+            object.particles = { count, speed };
+          } else if (cmd === 'fisica3d') {
+            const gravity = Number(a2);
+            const bounce = Number(a3);
+            if (!Number.isFinite(gravity) || gravity < 0 || gravity > 100 || !Number.isFinite(bounce) || bounce < 0 || bounce > 1) {
+              warnings.push(`${filename || 'RC'}:${lineNum}: 'fisica3d' requiere gravedad de 0 a 100 y rebote de 0 a 1.`);
+              break;
+            }
+            object.physics = { gravity, bounce };
           }
+          break;
+        }
+
+        case 'colision3d': {
+          if (!activeScene3d) {
+            warnings.push(`${filename || 'RC'}:${lineNum}: 'colision3d' requiere una escena3d abierta.`);
+            break;
+          }
+          if (!activeScene3d.objects[cleanParam(a1)] || !activeScene3d.objects[cleanParam(a2)]) {
+            warnings.push(`${filename || 'RC'}:${lineNum}: 'colision3d' requiere dos objetos 3D declarados previamente.`);
+            break;
+          }
+          activeScene3d.collisions.push([cleanParam(a1), cleanParam(a2)]);
           break;
         }
 
@@ -1325,6 +1534,70 @@
             if (button && scene) button.addEventListener('click', () => {
               scene.dataset.orbit = scene.dataset.orbit === 'true' ? 'false' : 'true';
             });
+          }`);
+          break;
+
+        case 'giroscopio': {
+          const axis = cleanParam(a2).toLowerCase();
+          if (!['x', 'y', 'z'].includes(axis)) {
+            warnings.push(`${filename || 'RC'}:${lineNum}: 'giroscopio' requiere un eje x, y o z.`);
+            break;
+          }
+          const orientationProperty = { x: 'beta', y: 'gamma', z: 'alpha' }[axis];
+          scriptLines.push(`{
+            const targetId = ${escapeJsString(a1)};
+            const axis = ${escapeJsString(axis)};
+            const applyOrientation = event => {
+              const value = event[${escapeJsString(orientationProperty)}];
+              if (!Number.isFinite(value)) return;
+              const mesh = window.__rc3dObjects?.[targetId];
+              if (mesh) {
+                mesh.rotation[axis] = THREE.MathUtils.degToRad(value);
+                mesh.userData.rcRender?.();
+                return;
+              }
+              const target = document.getElementById(targetId);
+              if (target) target.style.transform = 'rotate' + axis.toUpperCase() + '(' + value + 'deg)';
+            };
+            const startOrientation = () => window.addEventListener('deviceorientation', applyOrientation);
+            if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
+              document.addEventListener('click', () => {
+                DeviceOrientationEvent.requestPermission().then(permission => {
+                  if (permission === 'granted') startOrientation();
+                  else console.warn('Permiso de orientación del dispositivo denegado.');
+                }).catch(error => console.warn('No se pudo solicitar permiso de orientación.', error));
+              }, { once: true });
+            } else {
+              startOrientation();
+            }
+          }`);
+          break;
+        }
+
+        case 'vibracion': {
+          const vibrationPatterns = {
+            corta: '100',
+            intensa: '500',
+            exito: '[100, 50, 100]'
+          };
+          const pattern = vibrationPatterns[cleanParam(a1).toLowerCase()];
+          if (!pattern) {
+            warnings.push(`${filename || 'RC'}:${lineNum}: 'vibracion' admite corta, intensa o exito.`);
+            break;
+          }
+          scriptLines.push(`if (navigator.vibrate) {
+            const triggerVibration = () => navigator.vibrate(${pattern});
+            if (navigator.userActivation?.isActive) triggerVibration();
+            else document.addEventListener('pointerdown', triggerVibration, { once: true });
+          }`);
+          break;
+        }
+
+        case 'almacenamiento':
+          scriptLines.push(`try {
+            localStorage.setItem(${escapeJsString(a1)}, ${escapeJsString(a2)});
+          } catch (error) {
+            console.error('No se pudo guardar el valor de almacenamiento ${escapeJsString(a1)}.', error);
           }`);
           break;
 
@@ -2701,6 +2974,9 @@
             const canvas = sceneElement.querySelector('canvas.rc-scene3d-canvas');
             if (!sceneData || !canvas) return;
             const scene = new THREE.Scene();
+            window.__rc3dObjects ||= Object.create(null);
+            const particleSystems = [];
+            const collisionStates = new Map();
             scene.background = new THREE.Color('#101827');
             let camera;
             const isOrthographic = ['ortografica', 'ortográfica'].includes((sceneData.projection || sceneData.camera || '').toLowerCase());
@@ -2802,6 +3078,30 @@
                 );
               }
               scene.add(mesh);
+              window.__rc3dObjects[mesh.name] = mesh;
+              if (object.particles) {
+                const particleCount = object.particles.count;
+                const positions = new Float32Array(particleCount * 3);
+                const velocities = new Float32Array(particleCount * 3);
+                for (let index = 0; index < particleCount; index++) {
+                  const offset = index * 3;
+                  positions[offset] = (Math.random() - 0.5) * 1.5;
+                  positions[offset + 1] = (Math.random() - 0.5) * 1.5;
+                  positions[offset + 2] = (Math.random() - 0.5) * 1.5;
+                  velocities[offset] = (Math.random() - 0.5) * object.particles.speed;
+                  velocities[offset + 1] = Math.random() * object.particles.speed;
+                  velocities[offset + 2] = (Math.random() - 0.5) * object.particles.speed;
+                }
+                const particleGeometry = new THREE.BufferGeometry();
+                particleGeometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+                const particlePoints = new THREE.Points(
+                  particleGeometry,
+                  new THREE.PointsMaterial({ color: object.color || '#68b5ff', size: 0.06, transparent: true, opacity: 0.85 })
+                );
+                particlePoints.position.copy(mesh.position);
+                scene.add(particlePoints);
+                particleSystems.push({ points: particlePoints, velocities, speed: object.particles.speed });
+              }
               if (object.type === 'vertices' && Array.isArray(object.vertices)) {
                 const points = new THREE.Points(geometry, new THREE.PointsMaterial({ color: object.color || '#68b5ff', size: 0.08 }));
                 points.position.copy(mesh.position);
@@ -2843,6 +3143,10 @@
               camera.updateProjectionMatrix();
               renderer.render(scene, camera);
             };
+            Object.values(sceneData.objects || {}).forEach(object => {
+              const mesh = window.__rc3dObjects[object.id];
+              if (mesh) mesh.userData.rcRender = () => renderer.render(scene, camera);
+            });
             let dragging = false;
             let lastX = 0;
             let lastY = 0;
@@ -2886,6 +3190,55 @@
             if ('ResizeObserver' in window) new ResizeObserver(resize).observe(sceneElement);
             else window.addEventListener('resize', resize);
             resize();
+            sceneElement.dispatchEvent(new CustomEvent('rc:3d-ready', { detail: scene }));
+            const physicsMeshes = Object.values(sceneData.objects || {})
+              .filter(object => object.physics && window.__rc3dObjects[object.id])
+              .map(object => ({ mesh: window.__rc3dObjects[object.id], physics: object.physics, velocity: 0 }));
+            if (physicsMeshes.length || particleSystems.length || sceneData.collisions?.length) {
+              let previousTime = 0;
+              const animateDynamics = timestamp => {
+                const delta = previousTime ? Math.min((timestamp - previousTime) / 1000, 0.05) : 0;
+                previousTime = timestamp;
+                physicsMeshes.forEach(body => {
+                  body.velocity -= body.physics.gravity * delta;
+                  body.mesh.position.y += body.velocity * delta;
+                  if (body.mesh.position.y < 0) {
+                    body.mesh.position.y = 0;
+                    body.velocity = Math.abs(body.velocity) * body.physics.bounce;
+                  }
+                });
+                particleSystems.forEach(system => {
+                  const positions = system.points.geometry.attributes.position.array;
+                  for (let index = 0; index < positions.length; index += 3) {
+                    positions[index] += system.velocities[index] * delta;
+                    positions[index + 1] += system.velocities[index + 1] * delta;
+                    positions[index + 2] += system.velocities[index + 2] * delta;
+                    if (Math.abs(positions[index]) > 2 || Math.abs(positions[index + 1]) > 2 || Math.abs(positions[index + 2]) > 2) {
+                      positions[index] = (Math.random() - 0.5) * 0.2;
+                      positions[index + 1] = 0;
+                      positions[index + 2] = (Math.random() - 0.5) * 0.2;
+                    }
+                  }
+                  system.points.geometry.attributes.position.needsUpdate = true;
+                });
+                (sceneData.collisions || []).forEach(pair => {
+                  const first = scene.getObjectByName(pair[0]);
+                  const second = scene.getObjectByName(pair[1]);
+                  if (!first || !second) return;
+                  const firstBox = new THREE.Box3().setFromObject(first);
+                  const secondBox = new THREE.Box3().setFromObject(second);
+                  const collided = firstBox.intersectsBox(secondBox);
+                  const key = pair.join(':');
+                  if (collided && !collisionStates.get(key)) {
+                    sceneElement.dispatchEvent(new CustomEvent('rc:collision3d', { detail: { objects: pair } }));
+                  }
+                  collisionStates.set(key, collided);
+                });
+                renderer.render(scene, camera);
+                requestAnimationFrame(animateDynamics);
+              };
+              requestAnimationFrame(animateDynamics);
+            }
           });
         }
       }`);
@@ -2957,6 +3310,9 @@
       containerStack.forEach(c => {
         warnings.push(`${c.filename || 'RC'}:${c.lineNum || '?'}: '${c.id || c.tag}' sigue abierto; falta su comando de cierre.`);
       });
+    }
+    if (androidManifestOpen) {
+      warnings.push(`${currentFilename || 'RC'}:${currentLineNum || '?'}: 'manifiesto' sigue abierto; falta 'finmanifiesto'.`);
     }
 
     function renderNode(node, depth = 1) {
@@ -3230,8 +3586,9 @@ ${warningBlock}${bodyChildren}${scriptBlock}
   let toastTimer;
   let isTranslating = false;
   let translateTimer = null;
-  let highlightTimer = null;
-  let highlightFrame = null;
+  let editorViewportFrame = null;
+  let highlightSourceDirty = true;
+  let highlightLines = [""];
   let renderedLineCount = 0;
   let lastValidHtml = "";
   let lastPreviewHtml = null;
@@ -3281,6 +3638,7 @@ ${warningBlock}${bodyChildren}${scriptBlock}
     "listadesordenada", "listaordenada", "tabla", "filatabla", "fin", "finseccion",
     "fincontenedor", "finrejilla", "finlista", "fintabla", "finfilatabla"
   ]);
+  const SPECIAL_COMMANDS = new Set(['interruptor', 'vibracion', 'almacenamiento']);
   const RC_TOKEN_REGEX = /(#[0-9a-fA-F]{3,8}\b)|(\b\d+(?:px|rem|em|%)?\b)|([\u00C0-\u024F\u1E00-\u1EFFa-zA-Z0-9_]+)(?=\()|([\u00C0-\u024F\u1E00-\u1EFFa-zA-Z0-9_]+)|([\(\)\[\]=#])|([^\(\)\[\]=#\u00C0-\u024F\u1E00-\u1EFFa-zA-Z0-9_]+)/g;
 
   function highlightRc(code) {
@@ -3303,10 +3661,19 @@ ${warningBlock}${bodyChildren}${scriptBlock}
         } else if (num) {
           result += `<span class="hl-num">${escapeHtml(num)}</span>`;
         } else if (cmdWithParen) {
-          result += `<span class="hl-cmd">${escapeHtml(cmdWithParen)}</span>`;
+          const commandName = cmdWithParen.toLowerCase();
+          const tokenClass = SPECIAL_COMMANDS.has(commandName)
+            || (typeof CLOSING_COMMANDS !== "undefined" && CLOSING_COMMANDS.has(commandName))
+            || (RC_COMMANDS_SPEC[commandName]?.cat || 0) >= 5
+            ? "hl-special" : "hl-cmd";
+          result += `<span class="${tokenClass}">${escapeHtml(cmdWithParen)}</span>`;
         } else if (word) {
           if (STANDALONE_COMMANDS.has(word.toLowerCase()) || RC_COMMANDS_SPEC[word.toLowerCase()]) {
-            result += `<span class="hl-cmd">${escapeHtml(word)}</span>`;
+            const tokenClass = SPECIAL_COMMANDS.has(word.toLowerCase())
+              || (typeof CLOSING_COMMANDS !== "undefined" && CLOSING_COMMANDS.has(word.toLowerCase()))
+              || (RC_COMMANDS_SPEC[word.toLowerCase()]?.cat || 0) >= 5
+              ? "hl-special" : "hl-cmd";
+            result += `<span class="${tokenClass}">${escapeHtml(word)}</span>`;
           } else {
             result += escapeHtml(word);
           }
@@ -3328,34 +3695,50 @@ ${warningBlock}${bodyChildren}${scriptBlock}
     const layer = document.getElementById("rcHighlight");
     if (!editorEl || !codeEl || !layer) return;
 
-    const val = editorEl.value || "";
-    codeEl.innerHTML = highlightRc(val) + (val.endsWith("\n") ? "\n " : "");
+    if (highlightSourceDirty) {
+      highlightLines = (editorEl.value || "").split("\n");
+      highlightSourceDirty = false;
+    }
+    const lines = highlightLines;
+    const lineHeight = parseFloat(getComputedStyle(editorEl).lineHeight) || 24.5;
+    const virtualized = lines.length > 3000;
+    const firstLine = virtualized
+      ? Math.max(0, Math.floor(editorEl.scrollTop / lineHeight) - 80)
+      : 0;
+    const lastLine = virtualized
+      ? Math.min(lines.length, firstLine + Math.ceil(editorEl.clientHeight / lineHeight) + 160)
+      : lines.length;
+    codeEl.style.paddingTop = virtualized ? `${firstLine * lineHeight}px` : "0";
+    codeEl.style.paddingBottom = virtualized ? `${(lines.length - lastLine) * lineHeight}px` : "0";
+    codeEl.innerHTML = highlightRc(lines.slice(firstLine, lastLine).join("\n"))
+      + (lastLine === lines.length && lines[lines.length - 1] === "" ? "\n " : "");
     syncEditorScroll();
   }
 
   function updateHighlight() {
-    clearTimeout(highlightTimer);
-    if (highlightFrame !== null) {
-      cancelAnimationFrame(highlightFrame);
-      highlightFrame = null;
-    }
-    highlightTimer = setTimeout(() => {
-      highlightFrame = requestAnimationFrame(() => {
-        highlightFrame = null;
-        renderHighlight();
-      });
-    }, 50);
+    highlightSourceDirty = true;
+    scheduleEditorViewportSync();
   }
 
   function syncEditorScroll() {
     if (!editorEl || !gutterEl) return;
     const layer = document.getElementById("rcHighlight");
     gutterEl.scrollTop = editorEl.scrollTop;
-    gutterEl.scrollLeft = editorEl.scrollLeft;
+    gutterEl.scrollLeft = 0;
     if (layer) {
       layer.scrollTop = editorEl.scrollTop;
       layer.scrollLeft = editorEl.scrollLeft;
     }
+  }
+
+  function scheduleEditorViewportSync() {
+    if (editorViewportFrame !== null) return;
+    editorViewportFrame = requestAnimationFrame(() => {
+      editorViewportFrame = null;
+      updateLineNumbers();
+      renderHighlight();
+      syncEditorScroll();
+    });
   }
 
   function updateLineNumbers() {
@@ -3363,11 +3746,7 @@ ${warningBlock}${bodyChildren}${scriptBlock}
     const lines = editorEl.value.split("\n").length;
     if (lines === renderedLineCount) return;
     renderedLineCount = lines;
-    let nums = "";
-    for (let i = 1; i <= lines; i++) {
-      nums += i + "\n";
-    }
-    gutterEl.textContent = nums;
+    gutterEl.textContent = Array.from({ length: lines }, (_, i) => i + 1).join("\n") + "\n";
     syncEditorScroll();
   }
 
@@ -3573,8 +3952,34 @@ ${warningBlock}${bodyChildren}${scriptBlock}
   let autocompleteSuggestions = [];
   let autocompleteIndex = 0;
   let autocompleteRange = null;
+  let autocompleteTimer = null;
+  const ID_DEFINITION_TYPES = new Set([
+    'element', 'input', 'checkbox', 'container', 'scene3d', 'toggle', 'holonet', 'window', 'tab', 'accordion',
+    'plane3d', 'transform3d', 'mesh3d', 'material3d', 'shadow3d', 'layer3d', 'texture3d', 'vertex3d',
+    'focus3d', 'particles3d', 'physics3d'
+  ]);
+
+  function collectDocumentIds(source) {
+    const ids = new Set();
+    source.split('\n').forEach(line => {
+      const parsed = parseRcLine(line);
+      if (!parsed || parsed.parseError || parsed.isAssignment) return;
+      const spec = RC_COMMANDS_SPEC[parsed.cmd];
+      if (parsed.bracketId) ids.add(parsed.bracketId);
+      if (!spec) return;
+      if (!parsed.bracketId && ID_DEFINITION_TYPES.has(spec.type) && spec.params[0] === 'id' && parsed.args[0]) {
+        ids.add(parsed.args[0].trim());
+      }
+      if (parsed.cmd === 'capa' && parsed.args[0] && !Number.isFinite(Number(parsed.args[0]))) {
+        ids.add(parsed.args[0].trim());
+      }
+    });
+    return [...ids].filter(Boolean);
+  }
 
   function hideAutocomplete() {
+    clearTimeout(autocompleteTimer);
+    autocompleteTimer = null;
     autocompleteSuggestions = [];
     autocompleteRange = null;
     autocompleteEl.hidden = true;
@@ -3583,7 +3988,19 @@ ${warningBlock}${bodyChildren}${scriptBlock}
     editorEl.removeAttribute("aria-activedescendant");
   }
 
+  function scheduleAutocomplete(delay = 70) {
+    clearTimeout(autocompleteTimer);
+    autocompleteTimer = setTimeout(() => {
+      autocompleteTimer = null;
+      updateAutocomplete();
+    }, delay);
+  }
+
   function updateAutocomplete() {
+    if (!editorEl.value.trim()) {
+      hideAutocomplete();
+      return;
+    }
     if (editorEl.selectionStart !== editorEl.selectionEnd) {
       hideAutocomplete();
       return;
@@ -3591,19 +4008,62 @@ ${warningBlock}${bodyChildren}${scriptBlock}
 
     const caret = editorEl.selectionStart;
     const before = editorEl.value.slice(0, caret);
-    const prefix = (before.match(/[A-Za-z0-9_]*$/) || [""])[0];
+    const prefix = (before.match(/[\u00C0-\u024F\u1E00-\u1EFFA-Za-z0-9_]*$/) || [""])[0];
     const start = caret - prefix.length;
-    const suffix = (editorEl.value.slice(caret).match(/^[A-Za-z0-9_]*/) || [""])[0];
+    const suffix = (editorEl.value.slice(caret).match(/^[\u00C0-\u024F\u1E00-\u1EFFA-Za-z0-9_]*/) || [""])[0];
     const end = caret + suffix.length;
     const lineStart = editorEl.value.lastIndexOf("\n", start - 1) + 1;
-    if (prefix.length < 2 || editorEl.value[end] === "(" || editorEl.value.slice(lineStart, start).trim()) {
+    const query = prefix.toLowerCase();
+    const linePrefix = editorEl.value.slice(lineStart, caret);
+    const lineCommand = linePrefix.match(/^\s*([\u00C0-\u024F\u1E00-\u1EFFA-Za-z0-9_]*)/);
+    const commandStart = lineStart + (lineCommand?.[0].length || 0) - (lineCommand?.[1].length || 0);
+    const inCommandName = lineCommand && caret >= commandStart && caret <= commandStart + lineCommand[1].length
+      && !linePrefix.includes('(');
+    let activeArgument = null;
+    let activeArgumentIndex = -1;
+    let activeCommandSpec = null;
+    if (!inCommandName && lineCommand?.[1]) {
+      activeCommandSpec = RC_COMMANDS_SPEC[lineCommand[1].toLowerCase()];
+      if (activeCommandSpec) {
+        const argumentText = linePrefix.slice(commandStart + lineCommand[1].length);
+        let depth = 0;
+        let argumentIndex = -1;
+        for (const character of argumentText) {
+          if (character === '(') {
+            if (depth === 0) argumentIndex++;
+            depth++;
+          } else if (character === ')' && depth > 0) {
+            depth--;
+          }
+        }
+        if (depth > 0) {
+          activeArgumentIndex = argumentIndex;
+          activeArgument = activeCommandSpec.params[argumentIndex];
+        }
+      }
+    }
+
+    if (inCommandName) {
+      autocompleteSuggestions = [...Object.values(RC_COMMANDS_SPEC), ...[...CLOSING_COMMANDS]
+        .filter(name => !RC_COMMANDS_SPEC[name])
+        .map(name => ({ name, desc: 'Etiqueta de cierre', type: 'closing' }))]
+        .filter(command => command.name.startsWith(query))
+        .slice(0, 30)
+        .map(command => ({ name: command.name, desc: command.desc || 'Etiqueta de cierre', kind: 'command' }));
+    } else if (activeArgument && (
+      /id|canvas|lienzo/i.test(activeArgument)
+      || (['fondo', 'color', 'tema', 'capa'].includes(lineCommand?.[1]?.toLowerCase()) && activeArgumentIndex === 0)
+      || (['colision3d'].includes(lineCommand?.[1]?.toLowerCase()))
+      || (['giroscopio', 'particulas3d', 'fisica3d'].includes(lineCommand?.[1]?.toLowerCase()) && activeArgumentIndex === 0)
+    )) {
+      autocompleteSuggestions = collectDocumentIds(editorEl.value)
+        .filter(id => id.toLowerCase().startsWith(query))
+        .slice(0, 30)
+        .map(name => ({ name, desc: 'ID definido en el documento', kind: 'id' }));
+    } else {
       hideAutocomplete();
       return;
     }
-
-    const query = prefix.toLowerCase();
-    autocompleteSuggestions = Object.values(RC_COMMANDS_SPEC)
-      .filter(command => command.name.startsWith(query));
     if (!autocompleteSuggestions.length) {
       hideAutocomplete();
       return;
@@ -3618,7 +4078,8 @@ ${warningBlock}${bodyChildren}${scriptBlock}
       option.id = `rcAutocompleteOption${index}`;
       option.setAttribute("role", "option");
       option.setAttribute("aria-selected", String(index === autocompleteIndex));
-      option.dataset.command = command.name;
+      option.dataset.completion = command.name;
+      option.dataset.kind = command.kind;
       option.textContent = command.name;
       const description = document.createElement("span");
       description.textContent = command.desc;
@@ -3631,30 +4092,41 @@ ${warningBlock}${bodyChildren}${scriptBlock}
     editorEl.setAttribute("aria-activedescendant", "rcAutocompleteOption0");
 
     const style = getComputedStyle(editorEl);
-    const canvas = updateAutocomplete.canvas || (updateAutocomplete.canvas = document.createElement("canvas"));
-    const context = canvas.getContext("2d");
-    context.font = style.font;
-    const lineText = before.slice(before.lastIndexOf("\n") + 1).replace(/\t/g, "  ");
+    const measureLayer = document.getElementById("rcCaretMeasure");
+    const measureCode = measureLayer?.querySelector("code");
+    const wrap = editorEl.parentElement;
+    if (!measureLayer || !measureCode || !wrap) {
+      hideAutocomplete();
+      return;
+    }
+    const lineText = editorEl.value.slice(lineStart, caret);
     const lineHeight = parseFloat(style.lineHeight) || 24.5;
-    const paddingLeft = parseFloat(style.paddingLeft) || 0;
-    const paddingTop = parseFloat(style.paddingTop) || 0;
     const lineNumber = before.split("\n").length - 1;
-    const left = paddingLeft + context.measureText(lineText).width - editorEl.scrollLeft;
-    const caretTop = paddingTop + lineNumber * lineHeight - editorEl.scrollTop;
+    measureLayer.style.width = `${editorEl.clientWidth}px`;
+    measureLayer.style.height = `${Math.max(lineHeight, editorEl.clientHeight)}px`;
+    measureLayer.style.right = "auto";
+    measureLayer.style.bottom = "auto";
+    measureLayer.style.top = `${lineNumber * lineHeight - editorEl.scrollTop}px`;
+    measureLayer.scrollLeft = editorEl.scrollLeft;
+    measureCode.innerHTML = `${escapeHtml(lineText)}<span></span>`;
+    const markerRect = measureCode.lastElementChild.getBoundingClientRect();
+    const wrapRect = wrap.getBoundingClientRect();
+    const left = markerRect.left - wrapRect.left;
+    const caretTop = markerRect.top - wrapRect.top;
     const popupWidth = autocompleteEl.offsetWidth;
     const popupHeight = autocompleteEl.offsetHeight;
-    autocompleteEl.style.left = `${Math.max(4, Math.min(left, editorEl.clientWidth - popupWidth - 4))}px`;
+    autocompleteEl.style.left = `${Math.max(4, Math.min(left, wrap.clientWidth - popupWidth - 4))}px`;
     autocompleteEl.style.top = `${caretTop + lineHeight + popupHeight > editorEl.clientHeight
       ? Math.max(4, caretTop - popupHeight)
       : caretTop + lineHeight}px`;
   }
 
-  function acceptAutocomplete(commandName) {
+  function acceptAutocomplete(completionName, kind = 'command') {
     if (!autocompleteRange) return;
     const { start, end } = autocompleteRange;
-    const insertion = `${commandName}()`;
+    const insertion = kind === 'command' ? `${completionName}()` : completionName;
     editorEl.setRangeText(insertion, start, end, "end");
-    const caret = start + commandName.length + 1;
+    const caret = start + completionName.length + (kind === 'command' ? 1 : 0);
     editorEl.setSelectionRange(caret, caret);
     hideAutocomplete();
     editorEl.dispatchEvent(new Event("input", { bubbles: true }));
@@ -3664,8 +4136,8 @@ ${warningBlock}${bodyChildren}${scriptBlock}
 
   autocompleteEl.addEventListener("mousedown", event => event.preventDefault());
   autocompleteEl.addEventListener("click", event => {
-    const option = event.target.closest("[data-command]");
-    if (option) acceptAutocomplete(option.dataset.command);
+    const option = event.target.closest("[data-completion]");
+    if (option) acceptAutocomplete(option.dataset.completion, option.dataset.kind);
   });
   editorEl.addEventListener("blur", () => {
     setTimeout(() => {
@@ -3681,24 +4153,29 @@ ${warningBlock}${bodyChildren}${scriptBlock}
     updateCursor();
     updateLineNumbers();
     updateHighlight();
-    updateAutocomplete();
+    scheduleAutocomplete();
     debounceTranslate();
   });
 
   editorEl.addEventListener("scroll", () => {
-    syncEditorScroll();
-    if (!autocompleteEl.hidden) updateAutocomplete();
+    scheduleEditorViewportSync();
+    if (!autocompleteEl.hidden) scheduleAutocomplete(40);
   });
 
   editorEl.addEventListener("click", () => {
     updateCursor();
-    updateAutocomplete();
+    scheduleAutocomplete();
   });
   editorEl.addEventListener("keyup", () => {
     updateCursor();
-    updateAutocomplete();
+    scheduleAutocomplete();
   });
   editorEl.addEventListener("keydown", e => {
+    if (e.key === "Enter" && autocompleteTimer !== null) {
+      clearTimeout(autocompleteTimer);
+      autocompleteTimer = null;
+      updateAutocomplete();
+    }
     if (!autocompleteEl.hidden) {
       if (e.key === "ArrowDown" || e.key === "ArrowUp") {
         e.preventDefault();
@@ -3713,7 +4190,8 @@ ${warningBlock}${bodyChildren}${scriptBlock}
       }
       if (e.key === "Enter") {
         e.preventDefault();
-        acceptAutocomplete(autocompleteSuggestions[autocompleteIndex].name);
+        const selected = autocompleteSuggestions[autocompleteIndex];
+        acceptAutocomplete(selected.name, selected.kind);
         return;
       }
       if (e.key === "Escape") {
@@ -3732,7 +4210,7 @@ ${warningBlock}${bodyChildren}${scriptBlock}
       updateCursor();
       updateLineNumbers();
       updateHighlight();
-      updateAutocomplete();
+      scheduleAutocomplete();
       debounceTranslate();
     }
   });
@@ -3793,6 +4271,232 @@ ${warningBlock}${bodyChildren}${scriptBlock}
     return cssText;
   }
 
+  function readAndroidMetadata(source) {
+    const metadata = { packageName: 'com.rcstudio.exported', version: '1.0', versionCode: '1', permissions: [] };
+    let manifestOpen = false;
+    source.split('\n').forEach(line => {
+      const parsed = parseRcLine(line);
+      if (parsed?.parseError && /^\s*(?:manifiesto|permiso|finmanifiesto)\b/.test(line)) {
+        throw new Error(`Sintaxis de metadatos Android incorrecta: ${parsed.parseError}`);
+      }
+      if (!parsed || parsed.parseError) return;
+      if (parsed.cmd === 'manifiesto') {
+        if (manifestOpen) throw new Error('No se pueden anidar bloques manifiesto.');
+        if (parsed.args.length !== 3) throw new Error("'manifiesto' requiere paquete, versión y código de versión.");
+        manifestOpen = true;
+        metadata.packageName = cleanParam(parsed.args[0]) || metadata.packageName;
+        metadata.version = cleanParam(parsed.args[1]) || metadata.version;
+        metadata.versionCode = cleanParam(parsed.args[2]) || metadata.versionCode;
+      } else if (parsed.cmd === 'finmanifiesto') {
+        if (parsed.args.length) throw new Error("'finmanifiesto' no recibe parámetros.");
+        if (!manifestOpen) throw new Error("'finmanifiesto' no tiene un bloque manifiesto abierto.");
+        manifestOpen = false;
+      } else if (parsed.cmd === 'permiso') {
+        if (!manifestOpen) throw new Error("'permiso' requiere un bloque 'manifiesto' abierto.");
+        if (parsed.args.length !== 1 || !parsed.args[0]) throw new Error("'permiso' requiere un nombre.");
+        const permission = cleanParam(parsed.args[0]);
+        const normalized = permission.startsWith('android.permission.')
+          ? permission : `android.permission.${permission}`;
+        if (!/^android\.permission\.[A-Z0-9_]+$/.test(normalized)) {
+          throw new Error(`Permiso Android no válido: ${permission}`);
+        }
+        metadata.permissions.push(normalized);
+      }
+    });
+    if (manifestOpen) throw new Error("'manifiesto' sigue abierto; falta 'finmanifiesto'.");
+    metadata.permissions = [...new Set(metadata.permissions)];
+    return metadata;
+  }
+
+  function escapeXml(value) {
+    return String(value).replace(/[&<>"']/g, character => ({
+      '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&apos;'
+    }[character]));
+  }
+
+  function createAndroidManifest(metadata, appLabel, allowCleartext = false) {
+    const permissionLines = metadata.permissions
+      .map(permission => `    <uses-permission android:name="${escapeXml(permission)}" />`)
+      .join('\n');
+    const cleartextAttribute = allowCleartext ? ' android:usesCleartextTraffic="true"' : '';
+    return `<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android" package="${escapeXml(metadata.packageName)}" android:versionCode="${Number(metadata.versionCode)}" android:versionName="${escapeXml(metadata.version)}">
+${permissionLines ? `${permissionLines}\n` : ''}    <application android:allowBackup="true" android:label="${escapeXml(appLabel)}" android:theme="@android:style/Theme.Material.Light.NoActionBar"${cleartextAttribute}>
+        <activity android:name=".MainActivity" android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+    </application>
+</manifest>
+`;
+  }
+
+  function createStoredZip(entries) {
+    const encoder = new TextEncoder();
+    const crcTable = Array.from({ length: 256 }, (_, value) => {
+      let crc = value;
+      for (let bit = 0; bit < 8; bit++) crc = (crc & 1) ? (0xedb88320 ^ (crc >>> 1)) : (crc >>> 1);
+      return crc >>> 0;
+    });
+    const crc32 = bytes => {
+      let crc = 0xffffffff;
+      bytes.forEach(byte => { crc = crcTable[(crc ^ byte) & 0xff] ^ (crc >>> 8); });
+      return (crc ^ 0xffffffff) >>> 0;
+    };
+    const put16 = (view, offset, value) => view.setUint16(offset, value, true);
+    const put32 = (view, offset, value) => view.setUint32(offset, value, true);
+    const now = new Date();
+    const dosTime = (now.getHours() << 11) | (now.getMinutes() << 5) | Math.floor(now.getSeconds() / 2);
+    const dosDate = ((now.getFullYear() - 1980) << 9) | ((now.getMonth() + 1) << 5) | now.getDate();
+    const localParts = [];
+    const centralParts = [];
+    let localOffset = 0;
+
+    entries.forEach(([path, content]) => {
+      const name = encoder.encode(path);
+      const data = typeof content === 'string' ? encoder.encode(content) : content;
+      const checksum = crc32(data);
+      const header = new Uint8Array(30 + name.length);
+      const headerView = new DataView(header.buffer);
+      put32(headerView, 0, 0x04034b50);
+      put16(headerView, 4, 20);
+      put16(headerView, 6, 0x0800);
+      put16(headerView, 8, 0);
+      put16(headerView, 10, dosTime);
+      put16(headerView, 12, dosDate);
+      put32(headerView, 14, checksum);
+      put32(headerView, 18, data.length);
+      put32(headerView, 22, data.length);
+      put16(headerView, 26, name.length);
+      put16(headerView, 28, 0);
+      header.set(name, 30);
+      localParts.push(header, data);
+
+      const central = new Uint8Array(46 + name.length);
+      const centralView = new DataView(central.buffer);
+      put32(centralView, 0, 0x02014b50);
+      put16(centralView, 4, 20);
+      put16(centralView, 6, 20);
+      put16(centralView, 8, 0x0800);
+      put16(centralView, 10, 0);
+      put16(centralView, 12, dosTime);
+      put16(centralView, 14, dosDate);
+      put32(centralView, 16, checksum);
+      put32(centralView, 20, data.length);
+      put32(centralView, 24, data.length);
+      put16(centralView, 28, name.length);
+      put16(centralView, 30, 0);
+      put16(centralView, 32, 0);
+      put16(centralView, 34, 0);
+      put16(centralView, 36, 0);
+      put32(centralView, 38, 0);
+      put32(centralView, 42, localOffset);
+      central.set(name, 46);
+      centralParts.push(central);
+      localOffset += header.length + data.length;
+    });
+
+    const centralSize = centralParts.reduce((size, part) => size + part.length, 0);
+    const end = new Uint8Array(22);
+    const endView = new DataView(end.buffer);
+    put32(endView, 0, 0x06054b50);
+    put16(endView, 4, 0);
+    put16(endView, 6, 0);
+    put16(endView, 8, entries.length);
+    put16(endView, 10, entries.length);
+    put32(endView, 12, centralSize);
+    put32(endView, 16, localOffset);
+    put16(endView, 20, 0);
+    return new Blob([...localParts, ...centralParts, end], { type: 'application/zip' });
+  }
+
+  function buildAndroidProject(source) {
+    const sourceDocuments = [...new Set([...files.values()].map(file => file.content).concat(source))];
+    const parsedMetadata = sourceDocuments.map(readAndroidMetadata);
+    const metadata = parsedMetadata.reduce((result, current) => ({
+      packageName: current.packageName !== 'com.rcstudio.exported' ? current.packageName : result.packageName,
+      version: current.version !== '1.0' ? current.version : result.version,
+      versionCode: current.versionCode !== '1' ? current.versionCode : result.versionCode,
+      permissions: [...result.permissions, ...current.permissions]
+    }), { packageName: 'com.rcstudio.exported', version: '1.0', versionCode: '1', permissions: [] });
+    metadata.permissions = [...new Set(metadata.permissions)];
+    const projectSource = sourceDocuments.join('\n');
+    if (!/^[a-zA-Z][a-zA-Z0-9_]*(?:\.[a-zA-Z][a-zA-Z0-9_]*)+$/.test(metadata.packageName)) {
+      throw new Error('El paquete Android debe tener formato de dominio, por ejemplo com.ejemplo.app.');
+    }
+    if (!/^\d+$/.test(metadata.versionCode) || !Number.isSafeInteger(Number(metadata.versionCode))
+      || Number(metadata.versionCode) < 1 || Number(metadata.versionCode) > 2100000000) {
+      throw new Error('El código de versión Android debe ser un entero entre 1 y 2100000000.');
+    }
+    const appTitle = projectSource.split('\n').map(line => parseRcLine(line))
+      .find(parsed => parsed?.cmd === 'titulo')?.args[0];
+    const appLabel = appTitle || 'Aplicación RC Studio';
+    const htmlOutput = rcToHtml(source);
+    const requiredPermissions = new Set(metadata.permissions);
+    if (/https?:\/\//i.test(htmlOutput)) requiredPermissions.add('android.permission.INTERNET');
+    if (/^\s*vibracion\s*\(/m.test(projectSource)) requiredPermissions.add('android.permission.VIBRATE');
+    metadata.permissions = [...requiredPermissions];
+    const packagePath = metadata.packageName.replace(/\./g, '/');
+    const escapedVersion = JSON.stringify(metadata.version);
+    const entries = [
+      ['settings.gradle', `pluginManagement { repositories { google(); mavenCentral(); gradlePluginPortal() } }
+dependencyResolutionManagement { repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS); repositories { google(); mavenCentral() } }
+rootProject.name = "RCStudioAndroid"
+include(":app")
+`],
+      ['build.gradle', `plugins {
+    id 'com.android.application' version '8.2.2' apply false
+}
+`],
+      ['app/build.gradle', `plugins {
+    id 'com.android.application'
+}
+android {
+    namespace '${metadata.packageName}'
+    compileSdk 34
+    defaultConfig {
+        applicationId '${metadata.packageName}'
+        minSdk 23
+        targetSdk 34
+        versionCode ${Number(metadata.versionCode)}
+        versionName ${escapedVersion}
+    }
+}
+`],
+      ['app/src/main/AndroidManifest.xml', createAndroidManifest(metadata, appLabel, /http:\/\//i.test(htmlOutput))],
+      [`app/src/main/java/${packagePath}/MainActivity.java`, `package ${metadata.packageName};
+
+import android.app.Activity;
+import android.os.Bundle;
+import android.webkit.WebSettings;
+import android.webkit.WebView;
+
+public class MainActivity extends Activity {
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        WebView webView = new WebView(this);
+        WebSettings settings = webView.getSettings();
+        settings.setJavaScriptEnabled(true);
+        settings.setDomStorageEnabled(true);
+        setContentView(webView);
+        webView.loadUrl("file:///android_asset/index.html");
+    }
+}
+`],
+      ['app/src/main/assets/index.html', htmlOutput]
+    ];
+    files.forEach((file, name) => {
+      if (file.type !== 'rc') return;
+      const safeName = name.replace(/\\/g, '/').split('/').filter(part => part && part !== '.' && part !== '..')
+        .map(part => part.replace(/[^A-Za-z0-9._-]/g, '_')).join('/');
+      entries.push([`app/src/main/assets/source/${safeName || 'project.rc'}`, file.content]);
+    });
+    return createStoredZip(entries);
+  }
+
   const exportModal = document.getElementById("exportModal");
   const closeExportModal = document.getElementById("closeExportModal");
 
@@ -3833,12 +4537,37 @@ ${warningBlock}${bodyChildren}${scriptBlock}
     downloadFile(`${baseName}.html`, content, "text/html;charset=utf-8");
   };
 
-  document.getElementById("exportCssBtn").onclick = () => {
-    hideExportModal();
-    const baseName = (activeFile || "app.rc").replace(/\.rc$/i, '');
-    const content = extractCssFromRc(editorEl.value);
-    downloadFile(`${baseName}.css`, content, "text/css;charset=utf-8");
+  document.getElementById("exportAndroidBtn").onclick = () => {
+    try {
+      if (activeFile && files.has(activeFile)) files.get(activeFile).content = editorEl.value;
+      const archive = buildAndroidProject(editorEl.value);
+      const baseName = (activeFile || "app.rc").replace(/\.rc$/i, '');
+      const url = URL.createObjectURL(archive);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `${baseName}-android.zip`;
+      link.click();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+      saveState();
+      hideExportModal();
+      notify("Proyecto Android descargado.");
+    } catch (error) {
+      console.error("No se pudo exportar el proyecto Android", error);
+      notify(error.message || "No se pudo exportar el proyecto Android.");
+    }
   };
+
+  const previewStage = document.getElementById("previewStage");
+  const previewDesktopBtn = document.getElementById("previewDesktopBtn");
+  const previewMobileBtn = document.getElementById("previewMobileBtn");
+  function setPreviewMode(mode) {
+    const isMobile = mode === "mobile";
+    previewStage.dataset.previewMode = isMobile ? "mobile" : "desktop";
+    previewDesktopBtn.setAttribute("aria-pressed", String(!isMobile));
+    previewMobileBtn.setAttribute("aria-pressed", String(isMobile));
+  }
+  previewDesktopBtn.addEventListener("click", () => setPreviewMode("desktop"));
+  previewMobileBtn.addEventListener("click", () => setPreviewMode("mobile"));
 
   if (panelSel) {
     panelSel.addEventListener("change", e => {
@@ -3959,6 +4688,183 @@ ${warningBlock}${bodyChildren}${scriptBlock}
     { category: 'Fechas, matemáticas y física', name: 'SortableJS (v1)', urls: ['https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.2/Sortable.min.js'], description: 'Listas y contenedores reordenables mediante Drag & Drop.', example: 'Sortable.create(document.getElementById("lista"));' },
     { category: 'Fechas, matemáticas y física', name: 'Tippy.js (v6)', urls: ['https://unpkg.com/@popperjs/core@2', 'https://unpkg.com/tippy.js@6'], description: 'Tooltips y elementos flotantes interactivos de alto nivel.', example: 'tippy("[data-tooltip]", { content: "Ayuda" });' }
   ];
+  const docsConfirmModal = document.getElementById('docsConfirmModal');
+  const downloadDocsBtn = document.getElementById('downloadDocsBtn');
+  const cancelDocsDownload = document.getElementById('cancelDocsDownload');
+  const acceptDocsDownload = document.getElementById('acceptDocsDownload');
+  let docsDialogOpener = null;
+
+  function closeDocsConfirmation() {
+    docsConfirmModal.hidden = true;
+    docsDialogOpener?.focus();
+    docsDialogOpener = null;
+  }
+
+  function openDocsConfirmation() {
+    docsDialogOpener = document.activeElement;
+    docsConfirmModal.hidden = false;
+    acceptDocsDownload.focus();
+  }
+
+  function pdfAscii(value) {
+    return String(value).normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^\x20-\x7e]/g, '?');
+  }
+
+  function escapePdfText(value) {
+    return pdfAscii(value).replace(/([\\()])/g, '\\$1');
+  }
+
+  function wrapPdfLine(value, width = 92) {
+    const words = pdfAscii(value).split(/\s+/);
+    const lines = [];
+    let line = '';
+    words.forEach(word => {
+      if (!word) return;
+      while (word.length > width) {
+        if (line) {
+          lines.push(line);
+          line = '';
+        }
+        lines.push(word.slice(0, width));
+        word = word.slice(width);
+      }
+      if (line && line.length + word.length + 1 > width) {
+        lines.push(line);
+        line = word;
+      } else {
+        line = line ? `${line} ${word}` : word;
+      }
+    });
+    if (line) lines.push(line);
+    return lines.length ? lines : [''];
+  }
+
+  function buildDocumentationPdf() {
+    const commandSpecs = Object.values(RC_COMMANDS_SPEC);
+    if (commandSpecs.length !== 160) {
+      throw new Error(`La documentación requiere 160 comandos; se encontraron ${commandSpecs.length}.`);
+    }
+    const lines = [
+      'RC LANGUAGE - MANUAL DE REFERENCIA OFICIAL',
+      'RC Studio | Diccionario, reglas y guia de implementacion',
+      '',
+      '1. SINTAXIS Y REGLAS DEL LENGUAJE',
+      '- Escribe comandos e identificadores en minusculas; usa guion bajo en IDs.',
+      '- Forma general: comando(parametro1)(parametro2). Se admiten parentesis anidados.',
+      '- Los IDs opcionales pueden escribirse entre corchetes: entrada[id](valor).',
+      '- Las asignaciones usan nombre = valor; comentarios de linea comienzan con //.',
+      '- Los contenedores se cierran con su etiqueta correspondiente o con fin.',
+      '- Los colores CSS modernos y los nombres de color admitidos pueden usarse en estilos.',
+      '',
+      '2. CATALOGO COMPLETO DE COMANDOS (160)'
+    ];
+    const categoryTitles = {
+      1: 'I. Estructura y contenido', 2: 'II. Estilo y diseno visual',
+      3: 'III. Campos, eventos y logica', 4: 'IV. Dibujo, capas y utilidades',
+      5: 'V. Espacio 3D y camaras', 6: 'VI. UI avanzada',
+      7: 'VII. Sistema operativo y gestion', 8: 'VIII. Herramientas 3D avanzadas'
+    };
+    let activeCategory = 0;
+    commandSpecs.forEach(spec => {
+      if (spec.cat !== activeCategory) {
+        activeCategory = spec.cat;
+        lines.push('', categoryTitles[activeCategory] || `Categoria ${activeCategory}`);
+      }
+      const signatures = (spec.signatures || [
+        `${spec.name}${spec.params.map(param => `(${param})`).join('')}`
+      ]).concat(spec.eventSignature ? [spec.eventSignature] : []);
+      lines.push(...wrapPdfLine(`- ${signatures.join(' / ')}: ${spec.desc}`, 96));
+    });
+    lines.push(
+      '',
+      '3. ARQUITECTURA DEL COMPILADOR',
+      '- El editor mantiene sincronizados el textarea, numeracion, resaltado y vista previa.',
+      '- El parser procesa cada linea, valida parentesis, argumentos, asignaciones y comentarios.',
+      '- El compilador expande incluir(), genera nodos DOM/CSS y despacha JavaScript por comando.',
+      '- Los diagnósticos conservan el nombre de archivo y numero de linea; la vista se actualiza al escribir.',
+      '- Las escenas 3D usan Three.js cuando esta disponible; el resto del proyecto sigue funcionando sin WebGL.',
+      '',
+      `4. CATALOGO DE LIBRERIAS (${libraryCatalog.length})`
+    );
+    libraryCatalog.forEach(library => {
+      lines.push(...wrapPdfLine(`- ${library.name} [${library.category}]: ${library.description}`, 96));
+      library.urls.forEach(url => lines.push(...wrapPdfLine(`  CDN: ${url}`, 96)));
+    });
+    lines.push(
+      '',
+      '5. EXPORTACION ANDROID',
+      '- En Guardar archivo, selecciona Guardar como archivo de Android.',
+      '- El exportador descarga un proyecto Gradle ZIP con MainActivity, HTML y fuentes RC.',
+      '- Declara metadatos con manifiesto(paquete)(version)(codigover), permisos con permiso(nombre) y cierra con finmanifiesto.',
+      '- Ejemplo: manifiesto(com.ejemplo.app)(1.0)(1), permiso(INTERNET), finmanifiesto.',
+      '- Se validan el nombre de paquete, el codigo de version y los permisos antes de generar AndroidManifest.xml.',
+      '- Las dependencias remotas requieren conectividad; el permiso INTERNET se agrega cuando aplica.',
+      '',
+      'Manual generado localmente por RC Studio. El catalogo refleja la especificacion incluida en esta version.'
+    );
+
+    const wrappedLines = lines.flatMap(line => wrapPdfLine(line));
+    const pageSize = 50;
+    const pages = [];
+    for (let index = 0; index < wrappedLines.length; index += pageSize) {
+      pages.push(wrappedLines.slice(index, index + pageSize));
+    }
+    const objects = [];
+    const pageReferences = pages.map((_, index) => `${4 + index * 2} 0 R`).join(' ');
+    objects[1] = '<< /Type /Catalog /Pages 2 0 R >>';
+    objects[2] = `<< /Type /Pages /Kids [${pageReferences}] /Count ${pages.length} >>`;
+    objects[3] = '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>';
+    pages.forEach((pageLines, index) => {
+      const pageObjectNumber = 4 + index * 2;
+      const contentObjectNumber = pageObjectNumber + 1;
+      const textCommands = pageLines.map(line => `(${escapePdfText(line)}) Tj T*`).join('\n');
+      const stream = `BT\n/F1 9 Tf\n48 794 Td\n14 TL\n${textCommands}\nET`;
+      objects[pageObjectNumber] = `<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 842] /Resources << /Font << /F1 3 0 R >> >> /Contents ${contentObjectNumber} 0 R >>`;
+      objects[contentObjectNumber] = `<< /Length ${stream.length} >>\nstream\n${stream}\nendstream`;
+    });
+    const encoder = new TextEncoder();
+    let pdf = '%PDF-1.4\n';
+    const offsets = [0];
+    for (let number = 1; number < objects.length; number++) {
+      offsets[number] = encoder.encode(pdf).length;
+      pdf += `${number} 0 obj\n${objects[number]}\nendobj\n`;
+    }
+    const xrefOffset = encoder.encode(pdf).length;
+    pdf += `xref\n0 ${objects.length}\n0000000000 65535 f \n`;
+    for (let number = 1; number < objects.length; number++) {
+      pdf += `${String(offsets[number]).padStart(10, '0')} 00000 n \n`;
+    }
+    pdf += `trailer\n<< /Size ${objects.length} /Root 1 0 R >>\nstartxref\n${xrefOffset}\n%%EOF`;
+    return new Blob([encoder.encode(pdf)], { type: 'application/pdf' });
+  }
+
+  function downloadDocumentation() {
+    const pdf = buildDocumentationPdf();
+    const url = URL.createObjectURL(pdf);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'RC-Language-Manual-Referencia-Oficial.pdf';
+    link.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1500);
+    notify('Descargando el Manual de Referencia Oficial de RC Language.');
+  }
+
+  downloadDocsBtn.addEventListener('click', openDocsConfirmation);
+  cancelDocsDownload.addEventListener('click', closeDocsConfirmation);
+  docsConfirmModal.addEventListener('click', event => {
+    if (event.target === docsConfirmModal) closeDocsConfirmation();
+  });
+  acceptDocsDownload.addEventListener('click', () => {
+    try {
+      downloadDocumentation();
+      closeDocsConfirmation();
+    } catch (error) {
+      console.error('No se pudo generar el manual PDF de RC Language.', error);
+      notify(error.message || 'No se pudo generar la documentación.');
+    }
+  });
+
   const dictLibraries = document.getElementById('dictLibraries');
   const libraryCategories = [...new Set(libraryCatalog.map(library => library.category))];
   libraryCategories.forEach(category => {
@@ -4048,10 +4954,7 @@ ${warningBlock}${bodyChildren}${scriptBlock}
       input.remove();
     }
     showDictCopyToast(copied ? successMessage : failureMessage);
-  }
-
-  function fallbackCopyColor(value) {
-    fallbackCopyText(value, '¡Código copiado!', 'No se pudo copiar el código.');
+    return copied;
   }
 
   function copyDictionaryText(value, successMessage) {
@@ -4065,19 +4968,26 @@ ${warningBlock}${bodyChildren}${scriptBlock}
     );
   }
 
-  colorPalette?.addEventListener('click', event => {
-    const button = event.target.closest('.palette-color');
-    if (!button || !colorPalette.contains(button)) return;
-    const value = button.dataset.color;
-    if (!value) return;
-    if (!navigator.clipboard?.writeText) {
-      fallbackCopyColor(value);
-      return;
+  document.getElementById('copyColorBtn')?.addEventListener('click', async () => {
+    const value = selectedColor;
+    let copied = false;
+    if (navigator.clipboard?.writeText) {
+      try {
+        await navigator.clipboard.writeText(value);
+        copied = true;
+      } catch (error) {
+        console.warn('El portapapeles del navegador rechazó la copia; se probará el método alternativo.', error);
+        copied = fallbackCopyText(value, '¡Código copiado!', 'No se pudo copiar el código.');
+      }
+    } else {
+      copied = fallbackCopyText(value, '¡Código copiado!', 'No se pudo copiar el código.');
     }
-    navigator.clipboard.writeText(value).then(
-      () => showDictCopyToast('¡Código copiado!'),
-      () => fallbackCopyColor(value)
-    );
+    if (copied) {
+      colorCopyStatus.textContent = `Copiado: ${value}`;
+      showDictCopyToast('¡Código copiado!');
+    } else {
+      colorCopyStatus.textContent = 'No se pudo copiar el color.';
+    }
   });
 
   dictLibraries?.addEventListener('click', event => {
@@ -4088,6 +4998,10 @@ ${warningBlock}${bodyChildren}${scriptBlock}
 
   document.addEventListener("keydown", (e) => {
     if (e.key === "Escape") {
+      if (docsConfirmModal && !docsConfirmModal.hidden) {
+        closeDocsConfirmation();
+        return;
+      }
       hideDictModal();
       hideExportModal();
     }
@@ -4115,10 +5029,10 @@ ${warningBlock}${bodyChildren}${scriptBlock}
       }))
     }))
   ];
-  const dictionaryColorSearchItems = Array.from(colorPalette?.querySelectorAll('.palette-color') || [], element => ({
-    element,
-    text: normalizeDictionarySearch(element.textContent)
-  }));
+  const dictionaryColorSearchItems = colorPalette ? [{
+    element: colorPalette,
+    text: normalizeDictionarySearch('selector cromatico color hexadecimal copiar #ff0061')
+  }] : [];
 
   if (dictSearch) {
     dictSearch.addEventListener("input", () => {
