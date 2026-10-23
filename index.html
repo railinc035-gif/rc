@@ -75,10 +75,11 @@
   .preview-mode-button{padding:5px 9px;font-size:12px}
   .preview-mode-button[aria-pressed="true"]{border-color:var(--blue);background:#21354a;color:var(--text)}
   .preview-body{justify-content:center;background:#d9dde5!important}
-  .preview-stage{display:flex;align-items:center;justify-content:center;width:100%;height:100%;min-width:0;min-height:0;overflow:auto;padding:12px;background:#d9dde5}
-  #previewFrame{display:block;width:100%;height:100%;flex:0 0 auto;border:0;background:#fff;transition:all 0.3s ease}
-  .preview-stage[data-preview-mode="mobile"]{align-items:flex-start}
-  .preview-stage[data-preview-mode="mobile"] #previewFrame{width:min(390px,calc(100% - 24px));height:auto;aspect-ratio:390/844;border:1px solid #bbc2cf;border-radius:28px;box-shadow:0 14px 36px #171b2580}
+  .preview-stage{display:flex;align-items:center;justify-content:center;width:100%;height:100%;min-width:0;min-height:0;overflow:hidden!important;background:#d9dde5}
+  .preview-device{position:relative;display:flex;width:100%;height:100%;flex:0 0 auto;overflow:hidden;background:#fff}
+  .preview-device #previewFrame{display:block;width:100%;height:100%;flex:0 0 auto;border:0;background:#fff}
+  .preview-stage[data-preview-mode="mobile"] .preview-device{width:min(380px,calc(100% - 32px));height:min(780px,calc(100% - 32px));border:12px solid #1c1f26;border-radius:42px;box-shadow:0 25px 60px rgba(0,0,0,.75),inset 0 0 0 1px rgba(255,255,255,.12),0 0 0 1px rgba(0,0,0,.5)}
+  .preview-stage[data-preview-mode="mobile"] .preview-device::before{content:"";position:absolute;top:0;left:50%;z-index:10;width:95px;height:18px;transform:translateX(-50%);border-radius:0 0 12px 12px;background:#1c1f26;pointer-events:none}
 
   /* Modal Overlay y Contenido Diccionario */
   .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.75); backdrop-filter: blur(4px); display: flex; align-items: center; justify-content: center; z-index: 1000; padding: 16px; }
@@ -169,13 +170,15 @@
     <div class="tabs">
       <button class="tab active" style="pointer-events:none;">Vista Previa ▶</button>
       <div class="preview-mode-controls" role="group" aria-label="Tamaño de vista previa">
-        <button class="preview-mode-button" id="previewDesktopBtn" type="button" aria-pressed="true" title="Vista de escritorio">💻 Escritorio</button>
-        <button class="preview-mode-button" id="previewMobileBtn" type="button" aria-pressed="false" title="Vista de teléfono">📱 Teléfono</button>
+        <button class="preview-mode-button" id="previewDesktopBtn" type="button" aria-pressed="true" title="Vista de escritorio"> Escritorio</button>
+        <button class="preview-mode-button" id="previewMobileBtn" type="button" aria-pressed="false" title="Vista de teléfono"> Teléfono</button>
       </div>
     </div>
     <div class="editor-body preview-body">
       <div class="preview-stage" id="previewStage" data-preview-mode="desktop">
-        <iframe id="previewFrame" title="Vista Previa App"></iframe>
+        <div class="preview-device">
+          <iframe id="previewFrame" title="Vista Previa App"></iframe>
+        </div>
       </div>
     </div>
     <div class="status"><span>Ejecución en tiempo real</span></div>
@@ -3396,6 +3399,13 @@
   <script defer src="https://cdn.jsdelivr.net/npm/chart.js"><\/script>
   <script defer src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"><\/script>
   <style>
+    html, body {
+      scrollbar-width: none !important;
+      -ms-overflow-style: none !important;
+    }
+    html::-webkit-scrollbar, body::-webkit-scrollbar {
+      display: none !important;
+    }
     :root {
       color-scheme: dark;
       --rc-page-bg: #0e1015;
@@ -3988,8 +3998,35 @@ ${warningBlock}${bodyChildren}${scriptBlock}
     editorEl.removeAttribute("aria-activedescendant");
   }
 
+  function getAutocompleteContext() {
+    const value = editorEl.value;
+    const caret = editorEl.selectionStart;
+    if (!value.trim() || caret !== editorEl.selectionEnd) return null;
+
+    const before = value.slice(0, caret);
+    const prefix = (before.match(/[\u00C0-\u024F\u1E00-\u1EFFA-Za-z0-9_]*$/) || [""])[0];
+    const query = prefix.toLowerCase();
+    if (!query.length) return null;
+
+    const start = caret - prefix.length;
+    const suffix = (value.slice(caret).match(/^[\u00C0-\u024F\u1E00-\u1EFFA-Za-z0-9_]*/) || [""])[0];
+    return {
+      value,
+      caret,
+      before,
+      start,
+      end: caret + suffix.length,
+      lineStart: value.lastIndexOf("\n", start - 1) + 1,
+      query
+    };
+  }
+
   function scheduleAutocomplete(delay = 70) {
     clearTimeout(autocompleteTimer);
+    if (!getAutocompleteContext()) {
+      hideAutocomplete();
+      return;
+    }
     autocompleteTimer = setTimeout(() => {
       autocompleteTimer = null;
       updateAutocomplete();
@@ -3997,24 +4034,14 @@ ${warningBlock}${bodyChildren}${scriptBlock}
   }
 
   function updateAutocomplete() {
-    if (!editorEl.value.trim()) {
-      hideAutocomplete();
-      return;
-    }
-    if (editorEl.selectionStart !== editorEl.selectionEnd) {
+    const context = getAutocompleteContext();
+    if (!context) {
       hideAutocomplete();
       return;
     }
 
-    const caret = editorEl.selectionStart;
-    const before = editorEl.value.slice(0, caret);
-    const prefix = (before.match(/[\u00C0-\u024F\u1E00-\u1EFFA-Za-z0-9_]*$/) || [""])[0];
-    const start = caret - prefix.length;
-    const suffix = (editorEl.value.slice(caret).match(/^[\u00C0-\u024F\u1E00-\u1EFFA-Za-z0-9_]*/) || [""])[0];
-    const end = caret + suffix.length;
-    const lineStart = editorEl.value.lastIndexOf("\n", start - 1) + 1;
-    const query = prefix.toLowerCase();
-    const linePrefix = editorEl.value.slice(lineStart, caret);
+    const { value, caret, before, start, end, lineStart, query } = context;
+    const linePrefix = value.slice(lineStart, caret);
     const lineCommand = linePrefix.match(/^\s*([\u00C0-\u024F\u1E00-\u1EFFA-Za-z0-9_]*)/);
     const commandStart = lineStart + (lineCommand?.[0].length || 0) - (lineCommand?.[1].length || 0);
     const inCommandName = lineCommand && caret >= commandStart && caret <= commandStart + lineCommand[1].length
@@ -4056,7 +4083,7 @@ ${warningBlock}${bodyChildren}${scriptBlock}
       || (['colision3d'].includes(lineCommand?.[1]?.toLowerCase()))
       || (['giroscopio', 'particulas3d', 'fisica3d'].includes(lineCommand?.[1]?.toLowerCase()) && activeArgumentIndex === 0)
     )) {
-      autocompleteSuggestions = collectDocumentIds(editorEl.value)
+      autocompleteSuggestions = collectDocumentIds(value)
         .filter(id => id.toLowerCase().startsWith(query))
         .slice(0, 30)
         .map(name => ({ name, desc: 'ID definido en el documento', kind: 'id' }));
