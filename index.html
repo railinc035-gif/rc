@@ -67,6 +67,15 @@
   .file-row .filename{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;cursor:pointer}
   .file-row .ext{font-size:11px;color:var(--muted)}
   .file-row .mini{padding:3px 6px;font-size:12px}
+  .image-manager{max-height:45%;overflow:auto;border-top:1px solid var(--line);padding:8px}
+  .image-manager-head{display:flex;align-items:center;gap:6px;padding:4px 2px 8px;font-weight:600}
+  .image-manager-head span{flex:1}
+  .image-row{display:flex;flex-wrap:wrap;align-items:center;gap:5px;padding:7px 2px;border-top:1px solid #ffffff12}
+  .image-row .filename{flex:1 1 100%;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .image-row select{min-width:0;max-width:90px;padding:3px;background:var(--panel2);color:var(--text);border:1px solid var(--line);border-radius:5px}
+  .image-row .mini{padding:3px 6px;font-size:12px}
+  .image-row .delete-image{border-color:#7f3b43;color:#ffb4b4}
+  .image-row .delete-image:hover{background:#51282e}
   .explorer-note{padding:10px;border-top:1px solid var(--line);font-size:12px;color:var(--muted)}
   .empty{padding:15px;color:var(--muted);text-align:center}
   .toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:#292d38;border:1px solid #454b5a;padding:9px 14px;border-radius:8px;display:none;z-index:99}
@@ -77,8 +86,8 @@
   .preview-mode-button[aria-pressed="true"]{border-color:var(--blue);background:#21354a;color:var(--text)}
   .preview-body{justify-content:center;background:#d9dde5!important}
   .preview-stage{display:flex;align-items:center;justify-content:center;width:100%;height:100%;min-width:0;min-height:0;overflow:hidden!important;background:#d9dde5}
-  .preview-device{position:relative;display:flex;width:100%;height:100%;flex:0 0 auto;overflow:hidden;background:#fff}
-  .preview-device #previewFrame{display:block;width:100%;height:100%;flex:0 0 auto;border:0;background:#fff}
+  .preview-device{position:relative;display:flex;width:100%;height:100%;flex:0 0 auto;overflow:hidden;background:transparent}
+  .preview-device #previewFrame{display:block;width:100%;height:100%;flex:0 0 auto;border:0;background:transparent}
   .preview-stage[data-preview-mode="mobile"] .preview-device{width:min(380px,calc(100% - 32px));height:min(780px,calc(100% - 32px));border:12px solid #1c1f26;border-radius:42px;box-shadow:0 25px 60px rgba(0,0,0,.75),inset 0 0 0 1px rgba(255,255,255,.12),0 0 0 1px rgba(0,0,0,.5)}
   .preview-stage[data-preview-mode="mobile"] .preview-device::before{content:"";position:absolute;top:0;left:50%;z-index:10;width:95px;height:18px;transform:translateX(-50%);border-radius:0 0 12px 12px;background:#1c1f26;pointer-events:none}
 
@@ -194,6 +203,11 @@
       <button id="newRc" style="width: 100%;"> + </button>
     </div>
     <div class="file-list" id="fileList"></div>
+    <section class="image-manager" aria-label="Gestión de imágenes">
+      <div class="image-manager-head"><span>Imágenes</span><button id="uploadImageBtn" class="mini" type="button">Cargar</button></div>
+      <input id="imageUploadInput" type="file" accept="image/*" multiple hidden>
+      <div id="imageList"></div>
+    </section>
     <div class="explorer-note">Explorador de archivos</div>
   </aside>
 </main>
@@ -406,7 +420,7 @@
     flotante: { cat: 2, name: 'flotante', params: ['posicion'], minArgs: 1, type: 'style', action: 'displayOrFloat', desc: 'Establece posicionamiento (relative, absolute, fixed, flex, grid)' },
     desplazamiento: { cat: 2, name: 'desplazamiento', params: [], minArgs: 0, type: 'style', prop: 'overflow', val: 'auto', desc: 'Habilita barras de desplazamiento (overflow auto)' },
 
-    // Categoría III: Campos, Eventos y Lógica (Comandos 53 - 97)
+    // Categoría III: Campos, Eventos y Lógica (Comandos 53 - 100)
     entrada: { cat: 3, name: 'entrada', params: ['id', 'valor'], minArgs: 1, type: 'input', inputType: 'text', desc: 'Crea un campo de texto (<input type="text">)' },
     camponumero: { cat: 3, name: 'camponumero', params: ['id', 'valor'], minArgs: 1, type: 'input', inputType: 'number', desc: 'Crea un campo numérico (<input type="number">)' },
     campocorreo: { cat: 3, name: 'campocorreo', params: ['id', 'valor'], minArgs: 1, type: 'input', inputType: 'email', desc: 'Crea un campo de correo (<input type="email">)' },
@@ -420,6 +434,8 @@
     estado: { cat: 3, name: 'estado', params: ['id_elemento', 'clave, valor'], signatures: ['estado(id_elemento)(clave, valor)', 'estado(id_elemento)(clave)(valor)'], minArgs: 2, maxArgs: 3, type: 'state', desc: 'Guarda estado interno y emite rc:statechange' },
     si_estado: { cat: 3, name: 'si_estado', params: ['id_elemento', 'clave, valor'], signatures: ['si_estado(id_elemento)(clave, valor)', 'si_estado(id_elemento)(clave)(valor)'], minArgs: 2, maxArgs: 3, type: 'stateCondition', desc: 'Evalúa el estado y emite rc:statecheck' },
     enlazar: { cat: 3, name: 'enlazar', params: ['id_elemento', 'clave'], minArgs: 2, type: 'binding', desc: 'Enlaza un elemento visual a una clave de estado global' },
+    selector_idioma: { cat: 3, name: 'selector_idioma', params: ['id', 'lista_idiomas'], signatures: ['selector_idioma(id)(es, en, ...)', 'idiomas(id)(español, ingles, ...)'], minArgs: 2, maxArgs: 2, type: 'languageSelector', desc: 'Crea un selector de idioma y actualiza traducciones en tiempo real' },
+    traducir: { cat: 3, name: 'traducir', params: ['id_elemento', 'idioma', 'texto'], signatures: ['traducir(id_elemento)(idioma)(texto)', 'traduccion(id_elemento)(idioma)(texto)'], minArgs: 3, maxArgs: 3, type: 'translation', desc: 'Asocia un texto traducido a un elemento y una etiqueta de idioma' },
     si: { cat: 3, name: 'si', params: ['clave', 'valor'], minArgs: 2, type: 'ifBlock', desc: 'Inicia una sección condicional basada en estado global' },
     sino: { cat: 3, name: 'sino', params: [], minArgs: 0, type: 'elseBlock', desc: 'Inicia la rama alternativa de una condición' },
     fin_si: { cat: 3, name: 'fin_si', params: [], minArgs: 0, type: 'closing', desc: 'Cierra una estructura condicional' },
@@ -452,8 +468,10 @@
     aparecer_lento: { cat: 3, name: 'aparecer_lento', params: ['id_elemento', 'milisegundos'], minArgs: 2, type: 'fadeIn', desc: 'Muestra gradualmente un elemento durante el tiempo indicado' },
     reiniciar_app: { cat: 3, name: 'reiniciar_app', params: [], signatures: ['reiniciar_app()'], minArgs: 0, type: 'restart', desc: 'Recarga la aplicación en la vista previa' },
 
-    // Categoría IV: Dibujo, efectos y utilidades (Comandos 98 - 119)
+    // Categoría IV: Dibujo, efectos y utilidades (Comandos 101 - 124)
     capa: { cat: 4, name: 'capa', params: ['nivel'], signatures: ['capa(nivel)', 'capa(id)'], minArgs: 1, type: 'layer', desc: 'Establece z-index o crea una capa canvas superpuesta con un ID' },
+    adelante: { cat: 4, name: 'adelante', params: [], minArgs: 0, type: 'layerMove', desc: 'Eleva el elemento activo sobre los demás' },
+    atras: { cat: 4, name: 'atras', params: [], minArgs: 0, type: 'layerMove', desc: 'Envía el elemento activo a una capa inferior' },
     posicion: { cat: 4, name: 'posicion', params: ['tipo'], minArgs: 1, type: 'position', desc: 'Establece posicionamiento fijo, absoluto o relativo' },
     desplazar: { cat: 4, name: 'desplazar', params: ['x', 'y'], signatures: ['desplazar(x)(y)', 'desplazar(x, y)'], minArgs: 1, maxArgs: 2, type: 'translate', desc: 'Desplaza el elemento activo en los ejes X e Y' },
     pincel: { cat: 4, name: 'pincel', params: ['tipo', 'tamano'], minArgs: 2, type: 'brush', desc: 'Configura el tipo y grosor del pincel' },
@@ -476,7 +494,7 @@
     finmodal: { cat: 4, name: 'finmodal', params: [], minArgs: 0, type: 'closing', desc: 'Cierra la estructura modal abierta' },
     tema: { cat: 4, name: 'tema', params: ['modo'], eventSignature: 'tema(idbtn)(modo)', minArgs: 1, maxArgs: 2, type: 'theme', desc: 'Configura el tema directamente o al pulsar un botón' },
 
-    // Categoría V: Espacio 3D, cámaras y motores geométricos (120 - 136)
+    // Categoría V: Espacio 3D, cámaras y motores geométricos (125 - 141)
     escena3d: { cat: 5, name: 'escena3d', params: ['id'], minArgs: 1, type: 'scene3d', desc: 'Crea una escena geométrica 3D interactiva en Canvas' },
     finescena3d: { cat: 5, name: 'finescena3d', params: [], minArgs: 0, type: 'closing', desc: 'Cierra la escena 3D activa' },
     camara3d: { cat: 5, name: 'camara3d', params: ['tipo'], minArgs: 1, type: 'camera3d', desc: 'Configura la cámara 3D en perspectiva u ortográfica' },
@@ -495,7 +513,7 @@
     vertice: { cat: 5, name: 'vertice', params: ['id', 'x', 'y', 'z'], minArgs: 4, type: 'vertex3d', desc: 'Añade un vértice XYZ a la geometría identificada' },
     render3d: { cat: 5, name: 'render3d', params: ['id'], minArgs: 1, type: 'render3d', desc: 'Renderiza o actualiza la escena 3D indicada' },
 
-    // Categoría VI: Diseño moderno, UI avanzada y efectos visuales (137 - 150)
+    // Categoría VI: Diseño moderno, UI avanzada y efectos visuales (142 - 155)
     gradiente: { cat: 6, name: 'gradiente', params: ['tipo', 'colores'], minArgs: 2, type: 'gradient', desc: 'Aplica un gradiente lineal o radial con los colores indicados' },
     glassmorphism: { cat: 6, name: 'glassmorphism', params: ['nivel'], minArgs: 1, type: 'glass', desc: 'Aplica un acabado de vidrio esmerilado configurable' },
     animacion: { cat: 6, name: 'animacion', params: ['nombre', 'duracion'], minArgs: 2, type: 'animation', desc: 'Anima el elemento activo con una duración en segundos' },
@@ -511,7 +529,7 @@
     holonet: { cat: 6, name: 'holonet', params: ['id', 'tipo_proyeccion', 'modo_interaccion'], minArgs: 3, type: 'holonet', desc: 'Inicia un panel de interfaz holográfica interactiva' },
     finholonet: { cat: 6, name: 'finholonet', params: [], minArgs: 0, type: 'closing', desc: 'Cierra el panel holográfico abierto' },
 
-    // Categoría VII: Capacidades de sistema operativo y gestión (151 - 166)
+    // Categoría VII: Capacidades de sistema operativo y gestión (156 - 171)
     ventana: { cat: 7, name: 'ventana', params: ['id', 'titulo'], minArgs: 2, type: 'window', desc: 'Crea una ventana flotante arrastrable con controles' },
     finventana: { cat: 7, name: 'finventana', params: [], minArgs: 0, type: 'closing', desc: 'Cierra el contenido de la ventana flotante' },
     barraestado: { cat: 7, name: 'barraestado', params: [], minArgs: 0, type: 'statusbar', desc: 'Inserta una barra de estado del sistema simulado' },
@@ -529,8 +547,9 @@
     permiso: { cat: 7, name: 'permiso', params: ['nombre'], minArgs: 1, type: 'permission', desc: 'Declara un permiso para el manifiesto Android' },
     finmanifiesto: { cat: 7, name: 'finmanifiesto', params: [], minArgs: 0, type: 'closing', desc: 'Cierra el bloque de metadatos Android' },
     interruptor: { cat: 3, name: 'interruptor', params: ['id', 'texto'], minArgs: 2, type: 'toggle', desc: 'Crea un interruptor accesible con etiqueta' },
+    interpolados: { cat: 3, name: 'interpolados', params: ['interruptor1', 'interruptor2'], minArgs: 2, maxArgs: 2, type: 'interpolatedToggles', desc: 'Vincula dos interruptores para que siempre intercambien su estado' },
 
-    // Categoría VIII: Herramientas avanzadas de dibujo 3D y capas (167 - 174)
+    // Categoría VIII: Herramientas avanzadas de dibujo 3D y capas (172 - 179)
     sombra3d: { cat: 8, name: 'sombra3d', params: ['id', 'suavizado'], minArgs: 2, type: 'shadow3d', desc: 'Activa sombra suave en un objeto de la escena 3D' },
     enfocar3d: { cat: 8, name: 'enfocar3d', params: ['id'], minArgs: 1, type: 'focus3d', desc: 'Centra la cámara 3D en el objeto indicado' },
     exportar3d: { cat: 8, name: 'exportar3d', params: ['idbtn', 'formato'], minArgs: 2, type: 'event', desc: 'Exporta la imagen PNG o geometría JSON de una escena 3D' },
@@ -540,7 +559,7 @@
     particulas3d: { cat: 8, name: 'particulas3d', params: ['id', 'cantidad', 'velocidad'], minArgs: 3, type: 'particles3d', desc: 'Genera un sistema animado de partículas alrededor de un objeto' },
     fisica3d: { cat: 8, name: 'fisica3d', params: ['id', 'gravedad', 'rebotar'], minArgs: 3, type: 'physics3d', desc: 'Aplica gravedad y rebote a un objeto 3D' },
 
-    // Categoría IX: Declaración de Manifest (175 - 182)
+    // Categoría IX: Declaración de Manifest (180 - 187)
     manifest_inicio: { cat: 9, name: 'manifest_inicio', params: ['nombre_app', 'paquete'], signatures: ['manifest_inicio(nombre_app, paquete)', 'manifest_inicio(nombre_app)(paquete)'], minArgs: 2, type: 'manifest', desc: 'Inicia los metadatos del Manifest Android' },
     manifest_version: { cat: 9, name: 'manifest_version', params: ['codigo', 'nombre'], signatures: ['manifest_version(codigo, nombre)', 'manifest_version(codigo)(nombre)'], minArgs: 2, type: 'manifest', desc: 'Define el código y nombre de versión' },
     manifest_permiso: { cat: 9, name: 'manifest_permiso', params: ['nombre_permiso'], minArgs: 1, type: 'manifest', desc: 'Declara un permiso del sistema' },
@@ -551,7 +570,10 @@
     manifest_fin: { cat: 9, name: 'manifest_fin', params: [], minArgs: 0, type: 'closing', desc: 'Cierra la declaración del Manifest' }
   };
 
-  const RC_COMMAND_ALIASES = Object.freeze({});
+  const RC_COMMAND_ALIASES = Object.freeze({
+    idiomas: 'selector_idioma',
+    traduccion: 'traducir'
+  });
 
   const CLOSING_COMMANDS = new Set([
     'fin', 'finseccion', 'fincontenedor', 'finrejilla', 'finlista', 'fintabla', 'finfilatabla', 'finmodal', 'finvista',
@@ -819,6 +841,30 @@
     }
     parts.push(cleanPart(value.slice(start)));
     return parts;
+  }
+
+  const LANGUAGE_ALIASES = Object.freeze({
+    aleman: 'de', arabe: 'ar', chino: 'zh', coreano: 'ko', espanol: 'es',
+    frances: 'fr', hindi: 'hi', ingles: 'en', italiano: 'it', japones: 'ja',
+    neerlandes: 'nl', portugues: 'pt', ruso: 'ru'
+  });
+  const LANGUAGE_LABELS = Object.freeze({
+    ar: 'العربية', de: 'Deutsch', en: 'English', es: 'Español', fr: 'Français',
+    hi: 'हिन्दी', it: 'Italiano', ja: '日本語', ko: '한국어', nl: 'Nederlands',
+    pt: 'Português', ru: 'Русский', zh: '中文'
+  });
+
+  function normalizeLanguageTag(value) {
+    const normalized = cleanParam(value).normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '').toLowerCase();
+    const language = LANGUAGE_ALIASES[normalized] || normalized;
+    return /^[a-z]{2,3}(?:-[a-z0-9]{2,8})*$/i.test(language)
+      ? language.toLowerCase() : '';
+  }
+
+  function languageLabel(language) {
+    const baseLanguage = language.split('-')[0];
+    return LANGUAGE_LABELS[language] || LANGUAGE_LABELS[baseLanguage] || language;
   }
 
   function formatUnit(val) {
@@ -1093,12 +1139,15 @@
     const scriptLines = [];
     const warnings = [];
     const variables = new Map();
+    const languageTranslations = new Map();
+    let hasLanguageSelector = false;
     const referencedIds = [];
     const sourceLines = [];
     const rootFile = sourceFile.replace(/\\/g, '/');
     let hasDrawingSurface = false;
     let drawingBrush = { type: 'lapiz', size: 4 };
     let layerIndex = 0;
+    let nextFrontLayer = 1;
     let androidManifestOpen = false;
     const scenes3d = new Map();
     let activeScene3d = null;
@@ -1282,7 +1331,7 @@
     }
 
     const ID_DEFINITION_TYPES_FOR_AST = new Set([
-      'element', 'input', 'checkbox', 'container', 'scene3d', 'toggle', 'holonet', 'window',
+      'element', 'input', 'checkbox', 'container', 'scene3d', 'toggle', 'languageSelector', 'holonet', 'window',
       'tab', 'accordion', 'view'
     ]);
 
@@ -1334,6 +1383,12 @@
     const programAst = buildRcAst(sourceLines);
     const astSourceLines = [];
     flattenRcAst(programAst, astSourceLines);
+    astSourceLines.forEach(({ parsed }) => {
+      if (parsed?.cmd !== 'capa') return;
+      const level = Number(cleanParam(parsed.args[0] || ''));
+      if (Number.isFinite(level)) nextFrontLayer = Math.max(nextFrontLayer, Math.floor(level) + 1);
+      else nextFrontLayer++;
+    });
 
     const nodesById = new Map();
     let currentAstConditions = [];
@@ -1507,7 +1562,8 @@
         retardar: [a2], desvanecer: [a1], aparecer_lento: [a1],
         fondo: args.length === 2 ? [a1] : [],
         color: args.length === 2 ? [a1] : [],
-        tema: args.length === 2 ? [a1] : []
+        tema: args.length === 2 ? [a1] : [],
+        interpolados: [a1, a2]
       }[cmd];
       if (idArgs) referencedIds.push({ ids: idArgs.filter(Boolean), lineNum, filename });
 
@@ -2674,7 +2730,9 @@
 
         case 'imagen': {
           const imgNode = createNode('img', bracketId);
-          imgNode.src = cleanParam(a1);
+          const imageName = cleanParam(a1).replace(/^['"]|['"]$/g, '');
+          const imageAsset = files.get(imageName);
+          imgNode.src = imageAsset?.type === 'image' ? imageAsset.content : cleanParam(a1);
           addChild(imgNode);
           break;
         }
@@ -2762,6 +2820,7 @@
           const zIndex = Number(cleanParam(a1));
           if (cleanParam(a1) !== '' && Number.isFinite(zIndex)) {
             currentTargetForStyle().styles.push(`z-index: ${zIndex};`);
+            nextFrontLayer = Math.max(nextFrontLayer, Math.floor(zIndex) + 1);
             break;
           }
           const layerParent = currentContainer();
@@ -2773,6 +2832,41 @@
           addChild(layerNode);
           break;
         }
+
+        case 'adelante':
+        case 'atras': {
+          const target = currentTargetForStyle();
+          const positionIndex = target.styles.findLastIndex(style => /^\s*position\s*:/i.test(style));
+          if (positionIndex === -1) {
+            target.styles.push('position: relative;');
+          } else if (/^\s*position\s*:\s*static\b/i.test(target.styles[positionIndex])) {
+            target.styles[positionIndex] = 'position: relative;';
+          }
+          const zIndex = cmd === 'adelante' ? nextFrontLayer++ : 0;
+          target.styles.push(`z-index: ${zIndex};`);
+          break;
+        }
+
+        case 'interpolados':
+          scriptLines.push(`{
+            const first = document.getElementById(${escapeJsString(cleanParam(a1))});
+            const second = document.getElementById(${escapeJsString(cleanParam(a2))});
+            if (first !== second && first instanceof HTMLInputElement && second instanceof HTMLInputElement
+              && first.type === 'checkbox' && second.type === 'checkbox') {
+              const synchronize = (source, target) => {
+                const checked = !source.checked;
+                if (target.checked === checked) return;
+                target.checked = checked;
+                target.dispatchEvent(new Event('change', { bubbles: true }));
+              };
+              first.addEventListener('change', () => synchronize(first, second));
+              second.addEventListener('change', () => synchronize(second, first));
+              if (first.checked && second.checked) second.checked = false;
+            } else {
+              console.error('interpolados requiere dos IDs de interruptores válidos:', ${escapeJsString(cleanParam(a1))}, ${escapeJsString(cleanParam(a2))});
+            }
+          }`);
+          break;
 
         case 'audio': {
           const audioNode = createNode('audio', cleanParam(a1));
@@ -2911,6 +3005,55 @@
         case 'desplegable': {
           const selId = bracketId || cleanParam(a1);
           addChild(createNode('select', selId));
+          break;
+        }
+
+        case 'selector_idioma': {
+          const selectorId = cleanParam(a1);
+          const languages = [...new Set(splitTopLevel(a2)
+            .map(normalizeLanguageTag).filter(Boolean))];
+          if (!/^[a-z0-9_-]+$/.test(selectorId) || languages.length < 2) {
+            warnings.push(`${filename || 'RC'}:${lineNum}: 'selector_idioma' requiere un ID válido y al menos dos idiomas (por ejemplo, selector_idioma(idioma)(es, en)).`);
+            break;
+          }
+          if (languages.length !== splitTopLevel(a2).length) {
+            warnings.push(`${filename || 'RC'}:${lineNum}: 'selector_idioma' ignora etiquetas de idioma inválidas o repetidas.`);
+          }
+          const selectorNode = createNode('select', selectorId, 'rc-language-selector');
+          selectorNode.attrs['data-rc-language-selector'] = 'true';
+          selectorNode.attrs['aria-label'] = 'Seleccionar idioma';
+          languages.forEach(language => {
+            const optionNode = createNode('option');
+            optionNode.val = language;
+            optionNode.innerText = languageLabel(language);
+            optionNode.parent = selectorNode;
+            selectorNode.children.push(optionNode);
+          });
+          addChild(selectorNode);
+          hasLanguageSelector = true;
+          break;
+        }
+
+        case 'traducir': {
+          const targetId = cleanParam(a1);
+          const language = normalizeLanguageTag(a2);
+          const translatedText = cleanParam(a3);
+          const targetNode = nodesById.get(targetId);
+          if (!/^[a-z0-9_-]+$/.test(targetId) || !language || !translatedText) {
+            warnings.push(`${filename || 'RC'}:${lineNum}: 'traducir' requiere un ID válido, una etiqueta de idioma y un texto.`);
+            break;
+          }
+          if (!targetNode) {
+            warnings.push(`${filename || 'RC'}:${lineNum}: 'traducir' no encuentra el elemento '${escapeHtml(targetId)}'; declara primero el elemento.`);
+            break;
+          }
+          if (targetNode.children.length || targetNode.rawHtml) {
+            warnings.push(`${filename || 'RC'}:${lineNum}: 'traducir' solo admite elementos de texto sin componentes hijos.`);
+            break;
+          }
+          const translations = languageTranslations.get(targetId) || Object.create(null);
+          translations[language] = translatedText;
+          languageTranslations.set(targetId, translations);
           break;
         }
 
@@ -4074,6 +4217,33 @@
       let resizeTarget = null;
       let suppressClick = false;
       const getDragTarget = target => target.closest('a, button, img, input, select, textarea, [data-rc-draggable="true"]');
+      const saveInlineProperty = (element, property) => ({
+        element,
+        property,
+        value: element.style.getPropertyValue(property),
+        priority: element.style.getPropertyPriority(property)
+      });
+      const restoreInlineProperties = properties => {
+        properties?.forEach(({ element, property, value, priority }) => {
+          if (value) element.style.setProperty(property, value, priority);
+          else element.style.removeProperty(property);
+        });
+      };
+      const disableDragHover = (gesture, elements) => {
+        if (gesture.pointerProperties) return;
+        gesture.pointerProperties = elements.filter(Boolean)
+          .map(element => saveInlineProperty(element, 'pointer-events'));
+        elements.filter(Boolean).forEach(element => {
+          element.style.setProperty('pointer-events', 'none', 'important');
+        });
+      };
+      const setDragPosition = (gesture, clientX, clientY) => {
+        gesture.lastX = clientX;
+        gesture.lastY = clientY;
+        gesture.element.style.setProperty('translate',
+          (gesture.baseX + clientX - gesture.startX) + 'px '
+          + (gesture.baseY + clientY - gesture.startY) + 'px');
+      };
       const resizeHandle = document.createElement('button');
       resizeHandle.type = 'button';
       resizeHandle.setAttribute('aria-label', 'Redimensionar elemento');
@@ -4093,6 +4263,7 @@
       window.addEventListener('message', event => {
         if (event.source !== window.parent || event.data?.type !== 'rc-studio-edit-mode') return;
         editMode = Boolean(event.data.enabled);
+        document.body.classList.toggle('rc-visual-edit-mode', editMode);
         if (!editMode) {
           document.activeElement?.closest?.('[data-rc-text-editable]')?.blur();
         }
@@ -4126,11 +4297,14 @@
             pointerId: event.pointerId,
             startX: event.clientX,
             startY: event.clientY,
+            lastX: event.clientX,
+            lastY: event.clientY,
             baseX: readOffset(offset[0], rect.width),
             baseY: readOffset(offset[1], rect.height),
+            pointerProperties: null,
+            userSelectProperty: saveInlineProperty(textElement, 'user-select'),
             moved: false
           };
-          textElement.style.touchAction = 'none';
           textElement.setPointerCapture?.(event.pointerId);
           return;
         }
@@ -4143,21 +4317,28 @@
           pointerId: event.pointerId,
           startX: event.clientX,
           startY: event.clientY,
+          lastX: event.clientX,
+          lastY: event.clientY,
           baseX: readOffset(offset[0], rect.width),
           baseY: readOffset(offset[1], rect.height),
+          pointerProperties: null,
+          cursorProperty: saveInlineProperty(element, 'cursor'),
           moved: false
         };
+        element.setPointerCapture(event.pointerId);
       });
       window.addEventListener('pointermove', event => {
         if (textDrag && textDrag.pointerId === event.pointerId) {
           const deltaX = event.clientX - textDrag.startX;
           const deltaY = event.clientY - textDrag.startY;
+          textDrag.lastX = event.clientX;
+          textDrag.lastY = event.clientY;
           if (!textDrag.moved && Math.hypot(deltaX, deltaY) < 3) return;
           textDrag.moved = true;
           event.preventDefault();
+          disableDragHover(textDrag, [textDrag.element, textDrag.element.closest('button')]);
           textDrag.element.style.userSelect = 'none';
-          textDrag.element.style.setProperty('translate',
-            (textDrag.baseX + deltaX) + 'px ' + (textDrag.baseY + deltaY) + 'px');
+          setDragPosition(textDrag, event.clientX, event.clientY);
           return;
         }
         if (resize && resize.pointerId === event.pointerId) {
@@ -4190,25 +4371,28 @@
         if (!drag.moved && Math.hypot(deltaX, deltaY) < 3) return;
         drag.moved = true;
         event.preventDefault();
-        const x = drag.baseX + deltaX;
-        const y = drag.baseY + deltaY;
-        drag.element.style.setProperty('translate', x + 'px ' + y + 'px');
+        disableDragHover(drag, [drag.element]);
+        setDragPosition(drag, event.clientX, event.clientY);
         drag.element.style.setProperty('cursor', 'grabbing');
       }, { passive: false });
       const finishDrag = event => {
         if (!drag || (event.pointerId !== undefined && drag.pointerId !== event.pointerId)) return;
         const completedDrag = drag;
         drag = null;
+        if (completedDrag.moved && Number.isFinite(event.clientX) && Number.isFinite(event.clientY)) {
+          setDragPosition(completedDrag, event.clientX, event.clientY);
+        }
+        restoreInlineProperties(completedDrag.pointerProperties);
+        restoreInlineProperties([completedDrag.cursorProperty]);
         if (!completedDrag.moved) return;
         suppressClick = true;
         setTimeout(() => { suppressClick = false; }, 400);
-        completedDrag.element.style.removeProperty('cursor');
         window.parent.postMessage({
           type: 'rc-studio-position',
           filename: completedDrag.element.dataset.rcFile,
           line: Number(completedDrag.element.dataset.rcLine),
-          x: completedDrag.baseX + event.clientX - completedDrag.startX,
-          y: completedDrag.baseY + event.clientY - completedDrag.startY
+          x: completedDrag.baseX + completedDrag.lastX - completedDrag.startX,
+          y: completedDrag.baseY + completedDrag.lastY - completedDrag.startY
         }, '*');
       };
       const finishResize = event => {
@@ -4234,17 +4418,20 @@
         if (completedDrag.element.hasPointerCapture?.(completedDrag.pointerId)) {
           completedDrag.element.releasePointerCapture(completedDrag.pointerId);
         }
-        completedDrag.element.style.removeProperty('touch-action');
+        if (completedDrag.moved && Number.isFinite(event.clientX) && Number.isFinite(event.clientY)) {
+          setDragPosition(completedDrag, event.clientX, event.clientY);
+        }
+        restoreInlineProperties(completedDrag.pointerProperties);
+        restoreInlineProperties([completedDrag.userSelectProperty]);
         if (!completedDrag.moved) return;
         suppressClick = true;
         setTimeout(() => { suppressClick = false; }, 400);
-        completedDrag.element.style.removeProperty('user-select');
         window.parent.postMessage({
           type: 'rc-studio-text-position',
           filename: completedDrag.element.dataset.rcFile,
           line: Number(completedDrag.element.dataset.rcLine),
-          x: completedDrag.baseX + event.clientX - completedDrag.startX,
-          y: completedDrag.baseY + event.clientY - completedDrag.startY
+          x: completedDrag.baseX + completedDrag.lastX - completedDrag.startX,
+          y: completedDrag.baseY + completedDrag.lastY - completedDrag.startY
         }, '*');
       };
       const postTextUpdate = (element, final) => {
@@ -4299,6 +4486,53 @@
         suppressClick = false;
       }, true);
     }`);
+
+    if (hasLanguageSelector || languageTranslations.size) {
+      const serializedTranslations = escapeJsString(JSON.stringify(Object.fromEntries(languageTranslations)));
+      scriptLines.push(`{
+        const translations = JSON.parse(${serializedTranslations});
+        const originalTexts = new Map();
+        const selectors = [...document.querySelectorAll('[data-rc-language-selector]')];
+        const applyLanguage = language => {
+          document.documentElement.lang = language;
+          Object.entries(translations).forEach(([id, localizedTexts]) => {
+            const element = document.getElementById(id);
+            if (!element) return;
+            const label = element.firstElementChild?.matches('[data-rc-text-editable="true"]')
+              ? element.firstElementChild : element;
+            if (!originalTexts.has(id)) originalTexts.set(id, label.textContent);
+            label.textContent = Object.hasOwn(localizedTexts, language)
+              ? localizedTexts[language] : originalTexts.get(id);
+          });
+          document.dispatchEvent(new CustomEvent('rc:languagechange', { detail: { language } }));
+        };
+        window.rcSetLanguage = requestedLanguage => {
+          const language = String(requestedLanguage).toLowerCase();
+          const matchingSelector = selectors.find(selector =>
+            [...selector.options].some(option => option.value === language)
+          );
+          if (selectors.length && !matchingSelector) return false;
+          selectors.forEach(selector => {
+            if ([...selector.options].some(option => option.value === language)) selector.value = language;
+          });
+          applyLanguage(language);
+          return true;
+        };
+        document.addEventListener('change', event => {
+          const selector = event.target.closest?.('[data-rc-language-selector]');
+          if (selector) window.rcSetLanguage(selector.value);
+        });
+        if (selectors.length) {
+          const preferredLanguages = [...(navigator.languages || []), navigator.language]
+            .filter(Boolean).map(language => language.toLowerCase());
+          const preferred = preferredLanguages
+            .flatMap(language => [language, language.split('-')[0]])
+            .find(language => [...selectors[0].options].some(option => option.value === language));
+          if (preferred) selectors[0].value = preferred;
+          window.rcSetLanguage(selectors[0].value);
+        }
+      }`);
+    }
 
     let scriptBlock = '';
     if (scriptLines.length > 0) {
@@ -4363,6 +4597,10 @@
       --rc-scene-bg: #e9edf5;
       --rc-overlay: rgba(32, 35, 43, 0.45);
     }
+    body.rc-visual-edit-mode [data-rc-draggable="true"],
+    body.rc-visual-edit-mode [data-rc-text-editable="true"] {
+      touch-action: none;
+    }
     body { position: relative; min-width: 0; min-height: 100vh; margin: 0; font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; box-sizing: border-box; background: var(--rc-page-bg); color: var(--rc-text); }
     .rc-app-root { display: flex; flex-direction: column; align-items: center; justify-content: center; width: 100%; min-height: 100vh; padding: 16px; }
     @supports (min-height: 100dvh) { body, .rc-app-root { min-height: 100dvh; } }
@@ -4372,6 +4610,7 @@
     button:hover { background: var(--rc-surface-hover); }
     button:active { background: var(--rc-surface-active); }
     input[type="text"], input[type="number"], input[type="email"], input[type="password"], input[type="date"], textarea, select { width: 100%; padding: 10px; font-size: 15px; border-radius: 8px; border: 1px solid var(--rc-border); background: var(--rc-input-bg); color: var(--rc-text); outline: none; box-sizing: border-box; margin: 4px 0; }
+    img { background-color: transparent; }
     .rejilla { display: grid; width: 100%; gap: 10px; box-sizing: border-box; }
     .cargando { display: inline-block; padding: 10px 20px; background: #222733; color: #68b5ff; border-radius: 6px; border: 1px dashed #68b5ff; }
     .rc-drawing-surface { position: relative; display: block; width: 100%; height: 320px; touch-action: none; color: #111111; background: #ffffff; border: 1px solid #3d4454; }
@@ -4392,6 +4631,12 @@
     .rc-tooltip:focus::after, .rc-tooltip:hover::after { content: attr(data-rc-tooltip); position: absolute; z-index: 20; left: 50%; bottom: calc(100% + 8px); width: max-content; max-width: 240px; padding: 6px 9px; border: 1px solid var(--rc-border); border-radius: 6px; background: var(--rc-tooltip-bg); color: #fff; font-size: 12px; transform: translateX(-50%); }
     .rc-tab { margin: 8px 0; }
     .rc-tab:not(.active) { display: none; }
+    .rc-toggle { display: inline-flex; align-items: center; gap: 9px; vertical-align: middle; }
+    .rc-toggle input[type="checkbox"][role="switch"] { appearance: none; position: relative; width: 42px; height: 24px; flex: 0 0 42px; margin: 0; border: 1px solid var(--rc-border); border-radius: 999px; background: var(--rc-surface-raised); cursor: pointer; transition: background-color 180ms ease, border-color 180ms ease; }
+    .rc-toggle input[type="checkbox"][role="switch"]::before { content: ""; position: absolute; top: 3px; left: 3px; width: 16px; height: 16px; border-radius: 50%; background: var(--rc-text); transition: transform 180ms ease; }
+    .rc-toggle input[type="checkbox"][role="switch"]:checked { border-color: #318ce7; background: #318ce7; }
+    .rc-toggle input[type="checkbox"][role="switch"]:checked::before { transform: translateX(18px); background: #fff; }
+    .rc-toggle input[type="checkbox"][role="switch"]:focus-visible { outline: 2px solid #68b5ff; outline-offset: 2px; }
     .rc-tab-button, .rc-accordion-button { display: block; width: 100%; text-align: left; }
     .rc-accordion { margin: 8px 0; border: 1px solid var(--rc-border); border-radius: 8px; overflow: hidden; }
     .rc-accordion.collapsed > :not(.rc-accordion-button) { display: none; }
@@ -4402,6 +4647,7 @@
     .rc-statusbar { position: sticky; bottom: 0; padding: 7px 10px; border-top: 1px solid var(--rc-border); background: var(--rc-surface); color: var(--rc-muted); font-size: 12px; }
     .rc-console { min-height: 100px; max-height: 320px; overflow: auto; padding: 12px; border: 1px solid var(--rc-border); border-radius: 8px; background: var(--rc-console-bg); color: var(--rc-console-text); white-space: pre-wrap; }
     .rc-kernel { padding: 10px 12px; border: 1px solid var(--rc-border); border-radius: 8px; background: var(--rc-input-bg); color: var(--rc-console-text); font-family: ui-monospace, monospace; }
+    .rc-language-selector { max-width: 280px; cursor: pointer; }
     .rc-os-toast { position: fixed; z-index: 1200; right: 20px; top: 20px; max-width: min(360px, calc(100vw - 40px)); padding: 12px 16px; border: 1px solid var(--rc-border); border-radius: 9px; background: var(--rc-surface-raised); color: var(--rc-text); opacity: 0; transform: translateY(-8px); transition: opacity 160ms ease, transform 160ms ease; pointer-events: none; }
     .rc-os-toast.visible { opacity: 1; transform: translateY(0); }
     ${Array.from(generatedKeyframes, ([name, frames]) => `@keyframes rc-${name} { ${frames} }`).join('\n    ')}
@@ -4417,26 +4663,38 @@ ${warningBlock}${bodyChildren}
   }
 
   const STORAGE_KEY = "rc_studio_state";
+  const IMAGE_STORAGE_KEY = "rc_studio_images";
   const files = new Map();
   let activeFile = "main.rc";
   let splitRatio = 0.5;
   let stateSaveTimer = null;
+  let storageErrorNotified = false;
+  let toastTimer;
   const panelSel = document.getElementById("panelSelector");
+
+  function isRcFile(name) {
+    return files.get(name)?.type === "rc";
+  }
 
   function saveState() {
     clearTimeout(stateSaveTimer);
     stateSaveTimer = null;
     try {
-      if (!files.has(activeFile)) activeFile = "";
+      if (!isRcFile(activeFile)) activeFile = "";
       const state = {
-        files: Array.from(files.entries()),
+        files: [...files.entries()].filter(([, file]) => file.type === "rc"),
         activeFile: activeFile,
         panelMode: panelSel ? panelSel.value : "rc-preview",
         splitRatio
       };
       localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      storageErrorNotified = false;
     } catch (e) {
       console.warn("No se pudo guardar el estado en localStorage", e);
+      if (!storageErrorNotified) {
+        storageErrorNotified = true;
+        notify("No se pudo guardar el proyecto. Revisa el espacio disponible del navegador.");
+      }
     }
   }
 
@@ -4447,6 +4705,16 @@ ${warningBlock}${bodyChildren}
 
   window.addEventListener("pagehide", saveState);
 
+  function saveImageAssets() {
+    try {
+      const images = [...files.entries()].filter(([, file]) => file.type === "image");
+      localStorage.setItem(IMAGE_STORAGE_KEY, JSON.stringify(images));
+    } catch (error) {
+      console.warn("No se pudieron guardar las imágenes del proyecto", error);
+      notify("No se pudieron guardar las imágenes. Revisa el espacio disponible del navegador.");
+    }
+  }
+
   function loadState() {
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
@@ -4455,13 +4723,37 @@ ${warningBlock}${bodyChildren}
       if (!parsed || !Array.isArray(parsed.files)) return false;
 
       files.clear();
+      const legacyImages = [];
       for (const [name, fileObj] of parsed.files) {
-        if (name && fileObj && fileObj.content !== undefined) {
+        if (name && fileObj && typeof fileObj.content === "string") {
+          if (fileObj.type === "image") {
+            if (!/^data:image\/[a-z0-9.+-]+;base64,/i.test(fileObj.content)) continue;
+            legacyImages.push([name, { type: "image", content: fileObj.content }]);
+            continue;
+          }
           if (name.endsWith('.html') && fileObj.type !== 'rc') continue;
           const fileName = name.endsWith('.rc') ? name : name + '.rc';
           files.set(fileName, { type: 'rc', content: fileObj.content });
         }
       }
+      let savedImages = legacyImages;
+      try {
+        const imageState = localStorage.getItem(IMAGE_STORAGE_KEY);
+        if (imageState !== null) {
+          const parsedImages = JSON.parse(imageState);
+          if (!Array.isArray(parsedImages)) throw new Error("El catálogo de imágenes no es válido.");
+          savedImages = parsedImages.filter(([name, image]) =>
+            typeof name === "string" && image?.type === "image"
+            && typeof image.content === "string"
+            && /^data:image\/[a-z0-9.+-]+;base64,/i.test(image.content)
+          );
+        }
+      } catch (error) {
+        console.warn("No se pudo cargar el catálogo de imágenes", error);
+        notify("No se pudo leer el catálogo de imágenes guardado.");
+      }
+      savedImages.forEach(([name, image]) => files.set(name, image));
+      if (legacyImages.length && localStorage.getItem(IMAGE_STORAGE_KEY) === null) saveImageAssets();
 
       if (Number.isFinite(parsed.splitRatio)) splitRatio = Math.max(0.2, Math.min(0.8, parsed.splitRatio));
       if (files.size === 0) {
@@ -4472,12 +4764,12 @@ ${warningBlock}${bodyChildren}
         return true;
       }
 
-      if (parsed.activeFile && files.has(parsed.activeFile)) {
+      if (parsed.activeFile && isRcFile(parsed.activeFile)) {
         activeFile = parsed.activeFile;
-      } else if (parsed.active && parsed.active.rc && files.has(parsed.active.rc)) {
+      } else if (parsed.active && parsed.active.rc && isRcFile(parsed.active.rc)) {
         activeFile = parsed.active.rc;
       } else {
-        activeFile = [...files.keys()][0] || "main.rc";
+        activeFile = [...files.keys()].find(isRcFile) || "";
       }
 
       const mainFile = files.get("main.rc");
@@ -4517,9 +4809,10 @@ ${warningBlock}${bodyChildren}
   const gutterEl = document.getElementById("rcGutter");
   const tabsEl = document.getElementById("rcTabs");
   const listEl = document.getElementById("fileList");
+  const imageListEl = document.getElementById("imageList");
+  const imageUploadInput = document.getElementById("imageUploadInput");
   const explorerEl = document.getElementById("explorer");
   const splitterEl = document.getElementById("paneSplitter");
-  let toastTimer;
   let isTranslating = false;
   let translateTimer = null;
   let editorViewportFrame = null;
@@ -4545,10 +4838,84 @@ ${warningBlock}${bodyChildren}
     syncPreviewEditMode();
   }
 
+  function capturePreviewState(frame) {
+    const documentNode = frame.contentDocument;
+    if (!documentNode) return [];
+    const counts = new Map();
+    return [...documentNode.querySelectorAll("[data-rc-line][data-rc-file]")].map(element => {
+      const baseKey = `${element.dataset.rcFile}:${element.dataset.rcLine}:${element.tagName}`;
+      const ordinal = counts.get(baseKey) || 0;
+      counts.set(baseKey, ordinal + 1);
+      const state = {
+        key: element.id ? `id:${element.dataset.rcFile}:${element.id}` : `${baseKey}:${ordinal}`,
+        tagName: element.tagName,
+        file: element.dataset.rcFile,
+        line: element.dataset.rcLine,
+        ordinal
+      };
+      if (element.tagName === "INPUT") {
+        state.value = element.value;
+        if (element.type === "checkbox" || element.type === "radio") state.checked = element.checked;
+      } else if (element.tagName === "TEXTAREA" || element.tagName === "SELECT") {
+        state.value = element.value;
+      }
+      state.styles = {};
+      let sharesSourceLineWithAncestor = false;
+      for (let ancestor = element.parentElement; ancestor; ancestor = ancestor.parentElement) {
+        if (ancestor.dataset.rcLine === state.line && ancestor.dataset.rcFile === state.file) {
+          sharesSourceLineWithAncestor = true;
+          break;
+        }
+      }
+      if (!sharesSourceLineWithAncestor) {
+        ["translate", "width", "height"].forEach(property => {
+          const value = element.style.getPropertyValue(property);
+          if (value) state.styles[property] = value;
+        });
+      }
+      return state;
+    });
+  }
+
+  function restorePreviewState(frame, states) {
+    const documentNode = frame.contentDocument;
+    if (!documentNode) return;
+    const counts = new Map();
+    const elements = [...documentNode.querySelectorAll("[data-rc-line][data-rc-file]")];
+    const elementsByKey = new Map(elements.map(element => {
+      const baseKey = `${element.dataset.rcFile}:${element.dataset.rcLine}:${element.tagName}`;
+      const ordinal = counts.get(baseKey) || 0;
+      counts.set(baseKey, ordinal + 1);
+      return [element.id ? `id:${element.dataset.rcFile}:${element.id}` : `${baseKey}:${ordinal}`, element];
+    }));
+    states.forEach(state => {
+      const element = elementsByKey.get(state.key);
+      if (!element || element.tagName !== state.tagName) return;
+      if (element.tagName === "INPUT") {
+        if (state.value !== undefined) element.value = state.value;
+        if (state.checked !== undefined) element.checked = state.checked;
+      } else if (element.tagName === "TEXTAREA" || element.tagName === "SELECT") {
+        if (state.value !== undefined) element.value = state.value;
+      }
+      Object.entries(state.styles).forEach(([property, value]) => {
+        if (!element.style.getPropertyValue(property)) element.style.setProperty(property, value);
+      });
+    });
+    elements.filter(element => element.hasAttribute("data-rc-language-selector"))
+      .forEach(element => element.dispatchEvent(
+        new documentNode.defaultView.Event("change", { bubbles: true })
+      ));
+  }
+
   function updateLivePreview(htmlContent) {
     if (htmlContent === lastPreviewHtml) return;
     const frame = document.getElementById("previewFrame");
     if (frame) {
+      const state = capturePreviewState(frame);
+      frame.onload = () => {
+        restorePreviewState(frame, state);
+        syncPreviewEditMode();
+      };
       frame.srcdoc = htmlContent || '';
       lastPreviewHtml = htmlContent;
     }
@@ -4629,9 +4996,9 @@ ${warningBlock}${bodyChildren}
     }
 
     const updates = isTextPosition
-      ? [{ marker: "// rcstudio_text_position", command: `desplazar_texto(${Math.round(data.x)}px)(${Math.round(data.y)}px)`, name: "desplazar_texto" }]
+      ? [{ marker: "// rcstudio_text_position", command: `desplazar_texto(${Number(data.x.toFixed(3))}px)(${Number(data.y.toFixed(3))}px)`, name: "desplazar_texto" }]
       : data.type === "rc-studio-position"
-        ? [{ marker: "// rcstudio_drag_position", command: `desplazar(${Math.round(data.x)}px)(${Math.round(data.y)}px)`, name: "desplazar" }]
+        ? [{ marker: "// rcstudio_drag_position", command: `desplazar(${Number(data.x.toFixed(3))}px)(${Number(data.y.toFixed(3))}px)`, name: "desplazar" }]
       : [
         { marker: "// rcstudio_drag_width", command: `ancho(${Math.round(data.width)}px)`, name: "ancho" },
         { marker: "// rcstudio_drag_height", command: `alto(${Math.round(data.height)}px)`, name: "alto" }
@@ -4837,7 +5204,7 @@ ${warningBlock}${bodyChildren}
     if (isTranslating) return;
     isTranslating = true;
     try {
-      if (!activeFile || !files.has(activeFile)) {
+      if (!activeFile || !isRcFile(activeFile)) {
         lastValidHtml = "";
         updateLivePreview("");
       } else {
@@ -4886,7 +5253,7 @@ ${warningBlock}${bodyChildren}
   function renderTabs() {
     if (!tabsEl) return;
     tabsEl.innerHTML = "";
-    [...files.keys()].forEach(name => {
+    [...files.keys()].filter(isRcFile).forEach(name => {
       const b = document.createElement("button");
       b.className = "tab" + (activeFile === name ? " active" : "");
       b.textContent = name;
@@ -4899,11 +5266,9 @@ ${warningBlock}${bodyChildren}
   function renderExplorer() {
     if (!listEl) return;
     listEl.innerHTML = "";
-    if (!files.size) {
-      listEl.innerHTML = '<div class="empty">No hay archivos.</div>';
-      return;
-    }
-    [...files.keys()].sort((a,b) => a.localeCompare(b)).forEach(name => {
+    const rcFiles = [...files.keys()].filter(isRcFile).sort((a,b) => a.localeCompare(b));
+    if (!rcFiles.length) listEl.innerHTML = '<div class="empty">No hay archivos RC.</div>';
+    rcFiles.forEach(name => {
       const row = document.createElement("div");
       row.className = "file-row" + (activeFile === name ? " active" : "");
       const label = document.createElement("span");
@@ -4931,11 +5296,262 @@ ${warningBlock}${bodyChildren}
       row.append(label, ext, renameBtn, delBtn);
       listEl.appendChild(row);
     });
+    renderImages();
+  }
+
+  function renderImages() {
+    if (!imageListEl) return;
+    imageListEl.replaceChildren();
+    const images = [...files.entries()]
+      .filter(([, file]) => file.type === "image")
+      .sort(([a], [b]) => a.localeCompare(b));
+    if (!images.length) {
+      const empty = document.createElement("div");
+      empty.className = "empty";
+      empty.textContent = "No hay imágenes.";
+      imageListEl.appendChild(empty);
+      return;
+    }
+    images.forEach(([name]) => {
+      const row = document.createElement("div");
+      row.className = "image-row";
+      const label = document.createElement("span");
+      label.className = "filename";
+      label.textContent = name;
+      label.title = name;
+
+      const renameButton = document.createElement("button");
+      renameButton.className = "mini";
+      renameButton.type = "button";
+      renameButton.textContent = "Renombrar";
+      renameButton.onclick = () => renameImage(name);
+
+      const format = document.createElement("select");
+      format.setAttribute("aria-label", `Formato de salida para ${name}`);
+      [["png", "PNG"], ["jpeg", "JPG"], ["webp", "WebP"]].forEach(([value, text]) => {
+        const option = document.createElement("option");
+        option.value = value;
+        option.textContent = text;
+        format.appendChild(option);
+      });
+      const convertButton = document.createElement("button");
+      convertButton.className = "mini";
+      convertButton.type = "button";
+      convertButton.textContent = "Convertir";
+      convertButton.onclick = () => convertImage(name, format.value);
+
+      const insertButton = document.createElement("button");
+      insertButton.className = "mini";
+      insertButton.type = "button";
+      insertButton.textContent = "Insertar";
+      insertButton.title = "Insertar imagen(\"nombre\") en el editor RC";
+      insertButton.onclick = () => insertImageCommand(name);
+
+      const deleteButton = document.createElement("button");
+      deleteButton.className = "mini delete-image";
+      deleteButton.type = "button";
+      deleteButton.textContent = "Eliminar";
+      deleteButton.title = `Eliminar imagen ${name}`;
+      deleteButton.onclick = () => deleteImage(name);
+
+      row.append(label, renameButton, format, convertButton, insertButton, deleteButton);
+      imageListEl.appendChild(row);
+    });
+  }
+
+  function uniqueImageName(requestedName) {
+    if (!files.has(requestedName)) return requestedName;
+    const dotIndex = requestedName.lastIndexOf(".");
+    const base = dotIndex > 0 ? requestedName.slice(0, dotIndex) : requestedName;
+    const extension = dotIndex > 0 ? requestedName.slice(dotIndex) : "";
+    let index = 2;
+    while (files.has(`${base}-${index}${extension}`)) index++;
+    return `${base}-${index}${extension}`;
+  }
+
+  function sanitizeImageName(name) {
+    return name.trim().replace(/[\\/:*?"<>|\u0000-\u001f\u007f]/g, "");
+  }
+
+  function rewriteImageReferences(oldName, newName) {
+    let changedActiveFile = false;
+    files.forEach((file, name) => {
+      if (file.type !== "rc") return;
+      const updatedContent = file.content.split("\n").map((line, index) => {
+        const parsed = parseRcLine(line, index + 1);
+        if (!parsed || parsed.parseError || parsed.cmd !== "imagen"
+          || cleanParam(parsed.args[0] || "") !== oldName) return line;
+        return line.replace(oldName, newName);
+      }).join("\n");
+      if (updatedContent === file.content) return;
+      file.content = updatedContent;
+      if (name === activeFile) changedActiveFile = true;
+    });
+    return changedActiveFile;
+  }
+
+  function insertImageCommand(name) {
+    if (!activeFile || !isRcFile(activeFile)) {
+      notify("Abre un archivo RC para insertar la imagen.");
+      return;
+    }
+    const command = `imagen(${JSON.stringify(name)})`;
+    const start = editorEl.selectionStart;
+    const end = editorEl.selectionEnd;
+    const before = editorEl.value.slice(0, start);
+    const after = editorEl.value.slice(end);
+    const prefix = before && !before.endsWith("\n") && before.slice(before.lastIndexOf("\n") + 1).trim() ? "\n" : "";
+    const suffix = after && !after.startsWith("\n") ? "\n" : "";
+    editorEl.setRangeText(prefix + command + suffix, start, end, "end");
+    editorEl.focus();
+    editorEl.dispatchEvent(new Event("input", { bubbles: true }));
+    notify("Comando de imagen insertado.");
+  }
+
+  function deleteImage(name) {
+    const image = files.get(name);
+    if (!image || image.type !== "image") return;
+    if (!confirm(`¿Eliminar la imagen "${name}" del proyecto?`)) return;
+    files.delete(name);
+    saveImageAssets();
+    saveState();
+    renderExplorer();
+    debounceTranslate();
+    notify(`Imagen eliminada: ${name}`);
+  }
+
+  function renameImage(oldName) {
+    const requested = prompt("Nuevo nombre de la imagen:", oldName);
+    if (requested === null) return;
+    const cleanedName = sanitizeImageName(requested);
+    if (!cleanedName) {
+      notify("Escribe un nombre válido.");
+      return;
+    }
+    const extension = oldName.includes(".") ? oldName.slice(oldName.lastIndexOf(".")) : "";
+    const requestedExtension = cleanedName.includes(".") ? cleanedName.slice(cleanedName.lastIndexOf(".")) : extension;
+    if (requestedExtension.toLowerCase() !== extension.toLowerCase()) {
+      notify("Usa «Convertir» para cambiar el formato de la imagen.");
+      return;
+    }
+    if (cleanedName === extension) {
+      notify("Escribe un nombre válido.");
+      return;
+    }
+    const name = cleanedName.includes(".") ? cleanedName : `${cleanedName}${extension}`;
+    if (name !== oldName && files.has(name)) {
+      notify("Ya existe un archivo con ese nombre.");
+      return;
+    }
+    const image = files.get(oldName);
+    if (!image || image.type !== "image") return;
+    files.delete(oldName);
+    files.set(name, image);
+    const changedActiveFile = rewriteImageReferences(oldName, name);
+    if (changedActiveFile) editorEl.value = files.get(activeFile).content;
+    saveImageAssets();
+    saveState();
+    renderExplorer();
+    debounceTranslate();
+    notify("Imagen renombrada y referencias RC actualizadas.");
+  }
+
+  function readFileAsDataUrl(file) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.addEventListener("load", () => {
+        if (typeof reader.result === "string") resolve(reader.result);
+        else reject(new Error("El navegador no devolvió los datos de la imagen."));
+      }, { once: true });
+      reader.addEventListener("error", () => reject(reader.error || new Error("No se pudo leer la imagen.")), { once: true });
+      reader.readAsDataURL(file);
+    });
+  }
+
+  async function importImages(fileList) {
+    for (const file of fileList) {
+      if (!file.type.startsWith("image/")) {
+        notify(`"${file.name}" no es una imagen compatible.`);
+        continue;
+      }
+      try {
+        const content = await readFileAsDataUrl(file);
+        const fallbackExtension = ({ "image/jpeg": ".jpg", "image/png": ".png", "image/webp": ".webp", "image/gif": ".gif" })[file.type] || ".img";
+        const requestedName = sanitizeImageName(file.name) || `imagen${fallbackExtension}`;
+        const name = uniqueImageName(requestedName.includes(".") ? requestedName : requestedName + fallbackExtension);
+        files.set(name, { type: "image", content });
+        saveImageAssets();
+        saveState();
+        renderExplorer();
+        debounceTranslate();
+        notify(`Imagen cargada: ${name}`);
+      } catch (error) {
+        console.error(`No se pudo cargar la imagen "${file.name}":`, error);
+        notify(`No se pudo cargar "${file.name}".`);
+      }
+    }
+  }
+
+  async function convertImage(name, format) {
+    const image = files.get(name);
+    if (!image || image.type !== "image") return;
+    const extension = format === "jpeg" ? "jpg" : format;
+    const mimeType = format === "jpeg" ? "image/jpeg" : `image/${format}`;
+    const newName = name.replace(/\.[^.]+$/, "") + `.${extension}`;
+    if (newName !== name && files.has(newName)) {
+      notify("Ya existe una imagen con ese nombre y formato.");
+      return;
+    }
+
+    let bitmap;
+    let canvas;
+    try {
+      const response = await fetch(image.content);
+      if (!response.ok) throw new Error("No se pudo decodificar la imagen.");
+      bitmap = await createImageBitmap(await response.blob());
+      canvas = document.createElement("canvas");
+      canvas.width = bitmap.width;
+      canvas.height = bitmap.height;
+      const context = canvas.getContext("2d");
+      if (!context) throw new Error("No se pudo crear el lienzo de conversión.");
+      if (format === "jpeg") {
+        context.fillStyle = "#fff";
+        context.fillRect(0, 0, canvas.width, canvas.height);
+      }
+      context.drawImage(bitmap, 0, 0);
+      const convertedBlob = await new Promise(resolve => canvas.toBlob(resolve, mimeType, 0.92));
+      if (!convertedBlob || convertedBlob.type !== mimeType) {
+        throw new Error("El navegador no pudo producir el formato solicitado.");
+      }
+      const content = await readFileAsDataUrl(convertedBlob);
+      if (newName !== name) {
+        files.delete(name);
+        files.set(newName, { type: "image", content });
+        const changedActiveFile = rewriteImageReferences(name, newName);
+        if (changedActiveFile) editorEl.value = files.get(activeFile).content;
+      } else {
+        image.content = content;
+      }
+      saveImageAssets();
+      saveState();
+      renderExplorer();
+      debounceTranslate();
+      notify(`Imagen convertida a ${format.toUpperCase()}.`);
+    } catch (error) {
+      console.error(`No se pudo convertir la imagen "${name}":`, error);
+      notify(`No se pudo convertir "${name}".`);
+    } finally {
+      bitmap?.close();
+      if (canvas) {
+        canvas.width = 0;
+        canvas.height = 0;
+      }
+    }
   }
 
   function renderAll() {
     renderTabs();
-    const hasActiveFile = Boolean(activeFile && files.has(activeFile));
+    const hasActiveFile = Boolean(activeFile && isRcFile(activeFile));
     editorEl.disabled = !hasActiveFile;
     if (hasActiveFile) {
       editorEl.value = files.get(activeFile).content;
@@ -4953,6 +5569,7 @@ ${warningBlock}${bodyChildren}
   }
 
   function openFile(name) {
+    if (!isRcFile(name)) return;
     if (activeFile && files.has(activeFile)) {
       files.get(activeFile).content = editorEl.value;
     }
@@ -5009,7 +5626,7 @@ ${warningBlock}${bodyChildren}
   function deleteFile(name) {
     if (!confirm(`¿Eliminar "${name}"?`)) return;
     files.delete(name);
-    if (activeFile === name) activeFile = [...files.keys()][0] || "";
+    if (activeFile === name) activeFile = [...files.keys()].find(isRcFile) || "";
     clearTimeout(translateTimer);
     saveState();
     renderAll();
@@ -5028,7 +5645,7 @@ ${warningBlock}${bodyChildren}
   let autocompleteRange = null;
   let autocompleteTimer = null;
   const ID_DEFINITION_TYPES = new Set([
-    'element', 'input', 'checkbox', 'container', 'scene3d', 'toggle', 'holonet', 'window', 'tab', 'accordion', 'view',
+    'element', 'input', 'checkbox', 'container', 'scene3d', 'toggle', 'languageSelector', 'holonet', 'window', 'tab', 'accordion', 'view',
     'plane3d', 'transform3d', 'mesh3d', 'material3d', 'shadow3d', 'layer3d', 'texture3d', 'vertex3d',
     'focus3d', 'particles3d', 'physics3d'
   ]);
@@ -5114,7 +5731,8 @@ ${warningBlock}${bodyChildren}
     let activeArgumentIndex = -1;
     let activeCommandSpec = null;
     if (!inCommandName && lineCommand?.[1]) {
-      activeCommandSpec = RC_COMMANDS_SPEC[lineCommand[1].toLowerCase()];
+      const activeCommandName = lineCommand[1].toLowerCase();
+      activeCommandSpec = RC_COMMANDS_SPEC[RC_COMMAND_ALIASES[activeCommandName] || activeCommandName];
       if (activeCommandSpec) {
         const argumentText = linePrefix.slice(commandStart + lineCommand[1].length);
         let depth = 0;
@@ -5135,7 +5753,14 @@ ${warningBlock}${bodyChildren}
     }
 
     if (inCommandName) {
-      autocompleteSuggestions = [...Object.values(RC_COMMANDS_SPEC), ...[...CLOSING_COMMANDS]
+      autocompleteSuggestions = [
+        ...Object.values(RC_COMMANDS_SPEC),
+        ...Object.entries(RC_COMMAND_ALIASES).map(([name, target]) => ({
+          ...RC_COMMANDS_SPEC[target],
+          name,
+          desc: `Alias de ${target}: ${RC_COMMANDS_SPEC[target].desc}`
+        })),
+        ...[...CLOSING_COMMANDS]
         .filter(name => !RC_COMMANDS_SPEC[name])
         .map(name => ({ name, desc: 'Etiqueta de cierre', type: 'closing' }))]
         .filter(command => command.name.startsWith(query))
@@ -5311,6 +5936,11 @@ ${warningBlock}${bodyChildren}
   });
 
   document.getElementById("newRc").onclick = createFile;
+  document.getElementById("uploadImageBtn").onclick = () => imageUploadInput.click();
+  imageUploadInput.addEventListener("change", async () => {
+    await importImages([...imageUploadInput.files]);
+    imageUploadInput.value = "";
+  });
   document.getElementById("toggleExplorer").onclick = () => {
     explorerEl.classList.toggle("hidden");
     document.getElementById("toggleExplorer").setAttribute("aria-expanded", String(!explorerEl.classList.contains("hidden")));
@@ -5603,7 +6233,6 @@ ${extraMetadata ? `${extraMetadata}\n` : ''}${activityLines}
   const previewFrame = document.getElementById("previewFrame");
   const previewDesktopBtn = document.getElementById("previewDesktopBtn");
   const previewMobileBtn = document.getElementById("previewMobileBtn");
-  previewFrame.addEventListener("load", syncPreviewEditMode);
   visualEditBtn.addEventListener("click", () => {
     setVisualEditMode(!visualEditMode);
   });
@@ -5789,8 +6418,8 @@ ${extraMetadata ? `${extraMetadata}\n` : ''}${activityLines}
 
   function buildDocumentationPdf() {
     const commandSpecs = Object.values(RC_COMMANDS_SPEC);
-    if (commandSpecs.length !== 182) {
-      throw new Error(`La documentación requiere 182 comandos oficiales; se encontraron ${commandSpecs.length}.`);
+    if (commandSpecs.length !== 187) {
+      throw new Error(`La documentación requiere 187 comandos oficiales; se encontraron ${commandSpecs.length}.`);
     }
     const lines = [
       'RC LANGUAGE - MANUAL DE REFERENCIA OFICIAL',
@@ -5806,6 +6435,8 @@ ${extraMetadata ? `${extraMetadata}\n` : ''}${activityLines}
       '- Las condiciones usan si(clave)(valor), sino() y fin_si(); repetir(veces) acepta enteros de 0 a 50 y se expande con IDs independientes.',
       '- El estado global usa estado(clave)(valor); enlazar(id_elemento)(clave) mantiene controles y etiquetas sincronizados.',
       '- Las pantallas usan vista(id_vista), finvista() y navegar(id_vista).',
+      '- selector_idioma(id)(es, en, ...) crea un selector; traducir(id_elemento)(idioma)(texto) registra traducciones reactivas. También se admiten los alias idiomas() y traduccion().',
+      '- Ejemplo: etiqueta[saludo](Hola), selector_idioma(idioma)(es, en), traducir(saludo)(en)(Hello).',
       '- Los colores CSS modernos y los nombres de color admitidos pueden usarse en estilos.',
       '',
       `2. CATALOGO COMPLETO DE COMANDOS (${commandSpecs.length})`
@@ -5836,6 +6467,7 @@ ${extraMetadata ? `${extraMetadata}\n` : ''}${activityLines}
       '- El lexer/parser en dos fases construye un AST con bloques anidados y diagnosticos de archivo y linea.',
       '- El AST expande dependencias incluir(), detecta ciclos y genera nodos DOM/CSS y JavaScript seguro.',
       '- window.rcState propaga cambios a controles enlazados y condiciones sin listeners por cada dato.',
+      '- El selector de idioma actualiza document.documentElement.lang y los textos traducidos sin recargar la aplicación.',
       '- Las vistas internas conservan navegacion de historial; la vista previa se actualiza al escribir.',
       '- Las escenas 3D usan Three.js cuando esta disponible; el resto del proyecto sigue funcionando sin WebGL.',
       '',
