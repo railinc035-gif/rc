@@ -76,6 +76,11 @@
   .image-row .mini{padding:3px 6px;font-size:12px}
   .image-row .delete-image{border-color:#7f3b43;color:#ffb4b4}
   .image-row .delete-image:hover{background:#51282e}
+  .version-row{display:flex;align-items:center;gap:8px;padding:10px;border:1px solid var(--line);border-radius:7px;background:#12141a}
+  .version-row.active{border-color:var(--blue)}
+  .version-row button{margin-left:auto}
+  .version-preview{min-height:180px;max-height:45vh;overflow:auto;padding:12px;border:1px solid var(--line);border-radius:7px;background:#0e1015;color:var(--text);font:12px/1.5 ui-monospace,SFMono-Regular,Consolas,monospace;white-space:pre-wrap;overflow-wrap:anywhere}
+  .version-list{display:flex;flex-direction:column;gap:7px}
   .explorer-note{padding:10px;border-top:1px solid var(--line);font-size:12px;color:var(--muted)}
   .empty{padding:15px;color:var(--muted);text-align:center}
   .toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:#292d38;border:1px solid #454b5a;padding:9px 14px;border-radius:8px;display:none;z-index:99}
@@ -154,6 +159,8 @@
 <header class="topbar">
   <button id="saveBtn" title="Descargar archivo abierto">Guardar archivo</button>
   <button id="dictBtn" title="Ver Diccionario RC">Ver Diccionario RC </button>
+  <button id="topUploadBtn" title="Importar archivos locales" type="button">Importar archivo</button>
+  <button id="historyBtn" title="Ver historial del archivo abierto" type="button">Historial</button>
   <div class="spacer"></div>
   <label style="font-size:12px; color:var(--muted);">Paneles:</label>
   <select id="panelSelector" style="background:var(--panel2); color:var(--text); border:1px solid var(--line); border-radius:7px; padding:5px 8px;">
@@ -205,13 +212,29 @@
     <div class="file-list" id="fileList"></div>
     <section class="image-manager" aria-label="Gestión de imágenes">
       <div class="image-manager-head"><span>Imágenes</span><button id="uploadImageBtn" class="mini" type="button">Cargar</button></div>
-      <input id="imageUploadInput" type="file" accept="image/*" multiple hidden>
+      <input id="imageUploadInput" type="file" accept=".png,.jpg,.jpeg,.webp,.gif,.avif,.rc" multiple hidden>
       <div id="imageList"></div>
     </section>
     <div class="explorer-note">Explorador de archivos</div>
   </aside>
 </main>
 <div class="toast" id="toast" role="status"></div>
+
+<div class="modal-overlay hidden" id="historyModal" role="dialog" aria-modal="true" aria-labelledby="historyTitle">
+  <div class="modal-content" style="max-width:760px">
+    <div class="modal-header">
+      <h2 id="historyTitle">Historial de versiones</h2>
+      <button class="modal-close" id="closeHistoryModal" type="button" aria-label="Cerrar">×</button>
+    </div>
+    <div class="modal-body">
+      <div id="versionList" class="version-list"></div>
+      <pre id="versionPreview" class="version-preview" aria-label="Vista previa de la versión">Selecciona una versión para previsualizarla.</pre>
+      <div style="display:flex;justify-content:flex-end;gap:8px">
+        <button id="restoreVersionBtn" type="button" disabled>Restaurar versión seleccionada</button>
+      </div>
+    </div>
+  </div>
+</div>
 
 <!-- Modal Exportar / Guardar RC Studio -->
 <div class="modal-overlay hidden" id="exportModal" role="dialog" aria-modal="true" aria-labelledby="exportTitle">
@@ -427,6 +450,7 @@
     campocontrasena: { cat: 3, name: 'campocontrasena', params: ['id'], minArgs: 1, type: 'input', inputType: 'password', desc: 'Crea un campo de contraseña (<input type="password">)' },
     campofecha: { cat: 3, name: 'campofecha', params: ['id'], minArgs: 1, type: 'input', inputType: 'date', desc: 'Crea un selector de fecha (<input type="date">)' },
     campochequeo: { cat: 3, name: 'campochequeo', params: ['id', 'texto'], minArgs: 2, type: 'checkbox', desc: 'Crea una casilla de verificación (checkbox)' },
+    interruptor: { cat: 3, name: 'interruptor', params: ['id', 'texto'], minArgs: 2, type: 'toggle', desc: 'Crea un interruptor accesible con etiqueta dentro del contenedor activo' },
     desplegable: { cat: 3, name: 'desplegable', params: ['id'], minArgs: 1, type: 'element', tag: 'select', desc: 'Crea un menú desplegable (<select>)' },
     al_clic_fuera: { cat: 3, name: 'al_clic_fuera', params: ['id_elemento'], minArgs: 1, type: 'outsideClick', desc: 'Detecta clics fuera, oculta el elemento y emite rc:clickoutside' },
     deslizar: { cat: 3, name: 'deslizar', params: ['id_elemento', 'direccion'], minArgs: 2, type: 'swipe', desc: 'Detecta un gesto swipe en la dirección indicada y emite rc:swipe' },
@@ -468,13 +492,28 @@
     aparecer_lento: { cat: 3, name: 'aparecer_lento', params: ['id_elemento', 'milisegundos'], minArgs: 2, type: 'fadeIn', desc: 'Muestra gradualmente un elemento durante el tiempo indicado' },
     reiniciar_app: { cat: 3, name: 'reiniciar_app', params: [], signatures: ['reiniciar_app()'], minArgs: 0, type: 'restart', desc: 'Recarga la aplicación en la vista previa' },
 
-    // Categoría IV: Dibujo, efectos y utilidades (Comandos 101 - 124)
+    // Categoría IV: Dibujo, efectos y utilidades (Comandos 101 - 124 y ampliaciones de dibujo)
     capa: { cat: 4, name: 'capa', params: ['nivel'], signatures: ['capa(nivel)', 'capa(id)'], minArgs: 1, type: 'layer', desc: 'Establece z-index o crea una capa canvas superpuesta con un ID' },
     adelante: { cat: 4, name: 'adelante', params: [], minArgs: 0, type: 'layerMove', desc: 'Eleva el elemento activo sobre los demás' },
     atras: { cat: 4, name: 'atras', params: [], minArgs: 0, type: 'layerMove', desc: 'Envía el elemento activo a una capa inferior' },
     posicion: { cat: 4, name: 'posicion', params: ['tipo'], minArgs: 1, type: 'position', desc: 'Establece posicionamiento fijo, absoluto o relativo' },
     desplazar: { cat: 4, name: 'desplazar', params: ['x', 'y'], signatures: ['desplazar(x)(y)', 'desplazar(x, y)'], minArgs: 1, maxArgs: 2, type: 'translate', desc: 'Desplaza el elemento activo en los ejes X e Y' },
     pincel: { cat: 4, name: 'pincel', params: ['tipo', 'tamano'], minArgs: 2, type: 'brush', desc: 'Configura el tipo y grosor del pincel' },
+    tamano_lienzo: { cat: 4, name: 'tamano_lienzo', params: ['id_lienzo', 'ancho', 'alto'], minArgs: 3, type: 'canvasSize', desc: 'Define la resolución real del lienzo y conserva su contenido' },
+    acercar_lienzo: { cat: 4, name: 'acercar_lienzo', params: ['id_lienzo', 'porcentaje'], minArgs: 2, type: 'canvasZoom', desc: 'Acerca la vista del lienzo sin cambiar su resolución' },
+    alejar_lienzo: { cat: 4, name: 'alejar_lienzo', params: ['id_lienzo', 'porcentaje'], minArgs: 2, type: 'canvasZoom', desc: 'Aleja la vista del lienzo sin cambiar su resolución' },
+    ajustar_lienzo: { cat: 4, name: 'ajustar_lienzo', params: ['id_lienzo'], minArgs: 1, type: 'canvasFit', desc: 'Ajusta proporcionalmente la vista al espacio disponible' },
+    crear_pincel: { cat: 4, name: 'crear_pincel', params: ['nombre'], minArgs: 1, type: 'brushCreate', desc: 'Crea un pincel personalizado sin sobrescribir nombres existentes' },
+    tipo_pincel: { cat: 4, name: 'tipo_pincel', params: ['nombre', 'tipo'], minArgs: 2, type: 'brushType', desc: 'Configura lápiz, pluma, marcador, aerógrafo, suave, borrador o textura' },
+    tamano_pincel: { cat: 4, name: 'tamano_pincel', params: ['nombre', 'pixeles'], minArgs: 2, type: 'brushSize', desc: 'Establece el tamaño de un pincel personalizado' },
+    color_pincel: { cat: 4, name: 'color_pincel', params: ['nombre', 'color'], minArgs: 2, type: 'brushColor', desc: 'Establece el color CSS de un pincel' },
+    opacidad_pincel: { cat: 4, name: 'opacidad_pincel', params: ['nombre', 'porcentaje'], minArgs: 2, type: 'brushOpacity', desc: 'Establece la opacidad del pincel entre 0 y 100' },
+    dureza_pincel: { cat: 4, name: 'dureza_pincel', params: ['nombre', 'porcentaje'], minArgs: 2, type: 'brushHardness', desc: 'Establece la dureza del borde entre 0 y 100' },
+    textura_pincel: { cat: 4, name: 'textura_pincel', params: ['nombre', 'textura'], minArgs: 2, type: 'brushTexture', desc: 'Aplica papel, lienzo, puntos o cuadrícula como textura' },
+    usar_pincel: { cat: 4, name: 'usar_pincel', params: ['nombre'], minArgs: 1, type: 'brushSelect', desc: 'Selecciona el pincel que usarán los trazos' },
+    guardar_pincel: { cat: 4, name: 'guardar_pincel', params: ['nombre'], minArgs: 1, type: 'brushSave', desc: 'Guarda el pincel en el almacenamiento local del navegador' },
+    eliminar_pincel: { cat: 4, name: 'eliminar_pincel', params: ['nombre'], minArgs: 1, type: 'brushDelete', desc: 'Elimina la configuración del pincel sin alterar los trazos' },
+    biblioteca_pinceles: { cat: 4, name: 'biblioteca_pinceles', params: [], minArgs: 0, type: 'brushLibrary', desc: 'Inserta una biblioteca visual para crear, editar, duplicar, previsualizar y guardar pinceles' },
     opacidad: { cat: 4, name: 'opacidad', params: ['valor'], minArgs: 1, type: 'opacity', desc: 'Ajusta la opacidad de 0 a 100 o de 0.0 a 1.0' },
     exportarcanvas: { cat: 4, name: 'exportarcanvas', params: ['idbtn', 'formato'], minArgs: 2, type: 'event', desc: 'Exporta un lienzo en formato PNG o JPG al pulsar' },
     luz: { cat: 4, name: 'luz', params: ['id', 'tipo'], minArgs: 2, type: 'light', desc: 'Aplica iluminación ambiental o direccional a un elemento' },
@@ -543,10 +582,9 @@
     sistema: { cat: 7, name: 'sistema', params: ['parametro'], minArgs: 1, type: 'system', desc: 'Muestra información no sensible del entorno de navegador' },
     notificacionos: { cat: 7, name: 'notificacionos', params: ['titulo', 'mensaje'], minArgs: 2, type: 'osNotification', desc: 'Muestra una notificación local dentro de la aplicación' },
     nucleo: { cat: 7, name: 'nucleo', params: [], minArgs: 0, type: 'kernel', desc: 'Inserta un panel de estado del sistema simulado' },
-    manifiesto: { cat: 7, name: 'manifiesto', params: ['paquete', 'version', 'codigover'], minArgs: 3, type: 'manifest', desc: 'Define los metadatos Android del proyecto' },
+    manifiesto: { cat: 7, name: 'manifiesto', params: ['paquete', 'version', 'codigover'], minArgs: 1, maxArgs: 3, type: 'manifest', desc: 'Define los metadatos Android del proyecto; versión y código son opcionales' },
     permiso: { cat: 7, name: 'permiso', params: ['nombre'], minArgs: 1, type: 'permission', desc: 'Declara un permiso para el manifiesto Android' },
     finmanifiesto: { cat: 7, name: 'finmanifiesto', params: [], minArgs: 0, type: 'closing', desc: 'Cierra el bloque de metadatos Android' },
-    interruptor: { cat: 3, name: 'interruptor', params: ['id', 'texto'], minArgs: 2, type: 'toggle', desc: 'Crea un interruptor accesible con etiqueta' },
     interpolados: { cat: 3, name: 'interpolados', params: ['interruptor1', 'interruptor2'], minArgs: 2, maxArgs: 2, type: 'interpolatedToggles', desc: 'Vincula dos interruptores para que siempre intercambien su estado' },
 
     // Categoría VIII: Herramientas avanzadas de dibujo 3D y capas (172 - 179)
@@ -561,12 +599,12 @@
 
     // Categoría IX: Declaración de Manifest (180 - 187)
     manifest_inicio: { cat: 9, name: 'manifest_inicio', params: ['nombre_app', 'paquete'], signatures: ['manifest_inicio(nombre_app, paquete)', 'manifest_inicio(nombre_app)(paquete)'], minArgs: 2, type: 'manifest', desc: 'Inicia los metadatos del Manifest Android' },
-    manifest_version: { cat: 9, name: 'manifest_version', params: ['codigo', 'nombre'], signatures: ['manifest_version(codigo, nombre)', 'manifest_version(codigo)(nombre)'], minArgs: 2, type: 'manifest', desc: 'Define el código y nombre de versión' },
+    manifest_version: { cat: 9, name: 'manifest_version', params: ['codigo', 'nombre'], signatures: ['manifest_version(codigo, nombre)', 'manifest_version(codigo)(nombre)'], minArgs: 1, type: 'manifest', desc: 'Define el código y, opcionalmente, el nombre de versión' },
     manifest_permiso: { cat: 9, name: 'manifest_permiso', params: ['nombre_permiso'], minArgs: 1, type: 'manifest', desc: 'Declara un permiso del sistema' },
-    manifest_actividad: { cat: 9, name: 'manifest_actividad', params: ['nombre_clase', 'orientacion'], signatures: ['manifest_actividad(nombre_clase, orientacion)', 'manifest_actividad(nombre_clase)(orientacion)'], minArgs: 2, type: 'manifest', desc: 'Registra una actividad y su orientación' },
+    manifest_actividad: { cat: 9, name: 'manifest_actividad', params: ['nombre_clase', 'orientacion'], signatures: ['manifest_actividad(nombre_clase, orientacion)', 'manifest_actividad(nombre_clase)(orientacion)'], minArgs: 1, type: 'manifest', desc: 'Registra una actividad; la orientación opcional predeterminada es portrait' },
     manifest_icono: { cat: 9, name: 'manifest_icono', params: ['ruta_recurso'], minArgs: 1, type: 'manifest', desc: 'Define el recurso del icono de la aplicación' },
     manifest_pwa_meta: { cat: 9, name: 'manifest_pwa_meta', params: ['tema_color', 'fondo_color', 'display_modo'], signatures: ['manifest_pwa_meta(tema_color, fondo_color, display_modo)', 'manifest_pwa_meta(tema_color)(fondo_color)(display_modo)'], minArgs: 3, type: 'manifest', desc: 'Define metadatos de tema y visualización PWA' },
-    manifest_autor: { cat: 9, name: 'manifest_autor', params: ['nombre', 'contacto'], signatures: ['manifest_autor(nombre, contacto)', 'manifest_autor(nombre)(contacto)'], minArgs: 2, type: 'manifest', desc: 'Define la autoría y contacto del proyecto' },
+    manifest_autor: { cat: 9, name: 'manifest_autor', params: ['nombre', 'contacto'], signatures: ['manifest_autor(nombre, contacto)', 'manifest_autor(nombre)(contacto)'], minArgs: 1, type: 'manifest', desc: 'Define el autor y, opcionalmente, su contacto' },
     manifest_fin: { cat: 9, name: 'manifest_fin', params: [], minArgs: 0, type: 'closing', desc: 'Cierra la declaración del Manifest' }
   };
 
@@ -748,19 +786,13 @@
   });
 
   const FORM_CONTROL_TAGS = ['INPUT', 'TEXTAREA', 'SELECT'];
-  const FORM_CONTROL_TAGS_EXPRESSION = `[${FORM_CONTROL_TAGS.map(tag => `'${tag}'`).join(', ')}]`;
-
-  function isFormControlExpression(elementName) {
-    return `${FORM_CONTROL_TAGS_EXPRESSION}.includes(${elementName}.tagName)`;
-  }
 
   function readElementValueExpression(elementName) {
-    return `${elementName}.dataset?.rcBind && window.rcState ? window.rcState[${elementName}.dataset.rcBind] : (${isFormControlExpression(elementName)} ? ${elementName}.value : ${elementName}.innerText)`;
+    return `window.rcReadValue(${elementName})`;
   }
 
-  function writeElementValueStatements(elementName, valueExpression, breakElse = false, indentation = '') {
-    const separator = breakElse ? `\n${indentation}` : ' ';
-    return `if(${isFormControlExpression(elementName)}) ${elementName}.value = ${valueExpression};${separator}else ${elementName}.innerText = ${valueExpression}; if(${elementName}.dataset?.rcBind && window.rcState) window.rcState[${elementName}.dataset.rcBind] = ${valueExpression};`;
+  function writeElementValueStatements(elementName, valueExpression) {
+    return `window.rcWriteValue(${elementName}, ${valueExpression});`;
   }
 
   // Auxiliares de formato
@@ -1052,50 +1084,23 @@
     if (!spec && !auxiliary) {
       return parseError(`Comando '${cmd}': no está registrado en el catálogo RC`);
     }
-    if (cmd.startsWith('manifest_') && args.length === 1 && spec.params.length > 1) {
-      const value = args[0];
-      const commaArgs = [];
-      let start = 0;
-      let depth = 0;
-      let quote = '';
-      let escaped = false;
-      let segmentHasContent = false;
-      for (let index = 0; index < value.length; index++) {
-        const char = value[index];
-        if (escaped) {
-          escaped = false;
-          continue;
+    if (cmd === 'manifiesto' || cmd.startsWith('manifest_')) {
+      const commaArgs = args.flatMap(argument => splitTopLevel(argument));
+      const maxArgs = getRcArgumentBounds(spec, auxiliary).maxArgs;
+      if (commaArgs.length > maxArgs) {
+        const last = commaArgs.at(-1);
+        if (cmd === 'manifest_inicio'
+          && /^[A-Za-z][A-Za-z0-9_]*(?:\.[A-Za-z][A-Za-z0-9_]*)+$/.test(last)) {
+          args = [commaArgs.slice(0, -1).join(', '), last];
+        } else if (cmd === 'manifest_version' && /^\d+$/.test(commaArgs[0])) {
+          args = [commaArgs[0], commaArgs.slice(1).join(', ')];
+        } else if (cmd === 'manifest_autor') {
+          args = [commaArgs.slice(0, -1).join(', '), last];
+        } else {
+          args = commaArgs;
         }
-        if (quote && char === '\\') {
-          escaped = true;
-          continue;
-        }
-        if (quote) {
-          if (char === quote) quote = '';
-          continue;
-        }
-        if (!segmentHasContent && /\s/.test(char)) continue;
-        if (!segmentHasContent && (char === '"' || char === "'")) quote = char;
-        else if (char === '(') depth++;
-        else if (char === ')') depth = Math.max(0, depth - 1);
-        else if (char === ',' && depth === 0) {
-          commaArgs.push(decodeArgument(value.slice(start, index)));
-          start = index + 1;
-          segmentHasContent = false;
-          continue;
-        }
-        segmentHasContent = true;
-      }
-      commaArgs.push(decodeArgument(value.slice(start)));
-      if (commaArgs.length === spec.params.length) args = commaArgs;
-      else if (cmd === 'manifest_inicio' && commaArgs.length > spec.params.length
-        && /^[A-Za-z][A-Za-z0-9_]*(?:\.[A-Za-z][A-Za-z0-9_]*)+$/.test(commaArgs.at(-1))) {
-        args = [commaArgs.slice(0, -1).join(', '), commaArgs.at(-1)];
-      } else if (cmd === 'manifest_version' && commaArgs.length > spec.params.length
-        && /^\d+$/.test(commaArgs[0])) {
-        args = [commaArgs[0], commaArgs.slice(1).join(', ')];
-      } else if (cmd === 'manifest_autor' && commaArgs.length > spec.params.length) {
-        args = [commaArgs.slice(0, -1).join(', '), commaArgs.at(-1)];
+      } else {
+        args = commaArgs;
       }
     }
     const bracketIdForArguments = Boolean(
@@ -1117,6 +1122,7 @@
     if (spec) {
       const idOffset = bracketIdUsed && spec.params[0] === 'id' ? 1 : 0;
       for (let index = idOffset; index < spec.params.length; index++) {
+        if (cmd === 'boton' && !bracketIdUsed && args.length === 1 && index === 0) continue;
         if (!/^id(?:$|_|[a-z])/i.test(spec.params[index])) continue;
         const value = args[index - idOffset];
         if (value && !/^[a-z0-9_-]+$/.test(value)) {
@@ -1145,7 +1151,14 @@
     const sourceLines = [];
     const rootFile = sourceFile.replace(/\\/g, '/');
     let hasDrawingSurface = false;
-    let drawingBrush = { type: 'lapiz', size: 4 };
+    const drawingBrushes = new Map([['lapiz', {
+      name: 'lapiz', type: 'lapiz', size: 4, color: '#111111',
+      opacity: 100, hardness: 100, texture: ''
+    }]]);
+    let selectedDrawingBrush = 'lapiz';
+    const savedDrawingBrushes = new Set();
+    const deletedDrawingBrushes = new Set();
+    const drawingCanvases = new Map();
     let layerIndex = 0;
     let nextFrontLayer = 1;
     let androidManifestOpen = false;
@@ -1556,6 +1569,7 @@
         sumar: [a1, a2, a3, a4], restar: [a1, a2, a3, a4], multiplicar: [a1, a2, a3, a4], dividir: [a1, a2, a3, a4],
         incrementar: [a1, a2], decrementar: [a1, a2], guardarlocal: [a1, a3], cargarlocal: [a2],
         exportarcanvas: [a1], luz: [a1], notificacion: [a1],
+        tamano_lienzo: [a1], acercar_lienzo: [a1], alejar_lienzo: [a1], ajustar_lienzo: [a1],
         al_clic_fuera: [a1], deslizar: [a1], estado: args.length === 2 && splitTopLevel(a2).length !== 2 ? [] : [a1],
         si_estado: [a1], enlazar: [a1], navegar: [a1],
         reproducir: [a1], pausar: [a1], detener: [a1], volumen: [a1],
@@ -1573,7 +1587,7 @@
         'seccion', 'contenedor', 'rejilla', 'vista', 'boton', 'parrafo', 'texto',
         'encabezado', 'entrada', 'camponumero', 'campocorreo', 'campocontrasena',
         'campofecha', 'campochequeo', 'desplegable', 'areatexto', 'lienzo',
-        'capa', 'audio', 'cargar_audio', 'modal', 'cargando', 'tabla', 'listadesordenada', 'listaordenada'
+        'interruptor', 'capa', 'audio', 'cargar_audio', 'modal', 'cargando', 'tabla', 'listadesordenada', 'listaordenada'
       ];
 
       if (elementCmds.includes(cmd) && !(cmd === 'capa' && cleanParam(a1) !== '' && Number.isFinite(Number(a1)))) {
@@ -1726,12 +1740,13 @@
           }
           const legacy = cmd === 'manifiesto';
           const packageName = cleanParam(legacy ? a1 : a2);
-          const versionCode = legacy ? Number(a3) : 1;
+          const version = legacy ? cleanParam(a2) || '1.0' : '1.0';
+          const versionCode = legacy ? Number(cleanParam(a3) || '1') : 1;
           if ((!legacy && !cleanParam(a1))
             || !/^[a-zA-Z][a-zA-Z0-9_]*(?:\.[a-zA-Z][a-zA-Z0-9_]*)+$/.test(packageName)
-            || (legacy && (!cleanParam(a2) || !Number.isSafeInteger(versionCode) || versionCode < 1 || versionCode > 2100000000))) {
+            || (legacy && (!version || !Number.isSafeInteger(versionCode) || versionCode < 1 || versionCode > 2100000000))) {
             warnings.push(legacy
-              ? `${filename || 'RC'}:${lineNum}: 'manifiesto' requiere paquete, versión y código entre 1 y 2100000000.`
+              ? `${filename || 'RC'}:${lineNum}: 'manifiesto' requiere un paquete válido y, si se indican, una versión y un código entre 1 y 2100000000.`
               : `${filename || 'RC'}:${lineNum}: 'manifest_inicio' requiere nombre de aplicación y paquete válidos.`);
             break;
           }
@@ -1755,8 +1770,8 @@
           const versionCode = Number(a1);
           if (!androidManifestOpen) {
             warnings.push(`${filename || 'RC'}:${lineNum}: 'manifest_version' requiere un bloque manifest abierto.`);
-          } else if (!Number.isSafeInteger(versionCode) || versionCode < 1 || versionCode > 2100000000 || !cleanParam(a2)) {
-            warnings.push(`${filename || 'RC'}:${lineNum}: 'manifest_version' requiere un código entre 1 y 2100000000 y un nombre.`);
+          } else if (!Number.isSafeInteger(versionCode) || versionCode < 1 || versionCode > 2100000000) {
+            warnings.push(`${filename || 'RC'}:${lineNum}: 'manifest_version' requiere un código entre 1 y 2100000000.`);
           }
           break;
         }
@@ -1778,7 +1793,7 @@
           if (!androidManifestOpen) {
             warnings.push(`${filename || 'RC'}:${lineNum}: 'manifest_actividad' requiere un bloque manifest abierto.`);
           } else if (!/^(?:\.)?[A-Za-z_$][A-Za-z0-9_$]*(?:\.[A-Za-z_$][A-Za-z0-9_$]*)*$/.test(cleanParam(a1))
-            || !['portrait', 'landscape'].includes(cleanParam(a2).toLowerCase())) {
+            || !['portrait', 'landscape'].includes(cleanParam(a2 || 'portrait').toLowerCase())) {
             warnings.push(`${filename || 'RC'}:${lineNum}: 'manifest_actividad' requiere una clase válida y orientación portrait o landscape.`);
           }
           break;
@@ -1802,8 +1817,8 @@
         case 'manifest_autor':
           if (!androidManifestOpen) {
             warnings.push(`${filename || 'RC'}:${lineNum}: '${cmd}' requiere un bloque manifest abierto.`);
-          } else if (![a1, a2].every(value => cleanParam(value))) {
-            warnings.push(`${filename || 'RC'}:${lineNum}: 'manifest_autor' requiere nombre y contacto.`);
+          } else if (!cleanParam(a1)) {
+            warnings.push(`${filename || 'RC'}:${lineNum}: 'manifest_autor' requiere un nombre.`);
           }
           break;
 
@@ -3338,7 +3353,145 @@
             warnings.push(`${filename || 'RC'}:${lineNum}: 'pincel' requiere un grosor numérico mayor que cero.`);
             break;
           }
-          drawingBrush = { type: cleanParam(a1).toLowerCase(), size };
+          const brush = drawingBrushes.get(selectedDrawingBrush);
+          brush.type = cleanParam(a1).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+          brush.size = size;
+          hasDrawingSurface = true;
+          break;
+        }
+
+        case 'tamano_lienzo':
+        case 'acercar_lienzo':
+        case 'alejar_lienzo':
+        case 'ajustar_lienzo': {
+          const canvasId = cleanParam(a1);
+          if (!/^[a-z0-9_-]+$/.test(canvasId)) {
+            warnings.push(`${filename || 'RC'}:${lineNum}: '${cmd}' requiere un ID de lienzo válido en minúsculas.`);
+            break;
+          }
+          const canvasSettings = drawingCanvases.get(canvasId) || { width: null, height: null, zoom: 100, fit: false };
+          if (cmd === 'tamano_lienzo') {
+            const width = Number(a2);
+            const height = Number(a3);
+            if (!Number.isInteger(width) || !Number.isInteger(height) || width < 1 || height < 1
+              || width > 16384 || height > 16384 || width * height > 67108864) {
+              warnings.push(`${filename || 'RC'}:${lineNum}: 'tamano_lienzo' requiere dimensiones enteras positivas, máximo 16384 por lado y 67108864 píxeles en total.`);
+              break;
+            }
+            canvasSettings.width = width;
+            canvasSettings.height = height;
+          } else if (cmd === 'ajustar_lienzo') {
+            canvasSettings.fit = true;
+          } else {
+            const zoom = Number(cleanParam(a2).replace(/%$/, ''));
+            if (!Number.isFinite(zoom) || zoom < 10 || zoom > 800) {
+              warnings.push(`${filename || 'RC'}:${lineNum}: '${cmd}' requiere un porcentaje entre 10 y 800.`);
+              break;
+            }
+            canvasSettings.zoom = zoom;
+            canvasSettings.fit = false;
+          }
+          drawingCanvases.set(canvasId, canvasSettings);
+          hasDrawingSurface = true;
+          break;
+        }
+
+        case 'crear_pincel': {
+          const name = cleanParam(a1).toLowerCase();
+          if (!/^[a-z][a-z0-9_-]{0,63}$/.test(name)) {
+            warnings.push(`${filename || 'RC'}:${lineNum}: 'crear_pincel' requiere un nombre único en minúsculas, iniciado por una letra.`);
+            break;
+          }
+          if (drawingBrushes.has(name)) {
+            warnings.push(`${filename || 'RC'}:${lineNum}: el pincel '${name}' ya existe; no se sobrescribió.`);
+            break;
+          }
+          drawingBrushes.set(name, {
+            name, type: 'lapiz', size: 4, color: '#111111',
+            opacity: 100, hardness: 100, texture: ''
+          });
+          hasDrawingSurface = true;
+          break;
+        }
+
+        case 'tipo_pincel':
+        case 'tamano_pincel':
+        case 'color_pincel':
+        case 'opacidad_pincel':
+        case 'dureza_pincel':
+        case 'textura_pincel':
+        case 'usar_pincel':
+        case 'guardar_pincel':
+        case 'eliminar_pincel': {
+          const name = cleanParam(a1).toLowerCase();
+          if (!/^[a-z][a-z0-9_-]{0,63}$/.test(name)) {
+            warnings.push(`${filename || 'RC'}:${lineNum}: '${cmd}' requiere un nombre de pincel válido en minúsculas.`);
+            break;
+          }
+          const brush = drawingBrushes.get(name);
+          if (!brush) {
+            warnings.push(`${filename || 'RC'}:${lineNum}: el pincel '${name}' no existe; créalo primero con 'crear_pincel'.`);
+            break;
+          }
+          if (cmd === 'usar_pincel') {
+            selectedDrawingBrush = name;
+          } else if (cmd === 'guardar_pincel') {
+            savedDrawingBrushes.add(name);
+          } else if (cmd === 'eliminar_pincel') {
+            if (name === 'lapiz') {
+              warnings.push(`${filename || 'RC'}:${lineNum}: el pincel base 'lapiz' no se puede eliminar.`);
+              break;
+            }
+            drawingBrushes.delete(name);
+            savedDrawingBrushes.delete(name);
+            deletedDrawingBrushes.add(name);
+            if (selectedDrawingBrush === name) selectedDrawingBrush = 'lapiz';
+          } else if (cmd === 'tipo_pincel') {
+            const type = cleanParam(a2).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+            const types = ['lapiz', 'pluma', 'marcador', 'aerografo', 'suave', 'borrador', 'textura'];
+            if (!types.includes(type)) {
+              warnings.push(`${filename || 'RC'}:${lineNum}: 'tipo_pincel' admite lapiz, pluma, marcador, aerografo, suave, borrador o textura.`);
+              break;
+            }
+            brush.type = type;
+          } else if (cmd === 'tamano_pincel') {
+            const size = Number(cleanParam(a2).replace(/px$/i, ''));
+            if (!Number.isFinite(size) || size <= 0 || size > 1000) {
+              warnings.push(`${filename || 'RC'}:${lineNum}: 'tamano_pincel' requiere un tamaño mayor que 0 y no superior a 1000 píxeles.`);
+              break;
+            }
+            brush.size = size;
+          } else if (cmd === 'color_pincel') {
+            const color = formatColor(a2);
+            if (!color || !CSS.supports('color', color)) {
+              warnings.push(`${filename || 'RC'}:${lineNum}: 'color_pincel' requiere un color CSS válido, por ejemplo negro, #ff0000 o rgb(20, 40, 60).`);
+              break;
+            }
+            brush.color = color;
+          } else if (cmd === 'opacidad_pincel' || cmd === 'dureza_pincel') {
+            const value = Number(a2);
+            if (!Number.isFinite(value) || value < 0 || value > 100) {
+              warnings.push(`${filename || 'RC'}:${lineNum}: '${cmd}' requiere un porcentaje entre 0 y 100.`);
+              break;
+            }
+            if (cmd === 'opacidad_pincel') brush.opacity = value;
+            else brush.hardness = value;
+          } else {
+            const texture = cleanParam(a2).toLowerCase();
+            if (!['papel', 'lienzo', 'puntos', 'cuadricula'].includes(texture)) {
+              warnings.push(`${filename || 'RC'}:${lineNum}: 'textura_pincel' admite papel, lienzo, puntos o cuadricula.`);
+              break;
+            }
+            brush.texture = texture;
+          }
+          hasDrawingSurface = true;
+          break;
+        }
+
+        case 'biblioteca_pinceles': {
+          const library = createNode('section', '', 'rc-brush-library');
+          library.attrs['aria-label'] = 'Biblioteca de pinceles';
+          addChild(library);
           hasDrawingSurface = true;
           break;
         }
@@ -3557,7 +3710,8 @@
               context.fillRect(0, 0, exportCanvas.width, exportCanvas.height);
             }
             context.drawImage(canvas, 0, 0);
-            canvas.parentElement?.querySelectorAll(':scope > canvas.rc-layer').forEach(layer => {
+            const layerContainer = canvas.closest('.rc-canvas-viewport')?.parentElement || canvas.parentElement;
+            layerContainer?.querySelectorAll(':scope > canvas.rc-layer').forEach(layer => {
               context.drawImage(layer, 0, 0, exportCanvas.width, exportCanvas.height);
             });
             const link = document.createElement('a');
@@ -3618,7 +3772,23 @@
           break;
 
         case 'copiartexto':
-          scriptLines.push(`document.getElementById(${escapeJsString(a1)})?.addEventListener('click', () => { const el = document.getElementById(${escapeJsString(a2)}); if(el) navigator.clipboard.writeText(${readElementValueExpression('el')}); });`);
+          scriptLines.push(`document.getElementById(${escapeJsString(a1)})?.addEventListener('click', () => {
+            const el = document.getElementById(${escapeJsString(a2)});
+            if (!el) {
+              console.error('No se pudo copiar el texto RC: no existe el elemento de origen.');
+              return;
+            }
+            if (!navigator.clipboard?.writeText) {
+              console.error('No se pudo copiar el texto RC: el portapapeles no está disponible.');
+              return;
+            }
+            try {
+              navigator.clipboard.writeText(${readElementValueExpression('el')})
+                .catch(error => console.error('No se pudo copiar el texto RC.', error));
+            } catch (error) {
+              console.error('No se pudo copiar el texto RC.', error);
+            }
+          });`);
           break;
 
         case 'sumar':
@@ -3630,11 +3800,14 @@
             const el1 = document.getElementById(${escapeJsString(a2)});
             const el2 = document.getElementById(${escapeJsString(a3)});
             const lbl = document.getElementById(${escapeJsString(a4)});
-            if(!el1 || !el2 || !lbl) return;
+            if (!el1 || !el2 || !lbl) {
+              console.error('No se pudo ejecutar la operación matemática RC: falta un elemento de entrada o destino.');
+              return;
+            }
             const raw1 = ${readElementValueExpression('el1')};
             const raw2 = ${readElementValueExpression('el2')};
             const setLabelValue = value => {
-              ${writeElementValueStatements('lbl', 'value', true, '              ')}
+              ${writeElementValueStatements('lbl', 'value')}
             };
             const v1 = Number(raw1 === '' ? 0 : raw1);
             const v2 = Number(raw2 === '' ? 0 : raw2);
@@ -3674,10 +3847,21 @@
           const delta = isInc ? stepVal : -stepVal;
           scriptLines.push(`document.getElementById(${escapeJsString(a1)})?.addEventListener('click', () => {
             const el = document.getElementById(${escapeJsString(a2)});
-            if(!el) return;
+            if (!el) {
+              console.error('No se pudo actualizar el valor RC: no existe el elemento de destino.');
+              return;
+            }
             const current = Number(${readElementValueExpression('el')});
-            const next = (Number.isFinite(current) ? current : 0) + (${delta});
-            ${writeElementValueStatements('el', 'String(next)', true, '            ')}
+            if(!Number.isFinite(current)) {
+              console.error('No se puede actualizar el valor RC: el contenido del elemento no es numérico.');
+              return;
+            }
+            const next = current + (${delta});
+            if(!Number.isFinite(next)) {
+              console.error('No se puede actualizar el valor: el resultado no es finito.');
+              return;
+            }
+            ${writeElementValueStatements('el', 'String(next)')}
           });`);
           break;
         }
@@ -3685,15 +3869,31 @@
         case 'guardarlocal':
           scriptLines.push(`document.getElementById(${escapeJsString(a1)})?.addEventListener('click', () => {
             const el = document.getElementById(${escapeJsString(a3)});
-            if(el) localStorage.setItem(${escapeJsString(a2)}, ${readElementValueExpression('el')});
+            if (!el) {
+              console.error('No se pudo guardar el valor RC: no existe el elemento de origen.');
+              return;
+            }
+            try {
+              localStorage.setItem(${escapeJsString(a2)}, ${readElementValueExpression('el')});
+            } catch (error) {
+              console.error('No se pudo guardar el valor RC en el almacenamiento local.', error);
+            }
           });`);
           break;
 
         case 'cargarlocal':
           scriptLines.push(`{
-            const val = localStorage.getItem(${escapeJsString(a1)}) || '';
             const lbl = document.getElementById(${escapeJsString(a2)});
-            if(lbl) { ${writeElementValueStatements('lbl', 'val')} }
+            if (!lbl) {
+              console.error('No se pudo cargar el valor RC: no existe el elemento de destino.');
+            } else {
+              try {
+                const val = localStorage.getItem(${escapeJsString(a1)}) || '';
+                ${writeElementValueStatements('lbl', 'val')}
+              } catch (error) {
+                console.error('No se pudo cargar el valor RC del almacenamiento local.', error);
+              }
+            }
           }`);
           break;
       }
@@ -3987,53 +4187,227 @@
 
     if (hasDrawingSurface) {
       scriptLines.push(`{
-        const brush = { type: ${escapeJsString(drawingBrush.type)}, size: ${drawingBrush.size} };
+        const brushConfig = JSON.parse(${escapeJsString(JSON.stringify(Object.fromEntries(drawingBrushes)))});
+        const savedBrushNames = JSON.parse(${escapeJsString(JSON.stringify([...savedDrawingBrushes]))});
+        const deletedBrushNames = JSON.parse(${escapeJsString(JSON.stringify([...deletedDrawingBrushes]))});
+        const canvasConfig = JSON.parse(${escapeJsString(JSON.stringify(Object.fromEntries(drawingCanvases)))});
+        const storageKey = ${escapeJsString(`rc-studio-brushes:${rootFile || 'app'}`)};
+        let activeBrushName = ${escapeJsString(selectedDrawingBrush)};
+        let savedBrushData = {};
+        const showStatus = message => document.querySelectorAll('.rc-brush-library-status').forEach(item => { item.textContent = message; });
+        try {
+          const stored = JSON.parse(localStorage.getItem(storageKey) || '{}');
+          if (stored && typeof stored === 'object' && !Array.isArray(stored)) savedBrushData = stored;
+        } catch (error) {
+          console.warn('No se pudieron recuperar los pinceles guardados.', error);
+          showStatus('No se pudieron recuperar los pinceles guardados.');
+        }
+        deletedBrushNames.forEach(name => delete brushConfig[name]);
+        Object.entries(savedBrushData).forEach(([name, stored]) => {
+          if (deletedBrushNames.includes(name)) return;
+          if (stored?.deleted === true) { delete brushConfig[name]; return; }
+          const types = ['lapiz', 'pluma', 'marcador', 'aerografo', 'suave', 'borrador', 'textura'];
+          if (!/^[a-z][a-z0-9_-]{0,63}$/.test(name) || !stored || typeof stored !== 'object'
+            || !types.includes(stored.type) || !Number.isFinite(stored.size) || stored.size <= 0 || stored.size > 1000
+            || !CSS.supports('color', stored.color) || !Number.isFinite(stored.opacity) || stored.opacity < 0 || stored.opacity > 100
+            || !Number.isFinite(stored.hardness) || stored.hardness < 0 || stored.hardness > 100
+            || !['', 'papel', 'lienzo', 'puntos', 'cuadricula'].includes(stored.texture)) return;
+          brushConfig[name] = { name, type: stored.type, size: stored.size, color: stored.color, opacity: stored.opacity, hardness: stored.hardness, texture: stored.texture };
+        });
+        const getBrush = () => brushConfig[activeBrushName] || brushConfig.lapiz;
+        const persistBrush = name => {
+          try {
+            savedBrushData[name] = { ...brushConfig[name] };
+            localStorage.setItem(storageKey, JSON.stringify(savedBrushData));
+            showStatus('Pincel guardado en este navegador.');
+            return true;
+          } catch (error) {
+            console.warn('No se pudo guardar el pincel en el almacenamiento local.', error);
+            showStatus('Error: no se pudo guardar el pincel en este navegador.');
+            return false;
+          }
+        };
+        savedBrushNames.forEach(name => { if (brushConfig[name]) persistBrush(name); });
+        const textureCache = new Map();
+        const texturePattern = brush => {
+          if (!brush.texture) return null;
+          const key = brush.texture + ':' + brush.color;
+          if (textureCache.has(key)) return textureCache.get(key);
+          const tile = document.createElement('canvas');
+          tile.width = tile.height = 16;
+          const tileContext = tile.getContext('2d');
+          if (!tileContext) return null;
+          tileContext.fillStyle = brush.color;
+          if (brush.texture === 'papel') [[2, 4], [9, 3], [13, 11], [5, 13], [11, 7]].forEach(([x, y]) => tileContext.fillRect(x, y, 1, 1));
+          else if (brush.texture === 'lienzo') for (let i = 0; i < 16; i += 4) { tileContext.fillRect(i, 0, 1, 16); tileContext.fillRect(0, i, 16, 1); }
+          else if (brush.texture === 'puntos') [[3, 3], [11, 3], [3, 11], [11, 11]].forEach(([x, y]) => tileContext.fillRect(x, y, 2, 2));
+          else if (brush.texture === 'cuadricula') { tileContext.fillRect(0, 0, 1, 16); tileContext.fillRect(0, 0, 16, 1); tileContext.fillRect(8, 0, 1, 16); tileContext.fillRect(0, 8, 16, 1); }
+          const pattern = document.createElement('canvas').getContext('2d')?.createPattern(tile, 'repeat') || null;
+          textureCache.set(key, pattern);
+          return pattern;
+        };
+        const applyBrush = (context, pressure) => {
+          const brush = getBrush();
+          const type = String(brush.type || 'lapiz').toLowerCase();
+          const eraser = ['borrador', 'goma', 'eraser'].includes(type);
+          context.globalCompositeOperation = eraser ? 'destination-out' : 'source-over';
+          context.globalAlpha = eraser ? 1 : Math.max(0, Math.min(1, Number(brush.opacity ?? 100) / 100));
+          context.strokeStyle = brush.texture ? (texturePattern(brush) || brush.color) : brush.color;
+          context.fillStyle = brush.color;
+          context.lineCap = 'round'; context.lineJoin = 'round';
+          context.lineWidth = Math.max(0.5, Number(brush.size || 4) * (type === 'marcador' ? 2.4 : type === 'aerografo' ? 2.8 : type === 'pluma' ? 0.9 : 1) * pressure);
+          context.shadowColor = type === 'suave' || type === 'aerografo' ? brush.color : 'transparent';
+          context.shadowBlur = type === 'aerografo' ? brush.size * 1.8
+            : type === 'suave' ? brush.size * (0.2 + (1 - brush.hardness / 100) * 0.8)
+              : type === 'pluma' ? brush.size * (1 - brush.hardness / 100) * 0.4
+                : type === 'lapiz' ? brush.size * (1 - brush.hardness / 100) * 0.2 : 0;
+          if (type === 'marcador') context.globalAlpha *= 0.45;
+          if (type === 'aerografo') context.globalAlpha *= 0.3;
+          if (type === 'lapiz') context.globalAlpha *= 0.9;
+          if (type === 'textura' && !brush.texture) context.globalAlpha *= 0.7;
+        };
+        const resizeCanvas = (canvas, width, height) => {
+          if (canvas.width === width && canvas.height === height) return;
+          const snapshot = document.createElement('canvas');
+          snapshot.width = canvas.width; snapshot.height = canvas.height;
+          snapshot.getContext('2d')?.drawImage(canvas, 0, 0);
+          canvas.width = width; canvas.height = height;
+          canvas.getContext('2d')?.drawImage(snapshot, 0, 0);
+        };
         document.querySelectorAll('canvas.rc-drawing-surface').forEach(canvas => {
           const context = canvas.getContext('2d');
-          if (!context) return;
+          if (!context) { console.error('No se pudo iniciar el lienzo: el navegador no ofrece un contexto 2D.', canvas); return; }
+          const settings = canvasConfig[canvas.id] || { zoom: 100, fit: false };
+          if (settings.width && settings.height) {
+            resizeCanvas(canvas, settings.width, settings.height);
+            canvas.parentElement?.querySelectorAll(':scope > canvas.rc-layer').forEach(layer => resizeCanvas(layer, settings.width, settings.height));
+          }
+          const viewport = document.createElement('div');
+          viewport.className = 'rc-canvas-viewport';
+          canvas.parentNode?.insertBefore(viewport, canvas);
+          viewport.appendChild(canvas);
+          const updateView = () => {
+            const scale = settings.fit
+              ? Math.min(viewport.clientWidth / canvas.width, viewport.clientHeight / canvas.height)
+              : Number(settings.zoom || 100) / 100;
+            const safeScale = Number.isFinite(scale) && scale > 0 ? scale : 1;
+            canvas.style.width = Math.max(1, canvas.width * safeScale) + 'px';
+            canvas.style.height = Math.max(1, canvas.height * safeScale) + 'px';
+            viewport.classList.toggle('fit', Boolean(settings.fit));
+          };
+          updateView();
+          if (settings.fit && window.ResizeObserver) new ResizeObserver(updateView).observe(viewport);
+          else if (settings.fit) window.addEventListener('resize', updateView);
           let previousPoint = null;
           let drawing = false;
           const pointFrom = event => {
             const bounds = canvas.getBoundingClientRect();
-            return {
-              x: (event.clientX - bounds.left) * canvas.width / (bounds.width || 1),
-              y: (event.clientY - bounds.top) * canvas.height / (bounds.height || 1)
-            };
+            const style = getComputedStyle(canvas);
+            const left = Number.parseFloat(style.borderLeftWidth) || 0;
+            const right = Number.parseFloat(style.borderRightWidth) || 0;
+            const top = Number.parseFloat(style.borderTopWidth) || 0;
+            const bottom = Number.parseFloat(style.borderBottomWidth) || 0;
+            const contentWidth = Math.max(1, bounds.width - left - right);
+            const contentHeight = Math.max(1, bounds.height - top - bottom);
+            return { x: (event.clientX - bounds.left - left) * canvas.width / contentWidth, y: (event.clientY - bounds.top - top) * canvas.height / contentHeight };
+          };
+          const pressureFrom = event => event.pointerType === 'pen' || event.pointerType === 'touch'
+            ? Math.max(0.12, Math.min(1, event.pressure || 0.5)) : 1;
+          const finishStroke = event => {
+            if (!drawing) return;
+            drawing = false; previousPoint = null;
+            if (canvas.hasPointerCapture(event.pointerId)) canvas.releasePointerCapture(event.pointerId);
           };
           canvas.addEventListener('pointerdown', event => {
             if (event.pointerType === 'mouse' && event.button !== 0) return;
-            event.preventDefault();
-            canvas.setPointerCapture(event.pointerId);
-            drawing = true;
-            previousPoint = pointFrom(event);
+            event.preventDefault(); canvas.setPointerCapture(event.pointerId);
+            drawing = true; previousPoint = pointFrom(event);
+            applyBrush(context, pressureFrom(event));
             context.beginPath();
-            context.moveTo(previousPoint.x, previousPoint.y);
+            context.arc(previousPoint.x, previousPoint.y, Math.max(0.5, context.lineWidth / 2), 0, Math.PI * 2);
+            context.fill();
           });
           canvas.addEventListener('pointermove', event => {
             if (!drawing || !previousPoint) return;
             event.preventDefault();
             const point = pointFrom(event);
-            const pressure = event.pressure > 0 ? event.pressure : 0.5;
-            context.globalCompositeOperation = ['borrador', 'goma', 'eraser'].includes(brush.type) ? 'destination-out' : 'source-over';
-            context.strokeStyle = getComputedStyle(canvas).color || '#111111';
-            context.globalAlpha = brush.type === 'marcador' ? 0.45 : brush.type === 'aerografo' ? 0.25 : 1;
-            const brushFactor = brush.type === 'marcador' ? 2.5 : brush.type === 'aerografo' ? 3 : 2;
-            context.lineWidth = Math.max(0.5, brush.size * pressure * brushFactor);
-            context.lineCap = 'round';
-            context.lineJoin = 'round';
-            context.quadraticCurveTo(previousPoint.x, previousPoint.y, (previousPoint.x + point.x) / 2, (previousPoint.y + point.y) / 2);
-            context.stroke();
-            previousPoint = point;
+            applyBrush(context, pressureFrom(event));
+            context.beginPath(); context.moveTo(previousPoint.x, previousPoint.y);
+            context.quadraticCurveTo(previousPoint.x, previousPoint.y, point.x, point.y);
+            context.stroke(); previousPoint = point;
           }, { passive: false });
-          const finishStroke = event => {
-            if (!drawing) return;
-            drawing = false;
-            previousPoint = null;
-            if (canvas.hasPointerCapture(event.pointerId)) canvas.releasePointerCapture(event.pointerId);
-          };
           canvas.addEventListener('pointerup', finishStroke);
           canvas.addEventListener('pointercancel', finishStroke);
           canvas.addEventListener('lostpointercapture', () => { drawing = false; previousPoint = null; });
+        });
+        document.querySelectorAll('.rc-brush-library').forEach(library => {
+          const make = (tag, text) => { const element = document.createElement(tag); if (text) element.textContent = text; return element; };
+          const field = (title, control) => { const wrapper = make('label', title); wrapper.appendChild(control); library.appendChild(wrapper); };
+          const select = make('select');
+          const nameInput = make('input'); nameInput.placeholder = 'nombre del pincel'; nameInput.maxLength = 64;
+          const typeSelect = make('select');
+          ['lapiz', 'pluma', 'marcador', 'aerografo', 'suave', 'borrador', 'textura'].forEach(type => { const option = make('option', type); option.value = type; typeSelect.appendChild(option); });
+          const sizeInput = make('input'); sizeInput.type = 'range'; sizeInput.min = '1'; sizeInput.max = '100';
+          const colorInput = make('input'); colorInput.type = 'color';
+          const opacityInput = make('input'); opacityInput.type = 'range'; opacityInput.min = '0'; opacityInput.max = '100';
+          const hardnessInput = make('input'); hardnessInput.type = 'range'; hardnessInput.min = '0'; hardnessInput.max = '100';
+          const textureSelect = make('select');
+          [['', 'sin textura'], ['papel', 'papel'], ['lienzo', 'lienzo'], ['puntos', 'puntos'], ['cuadricula', 'cuadricula']].forEach(([value, text]) => { const option = make('option', text); option.value = value; textureSelect.appendChild(option); });
+          const preview = make('canvas'); preview.width = 240; preview.height = 54; preview.className = 'rc-brush-preview';
+          const status = make('output'); status.className = 'rc-brush-library-status'; status.setAttribute('aria-live', 'polite');
+          const actions = make('div'); actions.className = 'rc-brush-library-actions';
+          const action = (text, callback) => { const control = make('button', text); control.type = 'button'; control.addEventListener('click', callback); actions.appendChild(control); };
+          const updatePreview = () => {
+            const brush = getBrush();
+            typeSelect.value = brush.type; sizeInput.value = String(brush.size);
+            colorInput.value = /^#[0-9a-f]{6}$/i.test(brush.color) ? brush.color : '#111111';
+            opacityInput.value = String(brush.opacity); hardnessInput.value = String(brush.hardness);
+            textureSelect.value = brush.texture || ''; select.value = activeBrushName;
+            const previewContext = preview.getContext('2d');
+            if (previewContext) { previewContext.clearRect(0, 0, preview.width, preview.height); applyBrush(previewContext, 1); previewContext.beginPath(); previewContext.moveTo(12, 28); previewContext.quadraticCurveTo(120, 0, 228, 30); previewContext.stroke(); previewContext.globalAlpha = 1; previewContext.globalCompositeOperation = 'source-over'; previewContext.shadowBlur = 0; }
+          };
+          const refresh = () => {
+            select.replaceChildren();
+            Object.keys(brushConfig).forEach(name => { const option = make('option', name); option.value = name; select.appendChild(option); });
+            if (!brushConfig[activeBrushName]) activeBrushName = 'lapiz';
+            updatePreview();
+          };
+          const updateBrush = () => {
+            const brush = getBrush();
+            brush.type = typeSelect.value; brush.size = Number(sizeInput.value); brush.color = colorInput.value;
+            brush.opacity = Number(opacityInput.value); brush.hardness = Number(hardnessInput.value); brush.texture = textureSelect.value;
+            textureCache.clear(); updatePreview();
+          };
+          select.addEventListener('change', () => { activeBrushName = select.value; updatePreview(); });
+          [typeSelect, sizeInput, colorInput, opacityInput, hardnessInput, textureSelect].forEach(control => control.addEventListener('input', updateBrush));
+          action('Crear', () => {
+            const name = nameInput.value.trim().toLowerCase();
+            if (!/^[a-z][a-z0-9_-]{0,63}$/.test(name) || brushConfig[name]) { status.textContent = 'Usa un nombre nuevo en minúsculas, iniciado por una letra.'; return; }
+            brushConfig[name] = { name, type: 'lapiz', size: 4, color: '#111111', opacity: 100, hardness: 100, texture: '' };
+            delete savedBrushData[name];
+            try { localStorage.setItem(storageKey, JSON.stringify(savedBrushData)); }
+            catch (error) { console.warn('No se pudo actualizar el almacenamiento de pinceles.', error); status.textContent = 'No se pudo actualizar el almacenamiento local.'; }
+            activeBrushName = name; nameInput.value = ''; refresh();
+          });
+          action('Duplicar', () => {
+            const baseName = activeBrushName + '_copia'; let name = baseName; let suffix = 2;
+            while (brushConfig[name]) name = baseName + suffix++;
+            brushConfig[name] = { ...getBrush(), name }; delete savedBrushData[name];
+            activeBrushName = name; refresh();
+          });
+          action('Guardar', () => { persistBrush(activeBrushName); });
+          action('Eliminar', () => {
+            if (activeBrushName === 'lapiz') { status.textContent = 'El pincel base no se puede eliminar.'; return; }
+            const deletedName = activeBrushName;
+            delete brushConfig[deletedName]; savedBrushData[deletedName] = { deleted: true };
+            activeBrushName = 'lapiz'; refresh();
+            try { localStorage.setItem(storageKey, JSON.stringify(savedBrushData)); }
+            catch (error) { console.warn('No se pudo actualizar el almacenamiento de pinceles.', error); status.textContent = 'Error al actualizar los pinceles guardados.'; }
+          });
+          field('Pincel', select); field('Nombre', nameInput); field('Tipo', typeSelect);
+          field('Tamaño', sizeInput); field('Color', colorInput); field('Opacidad', opacityInput);
+          field('Dureza', hardnessInput); field('Textura', textureSelect);
+          library.append(preview, actions, status); refresh();
         });
       }`);
     }
@@ -4057,14 +4431,58 @@
     }
 
     scriptLines.unshift(`{
+      window.rcReadValue = element => {
+        if (!element) return '';
+        try {
+          const tag = String(element.tagName || '').toUpperCase();
+          if (['INPUT', 'TEXTAREA', 'SELECT'].includes(tag)) return String(element.value ?? '');
+          const key = element.dataset?.rcBind;
+          if (key && window.rcState && Object.prototype.hasOwnProperty.call(window.rcState, key)) {
+            return String(window.rcState[key] ?? '');
+          }
+          return String(element.textContent ?? '');
+        } catch (error) {
+          console.error('No se pudo leer el valor del elemento RC.', error);
+          return '';
+        }
+      };
+      window.rcWriteValue = (element, value) => {
+        if (!element || !element.isConnected) {
+          console.error('No se pudo actualizar el valor RC: el elemento ya no está en el documento.');
+          return false;
+        }
+        try {
+          const text = String(value ?? '');
+          const tag = String(element.tagName || '').toUpperCase();
+          if (['INPUT', 'TEXTAREA', 'SELECT'].includes(tag)) {
+            if (tag === 'INPUT' && element.type === 'file' && text) {
+              console.error('No se puede asignar texto a un campo de archivo RC.');
+              return false;
+            }
+            element.value = text;
+          } else {
+            element.textContent = text;
+          }
+          const key = element.dataset?.rcBind;
+          if (key && window.rcState) window.rcState[key] = text;
+          return true;
+        } catch (error) {
+          console.error('No se pudo escribir el valor en el elemento RC.', error);
+          return false;
+        }
+      };
       const refreshRcBindings = () => {
         document.querySelectorAll('[data-rc-bind]').forEach(element => {
           const key = element.dataset.rcBind;
           if (!Object.prototype.hasOwnProperty.call(window.rcState, key)) return;
-          const value = String(window.rcState[key] ?? '');
-          if (element.type === 'checkbox' || element.type === 'radio') element.checked = ['true', '1', 'si', 'sí'].includes(value.toLowerCase());
-          else if ('value' in element) element.value = value;
-          else element.textContent = value;
+          try {
+            const value = String(window.rcState[key] ?? '');
+            if (element.type === 'checkbox' || element.type === 'radio') element.checked = ['true', '1', 'si', 'sí'].includes(value.toLowerCase());
+            else if ('value' in element && !(element.tagName === 'INPUT' && element.type === 'file')) element.value = value;
+            else element.textContent = value;
+          } catch (error) {
+            console.error('No se pudo actualizar el enlace de datos RC.', error);
+          }
         });
         document.querySelectorAll('[data-rc-condition]').forEach(element => {
           let conditions;
@@ -4072,6 +4490,12 @@
             conditions = JSON.parse(element.dataset.rcCondition);
           } catch (error) {
             console.error('Condición RC inválida en el DOM.', error);
+            return;
+          }
+          if (!Array.isArray(conditions) || conditions.some(condition =>
+            !condition || typeof condition.key !== 'string' || typeof condition.value !== 'string'
+          )) {
+            console.error('Condición RC inválida: se esperaba una lista de claves y valores.');
             return;
           }
           const matches = conditions.every(condition => {
@@ -4613,7 +5037,17 @@
     img { background-color: transparent; }
     .rejilla { display: grid; width: 100%; gap: 10px; box-sizing: border-box; }
     .cargando { display: inline-block; padding: 10px 20px; background: #222733; color: #68b5ff; border-radius: 6px; border: 1px dashed #68b5ff; }
-    .rc-drawing-surface { position: relative; display: block; width: 100%; height: 320px; touch-action: none; color: #111111; background: #ffffff; border: 1px solid #3d4454; }
+    .rc-drawing-surface { position: relative; display: block; width: 100%; height: 320px; flex: 0 0 auto; touch-action: none; color: #111111; background: #ffffff; border: 1px solid #3d4454; }
+    .rc-canvas-viewport { position: relative; display: block; width: 100%; height: 320px; overflow: hidden !important; scrollbar-width: none !important; overscroll-behavior: contain; background: #ffffff; }
+    .rc-canvas-viewport::-webkit-scrollbar { display: none !important; }
+    .rc-canvas-viewport.fit { display: flex; align-items: center; justify-content: center; overflow: hidden; }
+    .rc-brush-library { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; width: min(100%, 900px); margin: 12px 0; padding: 14px; border: 1px solid var(--rc-border); border-radius: 10px; background: var(--rc-surface); }
+    .rc-brush-library label { display: grid; gap: 5px; min-width: 0; color: var(--rc-text); font-size: 12px; }
+    .rc-brush-library input, .rc-brush-library select { min-width: 0; max-width: 100%; margin: 0; }
+    .rc-brush-preview, .rc-brush-library-actions, .rc-brush-library-status { grid-column: 1 / -1; }
+    .rc-brush-preview { width: 100%; max-width: 240px; height: 54px; border: 1px solid var(--rc-border); border-radius: 6px; background: #fff; }
+    .rc-brush-library-actions { display: flex; flex-wrap: wrap; gap: 6px; }
+    .rc-brush-library-status { min-height: 1.4em; color: var(--rc-muted); font-size: 12px; }
     .rc-layer { display: block; }
     .rc-modal-overlay { position: fixed; inset: 0; z-index: 1000; display: flex; align-items: center; justify-content: center; padding: 20px; background: var(--rc-overlay); }
     .rc-modal-content { position: relative; width: min(100%, 720px); max-height: 85vh; overflow: auto; padding: 28px; border: 1px solid var(--rc-border); border-radius: 12px; background: var(--rc-surface); color: var(--rc-text); box-shadow: 0 16px 40px #0009; }
@@ -4664,7 +5098,18 @@ ${warningBlock}${bodyChildren}
 
   const STORAGE_KEY = "rc_studio_state";
   const IMAGE_STORAGE_KEY = "rc_studio_images";
+  const IMAGE_METADATA_KEY = "rc_studio_image_metadata";
+  const IMAGE_DB_NAME = "rc_studio_assets";
+  const IMAGE_DB_STORE = "images";
+  const VERSION_STORAGE_KEY = "rc_studio_versions";
+  const MAX_IMAGE_SIZE = 20 * 1024 * 1024;
+  const MAX_RC_IMPORT_SIZE = 5 * 1024 * 1024;
   const files = new Map();
+  let legacyImageAssets = [];
+  let imageDbPromise = null;
+  let imageSaveQueue = Promise.resolve();
+  let imageAssetsReady = Promise.resolve();
+  let imageAssetsLoadError = null;
   let activeFile = "main.rc";
   let splitRatio = 0.5;
   let stateSaveTimer = null;
@@ -4689,12 +5134,15 @@ ${warningBlock}${bodyChildren}
       };
       localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
       storageErrorNotified = false;
+      saveVersionSnapshots();
+      return true;
     } catch (e) {
       console.warn("No se pudo guardar el estado en localStorage", e);
       if (!storageErrorNotified) {
         storageErrorNotified = true;
-        notify("No se pudo guardar el proyecto. Revisa el espacio disponible del navegador.");
+        notify("No se pudo guardar el proyecto. Revisa el espacio disponible del navegador.", 6000);
       }
+      return false;
     }
   }
 
@@ -4705,13 +5153,255 @@ ${warningBlock}${bodyChildren}
 
   window.addEventListener("pagehide", saveState);
 
-  function saveImageAssets() {
+  function openImageDatabase() {
+    if (imageDbPromise) return imageDbPromise;
+    imageDbPromise = new Promise((resolve, reject) => {
+      if (!window.indexedDB) {
+        reject(new Error("Este navegador no ofrece IndexedDB."));
+        return;
+      }
+      const request = indexedDB.open(IMAGE_DB_NAME, 1);
+      request.addEventListener("upgradeneeded", () => {
+        const database = request.result;
+        if (!database.objectStoreNames.contains(IMAGE_DB_STORE)) {
+          database.createObjectStore(IMAGE_DB_STORE, { keyPath: "name" });
+        }
+      }, { once: true });
+      request.addEventListener("success", () => {
+        const database = request.result;
+        database.addEventListener("versionchange", () => database.close());
+        resolve(database);
+      }, { once: true });
+      request.addEventListener("error", () => reject(request.error || new Error("No se pudo abrir IndexedDB.")), { once: true });
+      request.addEventListener("blocked", () => reject(new Error("La base de datos de imágenes está bloqueada por otra pestaña.")), { once: true });
+    }).catch(error => {
+      imageDbPromise = null;
+      throw error;
+    });
+    return imageDbPromise;
+  }
+
+  function transactionDone(transaction) {
+    return new Promise((resolve, reject) => {
+      transaction.addEventListener("complete", resolve, { once: true });
+      transaction.addEventListener("abort", () => reject(transaction.error || new Error("La transacción de imágenes se canceló.")), { once: true });
+      transaction.addEventListener("error", () => reject(transaction.error || new Error("Falló la transacción de imágenes.")), { once: true });
+    });
+  }
+
+  function dataUrlToBlob(dataUrl) {
+    const [header, encoded] = dataUrl.split(",", 2);
+    const mimeType = header.match(/^data:([^;]+)/i)?.[1] || "application/octet-stream";
+    const binary = atob(encoded || "");
+    const bytes = new Uint8Array(binary.length);
+    for (let index = 0; index < binary.length; index++) bytes[index] = binary.charCodeAt(index);
+    return new Blob([bytes], { type: mimeType });
+  }
+
+  function blobToDataUrl(blob) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.addEventListener("load", () => {
+        if (typeof reader.result === "string") resolve(reader.result);
+        else reject(new Error("No se pudieron hidratar los datos de una imagen."));
+      }, { once: true });
+      reader.addEventListener("error", () => reject(reader.error || new Error("No se pudo leer una imagen guardada.")), { once: true });
+      reader.readAsDataURL(blob);
+    });
+  }
+
+  async function persistImageAssets() {
+    const images = [...files.entries()].filter(([, file]) => file.type === "image");
+    const records = await Promise.all(images.map(async ([name, image], order) => {
+      const blob = image.content instanceof Blob ? image.content : dataUrlToBlob(image.content);
+      return {
+        name, blob, order,
+        width: Number(image.width) || 0,
+        height: Number(image.height) || 0,
+        x: Number(image.x) || 0,
+        y: Number(image.y) || 0,
+        editedAt: image.editedAt || null,
+        updatedAt: Date.now()
+      };
+    }));
+    const database = await openImageDatabase();
+    const transaction = database.transaction(IMAGE_DB_STORE, "readwrite");
+    const done = transactionDone(transaction);
+    const store = transaction.objectStore(IMAGE_DB_STORE);
+    store.clear();
+    records.forEach(record => store.put(record));
+    await done;
     try {
-      const images = [...files.entries()].filter(([, file]) => file.type === "image");
-      localStorage.setItem(IMAGE_STORAGE_KEY, JSON.stringify(images));
+      localStorage.removeItem(IMAGE_STORAGE_KEY);
+      localStorage.setItem(IMAGE_METADATA_KEY, JSON.stringify(records.map(({ name, order, width, height, x, y, editedAt, updatedAt }) => ({
+        id: name, name, order, width, height, x, y, editedAt, updatedAt
+      }))));
     } catch (error) {
-      console.warn("No se pudieron guardar las imágenes del proyecto", error);
-      notify("No se pudieron guardar las imágenes. Revisa el espacio disponible del navegador.");
+      const metadataError = new Error(`Los datos de imagen se guardaron, pero no sus metadatos: ${error.message}`);
+      metadataError.committed = true;
+      throw metadataError;
+    }
+  }
+
+  function saveImageAssets() {
+    const operation = imageSaveQueue.then(persistImageAssets);
+    imageSaveQueue = operation.catch(() => {});
+    return operation.catch(error => {
+      console.error("No se pudieron guardar las imágenes en IndexedDB", error);
+      throw error;
+    });
+  }
+
+  async function requestPersistentStorage() {
+    if (!navigator.storage?.persist || !navigator.storage?.persisted) {
+      notify("IndexedDB está disponible, pero este navegador no permite solicitar protección frente a la limpieza automática.", 6000);
+      return;
+    }
+    try {
+      if (!await navigator.storage.persisted() && !await navigator.storage.persist()) {
+        notify("Las imágenes siguen guardadas en IndexedDB, pero el navegador no concedió protección frente a la limpieza automática.", 6000);
+      }
+    } catch (error) {
+      console.warn("No se pudo solicitar almacenamiento persistente", error);
+      notify("No se pudo confirmar la protección del almacenamiento del navegador.", 6000);
+    }
+  }
+
+  async function loadImageAssets() {
+    await requestPersistentStorage();
+    const database = await openImageDatabase();
+    const transaction = database.transaction(IMAGE_DB_STORE, "readonly");
+    const done = transactionDone(transaction);
+    const request = transaction.objectStore(IMAGE_DB_STORE).getAll();
+    const storedImages = await new Promise((resolve, reject) => {
+      request.addEventListener("success", () => resolve(request.result), { once: true });
+      request.addEventListener("error", () => reject(request.error || new Error("No se pudieron recuperar las imágenes.")), { once: true });
+    });
+    await done;
+
+    let metadata = [];
+    try {
+      const rawMetadata = localStorage.getItem(IMAGE_METADATA_KEY);
+      if (rawMetadata !== null) {
+        const parsedMetadata = JSON.parse(rawMetadata);
+        if (!Array.isArray(parsedMetadata)) throw new Error("Los metadatos de imágenes no tienen un formato válido.");
+        metadata = parsedMetadata.filter(item => typeof item?.id === "string" && typeof item.name === "string");
+      }
+    } catch (error) {
+      console.warn("No se pudieron leer los metadatos de imágenes", error);
+      notify("No se pudieron leer los metadatos de imágenes guardados.", 6000);
+    }
+
+    const storedByName = new Map(storedImages.map(image => [image.name, image]));
+    const legacyByName = new Map(legacyImageAssets);
+    let migrated = false;
+    for (const [name, image] of legacyByName) {
+      if (storedByName.has(name)) continue;
+      storedByName.set(name, { name, blob: dataUrlToBlob(image.content), order: storedByName.size, updatedAt: Date.now() });
+      migrated = true;
+    }
+    legacyImageAssets = [];
+
+    const orderByName = new Map(metadata.map((item, index) => [item.name, Number.isFinite(item.order) ? item.order : index]));
+    const records = [...storedByName.values()].sort((a, b) =>
+      (orderByName.get(a.name) ?? a.order ?? 0) - (orderByName.get(b.name) ?? b.order ?? 0)
+    );
+    for (const record of records) {
+      if (files.has(record.name) && files.get(record.name).type !== "image") continue;
+      files.set(record.name, {
+        type: "image",
+        content: await blobToDataUrl(record.blob),
+        width: Number(record.width) || 0,
+        height: Number(record.height) || 0,
+        x: Number(record.x) || 0,
+        y: Number(record.y) || 0,
+        editedAt: record.editedAt || null,
+        order: Number(record.order) || 0
+      });
+    }
+    if (migrated || metadata.length !== records.length || records.some((record, index) => metadata[index]?.name !== record.name)) {
+      await persistImageAssets();
+    } else if (metadata.length === 0 && records.length) {
+      localStorage.setItem(IMAGE_METADATA_KEY, JSON.stringify(records.map(({ name, order }) => ({ id: name, name, order }))));
+    }
+    renderExplorer();
+    debounceTranslate();
+  }
+
+  function saveVersionSnapshots() {
+    let histories;
+    try {
+      histories = JSON.parse(localStorage.getItem(VERSION_STORAGE_KEY) || "{}");
+      if (!histories || typeof histories !== "object" || Array.isArray(histories)) histories = {};
+      const updated = { ...histories };
+      let changed = false;
+      for (const [name, versions] of Object.entries(updated)) {
+        if (!Array.isArray(versions)) {
+          delete updated[name];
+          changed = true;
+          continue;
+        }
+        const seenContents = new Set();
+        const normalizedVersions = versions.filter(version => {
+          if (typeof version?.content !== "string" || seenContents.has(version.content)) return false;
+          seenContents.add(version.content);
+          return true;
+        }).slice(0, 3);
+        if (normalizedVersions.length !== versions.length) {
+          updated[name] = normalizedVersions;
+          changed = true;
+        }
+      }
+      for (const [name, file] of files) {
+        if (file.type !== "rc" || typeof file.content !== "string") continue;
+        const versions = Array.isArray(updated[name])
+          ? updated[name]
+          : [];
+        const existingIndex = versions.findIndex(version => version.content === file.content);
+        if (existingIndex === 0) {
+          continue;
+        }
+        const nextNumber = Math.max(0, ...versions.map(version => Number(version.number) || 0)) + 1;
+        const newVersion = existingIndex > 0
+          ? { ...versions[existingIndex], number: nextNumber, createdAt: new Date().toISOString() }
+          : { number: nextNumber, createdAt: new Date().toISOString(), content: file.content };
+        updated[name] = [
+          newVersion,
+          ...versions.filter((version, index) => index !== existingIndex)
+        ].slice(0, 3);
+        changed = true;
+      }
+      if (changed) localStorage.setItem(VERSION_STORAGE_KEY, JSON.stringify(updated));
+      return true;
+    } catch (error) {
+      console.warn("No se pudo guardar el historial de versiones", error);
+      notify("El archivo se guardó, pero no se pudo actualizar el historial de versiones.", 6000);
+      return false;
+    }
+  }
+
+  function updateVersionHistory(oldName, newName) {
+    try {
+      const histories = JSON.parse(localStorage.getItem(VERSION_STORAGE_KEY) || "{}");
+      if (!Object.hasOwn(histories, oldName)) return;
+      histories[newName] = histories[oldName];
+      delete histories[oldName];
+      localStorage.setItem(VERSION_STORAGE_KEY, JSON.stringify(histories));
+    } catch (error) {
+      console.warn("No se pudo actualizar el nombre en el historial", error);
+      notify("No se pudo actualizar el historial de versiones.", 6000);
+    }
+  }
+
+  function deleteVersionHistory(name) {
+    try {
+      const histories = JSON.parse(localStorage.getItem(VERSION_STORAGE_KEY) || "{}");
+      if (!Object.hasOwn(histories, name)) return;
+      delete histories[name];
+      localStorage.setItem(VERSION_STORAGE_KEY, JSON.stringify(histories));
+    } catch (error) {
+      console.warn("No se pudo eliminar el historial del archivo", error);
+      notify("No se pudo eliminar el historial del archivo.", 6000);
     }
   }
 
@@ -4723,12 +5413,12 @@ ${warningBlock}${bodyChildren}
       if (!parsed || !Array.isArray(parsed.files)) return false;
 
       files.clear();
-      const legacyImages = [];
+      legacyImageAssets = [];
       for (const [name, fileObj] of parsed.files) {
         if (name && fileObj && typeof fileObj.content === "string") {
           if (fileObj.type === "image") {
             if (!/^data:image\/[a-z0-9.+-]+;base64,/i.test(fileObj.content)) continue;
-            legacyImages.push([name, { type: "image", content: fileObj.content }]);
+            legacyImageAssets.push([name, { type: "image", content: fileObj.content }]);
             continue;
           }
           if (name.endsWith('.html') && fileObj.type !== 'rc') continue;
@@ -4736,24 +5426,23 @@ ${warningBlock}${bodyChildren}
           files.set(fileName, { type: 'rc', content: fileObj.content });
         }
       }
-      let savedImages = legacyImages;
       try {
         const imageState = localStorage.getItem(IMAGE_STORAGE_KEY);
         if (imageState !== null) {
           const parsedImages = JSON.parse(imageState);
           if (!Array.isArray(parsedImages)) throw new Error("El catálogo de imágenes no es válido.");
-          savedImages = parsedImages.filter(([name, image]) =>
+          const savedImages = parsedImages.filter(([name, image]) =>
             typeof name === "string" && image?.type === "image"
             && typeof image.content === "string"
             && /^data:image\/[a-z0-9.+-]+;base64,/i.test(image.content)
           );
+          const existingNames = new Set(legacyImageAssets.map(([name]) => name));
+          legacyImageAssets.push(...savedImages.filter(([name]) => !existingNames.has(name)));
         }
       } catch (error) {
         console.warn("No se pudo cargar el catálogo de imágenes", error);
-        notify("No se pudo leer el catálogo de imágenes guardado.");
+        notify("No se pudo leer el catálogo de imágenes guardado.", 6000);
       }
-      savedImages.forEach(([name, image]) => files.set(name, image));
-      if (legacyImages.length && localStorage.getItem(IMAGE_STORAGE_KEY) === null) saveImageAssets();
 
       if (Number.isFinite(parsed.splitRatio)) splitRatio = Math.max(0.2, Math.min(0.8, parsed.splitRatio));
       if (files.size === 0) {
@@ -4964,7 +5653,7 @@ ${warningBlock}${bodyChildren}
       const updatedCommand = parsed.bracketId
         ? `boton[${parsed.bracketId}](${encodedText})`
         : parsed.args.length >= 2
-          ? `boton(${JSON.stringify(parsed.args[0])}, ${encodedText})`
+          ? `boton(${JSON.stringify(parsed.args[0])})(${encodedText})`
           : `boton(${encodedText})`;
       lines[commandIndex] = indent + updatedCommand;
       const updatedSource = lines.join("\n");
@@ -5027,6 +5716,25 @@ ${warningBlock}${bodyChildren}
     const updatedSource = lines.join("\n");
     if (updatedSource === source) return;
     targetFile.content = updatedSource;
+    if (parsed.cmd === "imagen") {
+      const imageName = cleanParam(parsed.args[0] || "").replace(/^['"]|['"]$/g, "");
+      const image = files.get(imageName);
+      if (image?.type === "image") {
+        if (data.type === "rc-studio-position") {
+          image.x = data.x;
+          image.y = data.y;
+        } else if (data.type === "rc-studio-size") {
+          image.width = data.width;
+          image.height = data.height;
+        }
+        image.editedAt = new Date().toISOString();
+        void saveImageAssets().catch(error => {
+          notify(error.committed
+            ? "El cambio visual se guardó en RC, pero no se actualizaron los metadatos de la imagen."
+            : `El cambio visual se guardó en RC, pero no en IndexedDB: ${error.message || "error de almacenamiento."}`, 6000);
+        });
+      }
+    }
     scheduleSaveState();
     if (data.filename === activeFile) {
       const editor = document.getElementById("rcEditor");
@@ -5082,53 +5790,70 @@ ${warningBlock}${bodyChildren}
   const SPECIAL_COMMANDS = new Set(['interruptor', 'vibracion', 'almacenamiento']);
   const RC_TOKEN_REGEX = /(#[0-9a-fA-F]{3,8}\b)|(\b\d+(?:px|rem|em|%)?\b)|([\u00C0-\u024F\u1E00-\u1EFFa-zA-Z0-9_]+)(?=\()|([\u00C0-\u024F\u1E00-\u1EFFa-zA-Z0-9_]+)|([\(\)\[\]=#])|([^\(\)\[\]=#\u00C0-\u024F\u1E00-\u1EFFa-zA-Z0-9_]+)/g;
 
+  const RC_HIGHLIGHT_CACHE_LIMIT = 4096;
+  const rcHighlightCache = new Map();
+
+  function highlightRcLine(line) {
+    if (line.length <= 8192 && rcHighlightCache.has(line)) {
+      const cached = rcHighlightCache.get(line);
+      rcHighlightCache.delete(line);
+      rcHighlightCache.set(line, cached);
+      return cached;
+    }
+    const trimmed = line.trim();
+    if (trimmed.startsWith("//")) {
+      return `<span class="hl-comment">${escapeHtml(line)}</span>`;
+    }
+    if (line.length > 8192) return escapeHtml(line);
+
+    let result = "";
+    let match;
+    RC_TOKEN_REGEX.lastIndex = 0;
+    while ((match = RC_TOKEN_REGEX.exec(line)) !== null) {
+      const [full, color, num, cmdWithParen, word, symbol, rest] = match;
+      if (color) {
+        result += `<span class="hl-color">${escapeHtml(color)}</span>`;
+      } else if (num) {
+        result += `<span class="hl-num">${escapeHtml(num)}</span>`;
+      } else if (cmdWithParen) {
+        const commandName = cmdWithParen.toLowerCase();
+        const tokenClass = SPECIAL_COMMANDS.has(commandName)
+          || (typeof CLOSING_COMMANDS !== "undefined" && CLOSING_COMMANDS.has(commandName))
+          || (RC_COMMANDS_SPEC[commandName]?.cat || 0) >= 5
+          ? "hl-special" : "hl-cmd";
+        result += `<span class="${tokenClass}">${escapeHtml(cmdWithParen)}</span>`;
+      } else if (word) {
+        if (STANDALONE_COMMANDS.has(word.toLowerCase()) || RC_COMMANDS_SPEC[word.toLowerCase()]) {
+          const tokenClass = SPECIAL_COMMANDS.has(word.toLowerCase())
+            || (typeof CLOSING_COMMANDS !== "undefined" && CLOSING_COMMANDS.has(word.toLowerCase()))
+            || (RC_COMMANDS_SPEC[word.toLowerCase()]?.cat || 0) >= 5
+            ? "hl-special" : "hl-cmd";
+          result += `<span class="${tokenClass}">${escapeHtml(word)}</span>`;
+        } else {
+          result += escapeHtml(word);
+        }
+      } else if (symbol) {
+        result += `<span class="hl-paren">${escapeHtml(symbol)}</span>`;
+      } else if (rest) {
+        result += escapeHtml(rest);
+      } else {
+        result += escapeHtml(full);
+      }
+    }
+
+    const highlighted = result || escapeHtml(line);
+    if (line.length <= 8192) {
+      rcHighlightCache.set(line, highlighted);
+      if (rcHighlightCache.size > RC_HIGHLIGHT_CACHE_LIMIT) {
+        rcHighlightCache.delete(rcHighlightCache.keys().next().value);
+      }
+    }
+    return highlighted;
+  }
+
   function highlightRc(code) {
     if (!code) return "";
-    const lines = code.split("\n");
-
-    return lines.map(line => {
-      const trimmed = line.trim();
-      if (trimmed.startsWith("//")) {
-        return `<span class="hl-comment">${escapeHtml(line)}</span>`;
-      }
-
-      let result = "";
-      let match;
-      RC_TOKEN_REGEX.lastIndex = 0;
-      while ((match = RC_TOKEN_REGEX.exec(line)) !== null) {
-        const [full, color, num, cmdWithParen, word, symbol, rest] = match;
-        if (color) {
-          result += `<span class="hl-color">${escapeHtml(color)}</span>`;
-        } else if (num) {
-          result += `<span class="hl-num">${escapeHtml(num)}</span>`;
-        } else if (cmdWithParen) {
-          const commandName = cmdWithParen.toLowerCase();
-          const tokenClass = SPECIAL_COMMANDS.has(commandName)
-            || (typeof CLOSING_COMMANDS !== "undefined" && CLOSING_COMMANDS.has(commandName))
-            || (RC_COMMANDS_SPEC[commandName]?.cat || 0) >= 5
-            ? "hl-special" : "hl-cmd";
-          result += `<span class="${tokenClass}">${escapeHtml(cmdWithParen)}</span>`;
-        } else if (word) {
-          if (STANDALONE_COMMANDS.has(word.toLowerCase()) || RC_COMMANDS_SPEC[word.toLowerCase()]) {
-            const tokenClass = SPECIAL_COMMANDS.has(word.toLowerCase())
-              || (typeof CLOSING_COMMANDS !== "undefined" && CLOSING_COMMANDS.has(word.toLowerCase()))
-              || (RC_COMMANDS_SPEC[word.toLowerCase()]?.cat || 0) >= 5
-              ? "hl-special" : "hl-cmd";
-            result += `<span class="${tokenClass}">${escapeHtml(word)}</span>`;
-          } else {
-            result += escapeHtml(word);
-          }
-        } else if (symbol) {
-          result += `<span class="hl-paren">${escapeHtml(symbol)}</span>`;
-        } else if (rest) {
-          result += escapeHtml(rest);
-        } else {
-          result += escapeHtml(full);
-        }
-      }
-
-      return result || escapeHtml(line);
-    }).join("\n");
+    return code.split("\n").map(highlightRcLine).join("\n");
   }
 
   function renderHighlight() {
@@ -5142,7 +5867,7 @@ ${warningBlock}${bodyChildren}
     }
     const lines = highlightLines;
     const lineHeight = parseFloat(getComputedStyle(editorEl).lineHeight) || 24.5;
-    const virtualized = lines.length > 3000;
+    const virtualized = lines.length > 1200;
     const firstLine = virtualized
       ? Math.max(0, Math.floor(editorEl.scrollTop / lineHeight) - 80)
       : 0;
@@ -5241,13 +5966,13 @@ ${warningBlock}${bodyChildren}
     translateTimer = setTimeout(autoTranslate, 180);
   }
 
-  function notify(message) {
+  function notify(message, duration = 2200) {
     const el = document.getElementById("toast");
     if (!el) return;
     el.textContent = message;
     el.style.display = "block";
     clearTimeout(toastTimer);
-    toastTimer = setTimeout(() => el.style.display = "none", 2200);
+    toastTimer = setTimeout(() => el.style.display = "none", duration);
   }
 
   function renderTabs() {
@@ -5324,7 +6049,7 @@ ${warningBlock}${bodyChildren}
       renameButton.className = "mini";
       renameButton.type = "button";
       renameButton.textContent = "Renombrar";
-      renameButton.onclick = () => renameImage(name);
+      renameButton.onclick = () => { void renameImage(name); };
 
       const format = document.createElement("select");
       format.setAttribute("aria-label", `Formato de salida para ${name}`);
@@ -5352,7 +6077,7 @@ ${warningBlock}${bodyChildren}
       deleteButton.type = "button";
       deleteButton.textContent = "Eliminar";
       deleteButton.title = `Eliminar imagen ${name}`;
-      deleteButton.onclick = () => deleteImage(name);
+      deleteButton.onclick = () => { void deleteImage(name); };
 
       row.append(label, renameButton, format, convertButton, insertButton, deleteButton);
       imageListEl.appendChild(row);
@@ -5408,19 +6133,47 @@ ${warningBlock}${bodyChildren}
     notify("Comando de imagen insertado.");
   }
 
-  function deleteImage(name) {
+  async function deleteImage(name) {
     const image = files.get(name);
     if (!image || image.type !== "image") return;
-    if (!confirm(`¿Eliminar la imagen "${name}" del proyecto?`)) return;
+    const references = [];
+    for (const [filename, file] of files) {
+      if (file.type !== "rc") continue;
+      file.content.split("\n").forEach((line, index) => {
+        const parsed = parseRcLine(line, index + 1);
+        if (parsed && !parsed.parseError && parsed.cmd === "imagen"
+          && cleanParam(parsed.args[0] || "") === name) {
+          references.push(`${filename}:${index + 1}`);
+        }
+      });
+    }
+    const referenceWarning = references.length
+      ? `\n\nEsta imagen está referenciada en ${references.join(", ")}. Eliminarla dejará esas referencias sin imagen.`
+      : "";
+    if (!confirm(`¿Eliminar la imagen "${name}" del proyecto?${referenceWarning}`)) return;
     files.delete(name);
-    saveImageAssets();
+    try {
+      await saveImageAssets();
+    } catch (error) {
+      if (error.committed) {
+        saveState();
+        renderExplorer();
+        debounceTranslate();
+        notify("La imagen se eliminó de IndexedDB, pero no se pudieron guardar sus metadatos.", 6000);
+        return;
+      }
+      files.set(name, image);
+      renderExplorer();
+      notify(`No se pudo eliminar la imagen de forma persistente: ${error.message || "error de almacenamiento."}`, 6000);
+      return;
+    }
     saveState();
     renderExplorer();
     debounceTranslate();
     notify(`Imagen eliminada: ${name}`);
   }
 
-  function renameImage(oldName) {
+  async function renameImage(oldName) {
     const requested = prompt("Nuevo nombre de la imagen:", oldName);
     if (requested === null) return;
     const cleanedName = sanitizeImageName(requested);
@@ -5449,7 +6202,24 @@ ${warningBlock}${bodyChildren}
     files.set(name, image);
     const changedActiveFile = rewriteImageReferences(oldName, name);
     if (changedActiveFile) editorEl.value = files.get(activeFile).content;
-    saveImageAssets();
+    try {
+      await saveImageAssets();
+    } catch (error) {
+      if (error.committed) {
+        saveState();
+        renderExplorer();
+        debounceTranslate();
+        notify("La imagen se renombró en IndexedDB, pero no se pudieron guardar sus metadatos.", 6000);
+        return;
+      }
+      files.delete(name);
+      files.set(oldName, image);
+      rewriteImageReferences(name, oldName);
+      if (changedActiveFile) editorEl.value = files.get(activeFile).content;
+      renderExplorer();
+      notify(`No se pudo renombrar la imagen de forma persistente: ${error.message || "error de almacenamiento."}`, 6000);
+      return;
+    }
     saveState();
     renderExplorer();
     debounceTranslate();
@@ -5468,26 +6238,76 @@ ${warningBlock}${bodyChildren}
     });
   }
 
-  async function importImages(fileList) {
+  async function importFiles(fileList) {
     for (const file of fileList) {
-      if (!file.type.startsWith("image/")) {
-        notify(`"${file.name}" no es una imagen compatible.`);
+      if (!file.size) {
+        notify(`"${file.name}" está vacío y no se importó.`, 5000);
         continue;
       }
+      const extension = file.name.slice(file.name.lastIndexOf(".")).toLowerCase();
+      if (extension === ".rc") {
+        if (file.size > MAX_RC_IMPORT_SIZE) {
+          notify(`"${file.name}" supera el límite de ${MAX_RC_IMPORT_SIZE / 1024 / 1024} MB.`, 5000);
+          continue;
+        }
+        try {
+          const content = await file.text();
+          const name = uniqueName(sanitizeImageName(file.name) || "archivo.rc");
+          files.set(name, { type: "rc", content });
+          activeFile = name;
+          const saved = saveState();
+          renderAll();
+          if (saved) notify(`Archivo importado: ${name}`);
+        } catch (error) {
+          console.error(`No se pudo leer el archivo "${file.name}":`, error);
+          notify(`No se pudo leer "${file.name}".`, 5000);
+        }
+        continue;
+      }
+      await imageAssetsReady;
+      if (imageAssetsLoadError) {
+        notify(`No se importó "${file.name}" porque no se pudieron restaurar las imágenes existentes.`, 6000);
+        continue;
+      }
+      const supportedImageExtensions = new Map([
+        [".png", "image/png"], [".jpg", "image/jpeg"], [".jpeg", "image/jpeg"],
+        [".webp", "image/webp"], [".gif", "image/gif"], [".avif", "image/avif"]
+      ]);
+      if (supportedImageExtensions.get(extension) !== file.type) {
+        notify(`"${file.name}" no tiene una extensión y un formato compatibles. Importa PNG, JPEG, WebP, GIF, AVIF o RC.`, 5000);
+        continue;
+      }
+      if (file.size > MAX_IMAGE_SIZE) {
+        notify(`"${file.name}" supera el límite de ${MAX_IMAGE_SIZE / 1024 / 1024} MB.`, 5000);
+        continue;
+      }
+      let importedName = null;
       try {
         const content = await readFileAsDataUrl(file);
-        const fallbackExtension = ({ "image/jpeg": ".jpg", "image/png": ".png", "image/webp": ".webp", "image/gif": ".gif" })[file.type] || ".img";
+        const bitmap = await createImageBitmap(file);
+        const dimensions = { width: bitmap.width, height: bitmap.height };
+        bitmap.close();
+        const fallbackExtension = ({ "image/jpeg": ".jpg", "image/png": ".png", "image/webp": ".webp", "image/gif": ".gif", "image/avif": ".avif" })[file.type];
         const requestedName = sanitizeImageName(file.name) || `imagen${fallbackExtension}`;
-        const name = uniqueImageName(requestedName.includes(".") ? requestedName : requestedName + fallbackExtension);
-        files.set(name, { type: "image", content });
-        saveImageAssets();
+        importedName = uniqueImageName(requestedName.includes(".") ? requestedName : requestedName + fallbackExtension);
+        files.set(importedName, { type: "image", content, ...dimensions, x: 0, y: 0, editedAt: null });
+        await saveImageAssets();
         saveState();
         renderExplorer();
         debounceTranslate();
-        notify(`Imagen cargada: ${name}`);
+        notify(`Imagen cargada: ${importedName}`);
       } catch (error) {
+        if (error.committed) {
+          saveState();
+          renderExplorer();
+          debounceTranslate();
+        } else if (importedName) {
+          files.delete(importedName);
+        }
         console.error(`No se pudo cargar la imagen "${file.name}":`, error);
-        notify(`No se pudo cargar "${file.name}".`);
+        notify(error.committed
+          ? `"${file.name}" está en IndexedDB, pero falló el guardado de metadatos.`
+          : `No se pudo guardar "${file.name}": ${error.message || "archivo no válido o almacenamiento no disponible."}`, 6000);
       }
     }
   }
@@ -5505,6 +6325,9 @@ ${warningBlock}${bodyChildren}
 
     let bitmap;
     let canvas;
+    const originalContent = image.content;
+    let renamedTo = null;
+    let changedActiveFile = false;
     try {
       const response = await fetch(image.content);
       if (!response.ok) throw new Error("No se pudo decodificar la imagen.");
@@ -5524,22 +6347,40 @@ ${warningBlock}${bodyChildren}
         throw new Error("El navegador no pudo producir el formato solicitado.");
       }
       const content = await readFileAsDataUrl(convertedBlob);
+      const convertedDimensions = { width: bitmap.width, height: bitmap.height };
       if (newName !== name) {
         files.delete(name);
-        files.set(newName, { type: "image", content });
-        const changedActiveFile = rewriteImageReferences(name, newName);
+        files.set(newName, { ...image, ...convertedDimensions, content, editedAt: new Date().toISOString() });
+        renamedTo = newName;
+        changedActiveFile = rewriteImageReferences(name, newName);
         if (changedActiveFile) editorEl.value = files.get(activeFile).content;
       } else {
         image.content = content;
+        image.editedAt = new Date().toISOString();
       }
-      saveImageAssets();
+      await saveImageAssets();
       saveState();
       renderExplorer();
       debounceTranslate();
       notify(`Imagen convertida a ${format.toUpperCase()}.`);
     } catch (error) {
-      console.error(`No se pudo convertir la imagen "${name}":`, error);
-      notify(`No se pudo convertir "${name}".`);
+      if (error.committed) {
+        saveState();
+        renderExplorer();
+        debounceTranslate();
+        notify("La imagen se actualizó en IndexedDB, pero no se pudieron guardar sus metadatos.", 6000);
+      } else {
+        if (renamedTo) {
+          files.delete(renamedTo);
+          files.set(name, image);
+          rewriteImageReferences(renamedTo, name);
+          if (changedActiveFile) editorEl.value = files.get(activeFile).content;
+        } else {
+          image.content = originalContent;
+        }
+        console.error(`No se pudo convertir la imagen "${name}":`, error);
+        notify(`No se pudo convertir o guardar "${name}": ${error.message || "error desconocido."}`, 6000);
+      }
     } finally {
       bitmap?.close();
       if (canvas) {
@@ -5618,6 +6459,7 @@ ${warningBlock}${bodyChildren}
     files.delete(oldName);
     files.set(base, file);
     if (activeFile === oldName) activeFile = base;
+    updateVersionHistory(oldName, base);
     saveState();
     renderAll();
     notify("Archivo renombrado.");
@@ -5626,6 +6468,7 @@ ${warningBlock}${bodyChildren}
   function deleteFile(name) {
     if (!confirm(`¿Eliminar "${name}"?`)) return;
     files.delete(name);
+    deleteVersionHistory(name);
     if (activeFile === name) activeFile = [...files.keys()].find(isRcFile) || "";
     clearTimeout(translateTimer);
     saveState();
@@ -5937,9 +6780,16 @@ ${warningBlock}${bodyChildren}
 
   document.getElementById("newRc").onclick = createFile;
   document.getElementById("uploadImageBtn").onclick = () => imageUploadInput.click();
+  document.getElementById("topUploadBtn").onclick = () => imageUploadInput.click();
   imageUploadInput.addEventListener("change", async () => {
-    await importImages([...imageUploadInput.files]);
-    imageUploadInput.value = "";
+    try {
+      await importFiles([...imageUploadInput.files]);
+    } catch (error) {
+      console.error("No se pudieron importar los archivos seleccionados", error);
+      notify(`No se pudieron importar los archivos: ${error.message || "error inesperado."}`, 6000);
+    } finally {
+      imageUploadInput.value = "";
+    }
   });
   document.getElementById("toggleExplorer").onclick = () => {
     explorerEl.classList.toggle("hidden");
@@ -6010,78 +6860,94 @@ ${warningBlock}${bodyChildren}
     };
     let manifestOpen = false;
     let manifestDeclared = false;
-    source.split('\n').forEach(line => {
-      const parsed = parseRcLine(line);
+    source.split('\n').forEach((line, index) => {
+      let parsed;
+      try {
+        parsed = parseRcLine(line, index + 1);
+      } catch (error) {
+        throw new Error(`Línea ${index + 1}: no se pudieron leer los metadatos Android: ${error.message || error}`);
+      }
       if (parsed?.parseError && /^\s*(?:manifiesto|permiso|finmanifiesto|manifest_[a-z0-9_]*)\b/.test(line)) {
-        throw new Error(`Sintaxis de metadatos Android incorrecta: ${parsed.parseError}`);
+        throw new Error(`Línea ${index + 1}: sintaxis de metadatos Android incorrecta: ${parsed.parseError}`);
       }
       if (!parsed || parsed.parseError) return;
+      const args = Array.isArray(parsed.args) ? parsed.args : [];
+      const argument = position => cleanParam(args[position] ?? '');
       if (parsed.cmd === 'manifiesto' || parsed.cmd === 'manifest_inicio') {
-        if (manifestOpen) throw new Error('No se pueden anidar bloques manifest.');
+        if (manifestOpen) throw new Error(`Línea ${index + 1}: no se pueden anidar bloques manifest.`);
         manifestDeclared = true;
         if (parsed.cmd === 'manifest_inicio') {
-          metadata.appName = cleanParam(parsed.args[0]);
-          metadata.packageName = cleanParam(parsed.args[1]);
-          if (!metadata.appName) throw new Error("'manifest_inicio' requiere un nombre de aplicación.");
+          metadata.appName = argument(0);
+          metadata.packageName = argument(1);
+          if (!metadata.appName || !metadata.packageName) {
+            throw new Error(`Línea ${index + 1}: 'manifest_inicio' requiere nombre de aplicación y paquete.`);
+          }
         } else {
-        if (parsed.args.length !== 3) throw new Error("'manifiesto' requiere paquete, versión y código de versión.");
-          metadata.packageName = cleanParam(parsed.args[0]) || metadata.packageName;
-          metadata.version = cleanParam(parsed.args[1]) || metadata.version;
-          metadata.versionCode = cleanParam(parsed.args[2]) || metadata.versionCode;
+          if (args.length < 1 || args.length > 3 || !argument(0)) {
+            throw new Error(`Línea ${index + 1}: 'manifiesto' requiere un paquete y admite versión y código opcionales.`);
+          }
+          metadata.packageName = argument(0);
+          metadata.version = argument(1) || metadata.version;
+          metadata.versionCode = argument(2) || metadata.versionCode;
         }
         manifestOpen = true;
       } else if (parsed.cmd === 'finmanifiesto' || parsed.cmd === 'manifest_fin') {
-        if (!manifestOpen) throw new Error(`'${parsed.cmd}' no tiene un bloque manifest abierto.`);
+        if (!manifestOpen) throw new Error(`Línea ${index + 1}: '${parsed.cmd}' no tiene un bloque manifest abierto.`);
         manifestOpen = false;
       } else if (parsed.cmd === 'permiso' || parsed.cmd === 'manifest_permiso') {
-        if (!manifestOpen) throw new Error("'permiso' requiere un bloque 'manifiesto' abierto.");
-        if (parsed.args.length !== 1 || !parsed.args[0]) throw new Error("'permiso' requiere un nombre.");
-        const permission = cleanParam(parsed.args[0]);
+        if (!manifestOpen) throw new Error(`Línea ${index + 1}: '${parsed.cmd}' requiere un bloque manifest abierto.`);
+        if (args.length !== 1 || !argument(0)) throw new Error(`Línea ${index + 1}: '${parsed.cmd}' requiere un nombre.`);
+        const permission = argument(0);
         const normalized = permission.startsWith('android.permission.')
           ? permission : `android.permission.${permission}`;
         if (!/^android\.permission\.[A-Z0-9_]+$/.test(normalized)) {
-          throw new Error(`Permiso Android no válido: ${permission}`);
+          throw new Error(`Línea ${index + 1}: permiso Android no válido: ${permission}`);
         }
         metadata.permissions.push(normalized);
       } else if (parsed.cmd === 'manifest_version') {
-        if (!manifestOpen) throw new Error("'manifest_version' requiere un bloque manifest_inicio abierto.");
-        metadata.versionCode = cleanParam(parsed.args[0]);
-        metadata.version = cleanParam(parsed.args[1]);
-        if (!metadata.version) throw new Error("'manifest_version' requiere un nombre de versión.");
+        if (!manifestOpen) throw new Error(`Línea ${index + 1}: 'manifest_version' requiere un bloque manifest abierto.`);
+        if (args.length < 1 || args.length > 2 || !argument(0)) {
+          throw new Error(`Línea ${index + 1}: 'manifest_version' requiere un código; el nombre es opcional.`);
+        }
+        metadata.versionCode = argument(0);
+        metadata.version = argument(1) || metadata.version;
       } else if (parsed.cmd === 'manifest_actividad') {
-        if (!manifestOpen) throw new Error("'manifest_actividad' requiere un bloque manifest_inicio abierto.");
-        const activityName = cleanParam(parsed.args[0]);
-        const orientation = cleanParam(parsed.args[1]).toLowerCase();
+        if (!manifestOpen) throw new Error(`Línea ${index + 1}: 'manifest_actividad' requiere un bloque manifest abierto.`);
+        const activityName = argument(0);
+        const orientation = (argument(1) || 'portrait').toLowerCase();
         if (!activityName || !/^(?:\.)?[A-Za-z_$][A-Za-z0-9_$]*(?:\.[A-Za-z_$][A-Za-z0-9_$]*)*$/.test(activityName)
           || !['portrait', 'landscape'].includes(orientation)) {
-          throw new Error("'manifest_actividad' requiere un nombre de clase válido y orientación portrait o landscape.");
+          throw new Error(`Línea ${index + 1}: 'manifest_actividad' requiere una clase válida y orientación portrait o landscape.`);
         }
         metadata.activities.push({ name: activityName, orientation });
       } else if (parsed.cmd === 'manifest_icono') {
-        if (!manifestOpen) throw new Error("'manifest_icono' requiere un bloque manifest_inicio abierto.");
-        metadata.icon = cleanParam(parsed.args[0]);
-        if (!metadata.icon) throw new Error("'manifest_icono' requiere una ruta de recurso.");
+        if (!manifestOpen) throw new Error(`Línea ${index + 1}: 'manifest_icono' requiere un bloque manifest abierto.`);
+        metadata.icon = argument(0);
+        if (!metadata.icon) throw new Error(`Línea ${index + 1}: 'manifest_icono' requiere una ruta de recurso.`);
       } else if (parsed.cmd === 'manifest_pwa_meta') {
-        if (!manifestOpen) throw new Error("'manifest_pwa_meta' requiere un bloque manifest_inicio abierto.");
+        if (!manifestOpen) throw new Error(`Línea ${index + 1}: 'manifest_pwa_meta' requiere un bloque manifest abierto.`);
         metadata.pwa = {
-          themeColor: cleanParam(parsed.args[0]),
-          backgroundColor: cleanParam(parsed.args[1]),
-          display: cleanParam(parsed.args[2])
+          themeColor: argument(0),
+          backgroundColor: argument(1),
+          display: argument(2)
         };
         if (Object.values(metadata.pwa).some(value => !value)) {
-          throw new Error("'manifest_pwa_meta' requiere tema_color, fondo_color y display_modo.");
+          throw new Error(`Línea ${index + 1}: 'manifest_pwa_meta' requiere tema_color, fondo_color y display_modo.`);
         }
       } else if (parsed.cmd === 'manifest_autor') {
-        if (!manifestOpen) throw new Error("'manifest_autor' requiere un bloque manifest_inicio abierto.");
-        metadata.author = { name: cleanParam(parsed.args[0]), contact: cleanParam(parsed.args[1]) };
-        if (!metadata.author.name || !metadata.author.contact) {
-          throw new Error("'manifest_autor' requiere nombre y contacto.");
+        if (!manifestOpen) throw new Error(`Línea ${index + 1}: 'manifest_autor' requiere un bloque manifest abierto.`);
+        metadata.author = { name: argument(0), contact: argument(1) };
+        if (!metadata.author.name) {
+          throw new Error(`Línea ${index + 1}: 'manifest_autor' requiere un nombre.`);
         }
       }
     });
-    if (manifestOpen) throw new Error("'manifest_inicio' sigue abierto; falta 'manifest_fin'.");
-    if (requireManifest && !manifestDeclared) throw new Error("Falta declarar el bloque 'manifest_inicio(...)' en el código RC.");
+    if (manifestOpen) throw new Error("El bloque Manifest sigue abierto; falta 'manifest_fin()' o 'finmanifiesto()'.");
+    if (requireManifest && !manifestDeclared) {
+      throw new Error("Falta declarar un bloque Manifest con 'manifest_inicio(...)' o 'manifiesto(...)' en el código RC.");
+    }
     metadata.permissions = [...new Set(metadata.permissions)];
+    validateAndroidMetadata(metadata);
     return metadata;
   }
 
@@ -6215,7 +7081,6 @@ ${extraMetadata ? `${extraMetadata}\n` : ''}${activityLines}
         new Set(activeFile ? [activeFile] : [])
       );
       const metadata = readAndroidMetadata(expandedSource, true);
-      validateAndroidMetadata(metadata);
       const title = expandedSource.split('\n').map(line => parseRcLine(line))
         .find(parsed => parsed?.cmd === 'titulo')?.args[0];
       const appLabel = metadata.appName !== 'Aplicación RC Studio' ? metadata.appName : title || metadata.appName;
@@ -6244,6 +7109,93 @@ ${extraMetadata ? `${extraMetadata}\n` : ''}${activityLines}
   }
   previewDesktopBtn.addEventListener("click", () => setPreviewMode("desktop"));
   previewMobileBtn.addEventListener("click", () => setPreviewMode("mobile"));
+
+  const historyBtn = document.getElementById("historyBtn");
+  const historyModal = document.getElementById("historyModal");
+  const versionList = document.getElementById("versionList");
+  const versionPreview = document.getElementById("versionPreview");
+  const restoreVersionBtn = document.getElementById("restoreVersionBtn");
+  let selectedVersion = null;
+
+  function renderVersionHistory() {
+    const title = document.getElementById("historyTitle");
+    if (title) title.textContent = `Historial de versiones · ${activeFile || "Sin archivo abierto"}`;
+    versionList.replaceChildren();
+    selectedVersion = null;
+    restoreVersionBtn.disabled = true;
+    versionPreview.textContent = "Selecciona una versión para previsualizarla.";
+    if (!activeFile || !isRcFile(activeFile)) {
+      const empty = document.createElement("div");
+      empty.className = "empty";
+      empty.textContent = "Abre un archivo RC para consultar su historial.";
+      versionList.appendChild(empty);
+      return;
+    }
+    let versions = [];
+    try {
+      const parsedHistories = JSON.parse(localStorage.getItem(VERSION_STORAGE_KEY) || "{}");
+      const histories = parsedHistories && typeof parsedHistories === "object" && !Array.isArray(parsedHistories)
+        ? parsedHistories : {};
+      const storedVersions = Array.isArray(histories[activeFile]) ? histories[activeFile] : [];
+      versions = storedVersions
+        .filter(version => typeof version?.content === "string").slice(0, 3);
+      if (versions.length !== storedVersions.length) {
+        histories[activeFile] = versions;
+        localStorage.setItem(VERSION_STORAGE_KEY, JSON.stringify(histories));
+      }
+    } catch (error) {
+      console.warn("No se pudo leer el historial del archivo", error);
+      notify("No se pudo leer el historial de versiones.", 6000);
+    }
+    if (!versions.length) {
+      const empty = document.createElement("div");
+      empty.className = "empty";
+      empty.textContent = "Todavía no hay versiones guardadas.";
+      versionList.appendChild(empty);
+      return;
+    }
+    versions.forEach(version => {
+      const row = document.createElement("div");
+      row.className = "version-row";
+      const details = document.createElement("span");
+      const timestamp = new Date(version.createdAt);
+      details.textContent = `Versión ${version.number} · ${Number.isNaN(timestamp.getTime()) ? "fecha desconocida" : timestamp.toLocaleString("es-ES")}`;
+      const previewButton = document.createElement("button");
+      previewButton.type = "button";
+      previewButton.textContent = "Previsualizar";
+      previewButton.onclick = () => {
+        versionList.querySelectorAll(".version-row").forEach(item => item.classList.remove("active"));
+        row.classList.add("active");
+        selectedVersion = version;
+        versionPreview.textContent = version.content;
+        restoreVersionBtn.disabled = false;
+      };
+      row.append(details, previewButton);
+      versionList.appendChild(row);
+    });
+  }
+
+  historyBtn.addEventListener("click", () => {
+    if (activeFile && isRcFile(activeFile)) files.get(activeFile).content = editorEl.value;
+    saveState();
+    renderVersionHistory();
+    historyModal.classList.remove("hidden");
+  });
+  document.getElementById("closeHistoryModal").addEventListener("click", () => historyModal.classList.add("hidden"));
+  historyModal.addEventListener("click", event => {
+    if (event.target === historyModal) historyModal.classList.add("hidden");
+  });
+  restoreVersionBtn.addEventListener("click", () => {
+    if (!selectedVersion || !activeFile || !isRcFile(activeFile)) return;
+    if (!confirm(`¿Restaurar la versión ${selectedVersion.number} de "${activeFile}"?`)) return;
+    files.get(activeFile).content = selectedVersion.content;
+    editorEl.value = selectedVersion.content;
+    saveState();
+    renderAll();
+    historyModal.classList.add("hidden");
+    editorEl.focus();
+    notify("Versión restaurada y registrada en el historial.");
+  });
 
   if (panelSel) {
     panelSel.addEventListener("change", e => {
@@ -6481,7 +7433,8 @@ ${extraMetadata ? `${extraMetadata}\n` : ''}${activityLines}
       '',
       '5. EXPORTACION ANDROID',
       '- En Guardar / Exportar Proyecto, selecciona Guardar como Manifest para descargar AndroidManifest.xml.',
-      '- Declara metadatos con manifest_inicio(nombre_app)(paquete), manifest_version(codigo)(nombre), manifest_permiso(nombre), manifest_actividad(clase)(orientacion), manifest_icono(ruta), manifest_pwa_meta(tema)(fondo)(display), manifest_autor(nombre)(contacto) y cierra con manifest_fin().',
+      '- Declara metadatos con manifest_inicio(nombre_app)(paquete), manifest_version(codigo)(nombre_opcional), manifest_permiso(nombre), manifest_actividad(clase)(orientacion_opcional), manifest_icono(ruta), manifest_pwa_meta(tema)(fondo)(display), manifest_autor(nombre)(contacto_opcional) y cierra con manifest_fin().',
+      '- El comando antiguo manifiesto(paquete)(version_opcional)(codigo_opcional) tambien conserva los valores predeterminados 1.0 y 1.',
       '- Ejemplo:',
       '  manifest_inicio(Mi App, com.ejemplo.app)',
       '  manifest_version(1, 1.0)',
@@ -6687,6 +7640,10 @@ ${extraMetadata ? `${extraMetadata}\n` : ''}${activityLines}
 
   document.addEventListener("keydown", (e) => {
     if (e.key === "Escape") {
+      if (historyModal && !historyModal.classList.contains("hidden")) {
+        historyModal.classList.add("hidden");
+        return;
+      }
       if (docsConfirmModal && !docsConfirmModal.hidden) {
         closeDocsConfirmation();
         return;
@@ -6781,6 +7738,11 @@ ${extraMetadata ? `${extraMetadata}\n` : ''}${activityLines}
   window.RC_COMMANDS_SPEC = RC_COMMANDS_SPEC;
 
   renderAll();
+  imageAssetsReady = loadImageAssets().catch(error => {
+    imageAssetsLoadError = error;
+    console.error("No se pudieron restaurar las imágenes desde IndexedDB", error);
+    notify(`No se pudieron restaurar las imágenes: ${error.message || "error de almacenamiento."}`, 6000);
+  });
 })();
 </script>
 </body>
