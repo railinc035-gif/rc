@@ -3259,11 +3259,11 @@
           break;
 
         case 'ancho':
-          currentTargetForStyle().styles.push(`width: ${formatUnit(a1)};`);
+          currentTargetForStyle().styles.push(`width: ${formatUnit(a1)}; max-width: 100%;`);
           break;
 
         case 'alto':
-          currentTargetForStyle().styles.push(`height: ${formatUnit(a1)};`);
+          currentTargetForStyle().styles.push(`height: ${formatUnit(a1)}; max-height: 100%;`);
           break;
 
         case 'gap':
