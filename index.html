@@ -1427,7 +1427,7 @@
         conditions: currentAstConditions
       };
       if (tag === 'button') {
-        node.styles.push('display: flex; align-items: center; justify-content: center; text-align: center;');
+        node.styles.push('display: inline-flex; align-items: center; justify-content: center; text-align: center; max-width: 100%; box-sizing: border-box;');
       }
       if (id) {
         if (nodesById.has(id)) {
@@ -4600,7 +4600,7 @@
 
       const textContent = escapeHtml(node.innerText || '');
       const renderedText = node.tag === 'button'
-        ? `<span class="rc-button-label" data-rc-text-editable="true" data-rc-line="${node.lineNum}" data-rc-file="${escapeHtml(node.filename || '')}" style="display: inline-block; ${escapeHtml(node.textStyles.join(' '))}">${textContent}</span>`
+        ? `<span class="rc-button-label" data-rc-text-editable="true" data-rc-line="${node.lineNum}" data-rc-file="${escapeHtml(node.filename || '')}" style="display: inline-block; max-width: 100%; overflow-wrap: anywhere; word-break: break-word; ${escapeHtml(node.textStyles.join(' '))}">${textContent}</span>`
         : textContent;
       if (node.structureType === 'window') {
         const windowContent = node.children.map(c => renderNode(c, depth + 2)).join('\n');
@@ -5164,12 +5164,25 @@
     @supports (min-height: 100dvh) { body, .rc-app-root { min-height: 100dvh; } }
     .rc-app-root > * { max-width: 100%; }
     *, *:before, *:after { box-sizing: inherit; }
-    button { cursor: pointer; padding: 10px 14px; font-size: 15px; border-radius: 8px; border: 1px solid var(--rc-border); background: var(--rc-surface-raised); color: var(--rc-text); display: inline-block; vertical-align: middle; box-sizing: border-box; transition: background 0.15s ease; margin: 4px; }
+    button { cursor: pointer; padding: 10px 16px; font-size: 15px; border-radius: 8px; border: 1px solid var(--rc-border); background: var(--rc-surface-raised); color: var(--rc-text); display: inline-flex; align-items: center; justify-content: center; text-align: center; vertical-align: middle; box-sizing: border-box; transition: background 0.15s ease, transform 0.1s ease; margin: 4px; max-width: 100%; white-space: normal; word-break: break-word; overflow-wrap: anywhere; }
     button:hover { background: var(--rc-surface-hover); }
-    button:active { background: var(--rc-surface-active); }
-    input[type="text"], input[type="number"], input[type="email"], input[type="password"], input[type="date"], textarea, select { width: 100%; padding: 10px; font-size: 15px; border-radius: 8px; border: 1px solid var(--rc-border); background: var(--rc-input-bg); color: var(--rc-text); outline: none; box-sizing: border-box; margin: 4px 0; }
-    img { background-color: transparent; }
-    .rejilla { display: grid; width: 100%; gap: 10px; box-sizing: border-box; }
+    button:active { background: var(--rc-surface-active); transform: scale(0.98); }
+    input[type="text"], input[type="number"], input[type="email"], input[type="password"], input[type="date"], textarea, select { width: 100%; max-width: 100%; padding: 10px 12px; font-size: 15px; border-radius: 8px; border: 1px solid var(--rc-border); background: var(--rc-input-bg); color: var(--rc-text); outline: none; box-sizing: border-box; margin: 4px 0; }
+    a { color: #68b5ff; text-decoration: underline; max-width: 100%; overflow-wrap: anywhere; }
+    p, span, h1, h2, h3, h4, h5, h6, label { max-width: 100%; overflow-wrap: anywhere; word-break: break-word; }
+    img { max-width: 100%; height: auto; object-fit: contain; box-sizing: border-box; display: block; background-color: transparent; }
+    .rejilla { display: grid; width: 100%; gap: 12px; box-sizing: border-box; grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr)); }
+    @media (max-width: 768px) {
+      .rc-app-root { padding: 12px; }
+      button { padding: 9px 13px; font-size: 14px; }
+      input[type="text"], input[type="number"], input[type="email"], input[type="password"], input[type="date"], textarea, select { padding: 9px 11px; font-size: 14px; }
+      .rejilla { gap: 8px; }
+    }
+    @media (max-width: 480px) {
+      .rc-app-root { padding: 8px; }
+      button { padding: 8px 12px; font-size: 13.5px; }
+      .rejilla { grid-template-columns: 1fr; }
+    }
     .cargando { display: inline-block; padding: 10px 20px; background: #222733; color: #68b5ff; border-radius: 6px; border: 1px dashed #68b5ff; }
     .rc-drawing-surface { position: relative; display: block; width: 100%; height: 320px; flex: 0 0 auto; touch-action: none; color: #111111; background: #ffffff; border: 1px solid #3d4454; }
     .rc-canvas-viewport { position: relative; display: block; width: 100%; height: 320px; overflow: hidden !important; scrollbar-width: none !important; overscroll-behavior: contain; background: #ffffff; }
