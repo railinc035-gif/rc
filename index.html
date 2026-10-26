@@ -153,7 +153,23 @@
   .confirm-dialog p { margin: 0; color: var(--muted); }
   .confirm-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 20px; }
   .confirm-actions button:last-child { border-color: var(--blue); background: #21354a; }
+
+  /* Search & Replace Bar */
+  .search-bar { display: flex; flex-direction: column; gap: 4px; padding: 6px 10px; background: #15171e; border-bottom: 1px solid var(--line); font-size: 12px; z-index: 10; flex-shrink: 0; width: 100%; box-sizing: border-box; }
+  .search-bar[hidden] { display: none !important; }
+  .search-row { display: flex; align-items: center; gap: 6px; width: 100%; min-width: 0; }
+  .search-bar input { padding: 3px 8px; background: #0e1015; border: 1px solid var(--line); border-radius: 5px; color: var(--text); font-size: 12px; outline: none; height: 26px; flex: 1 1 0%; min-width: 0; }
+  .search-bar input:focus { border-color: var(--blue); }
+  .search-bar button { padding: 3px 8px; font-size: 12px; height: 26px; display: inline-flex; align-items: center; justify-content: center; white-space: nowrap; flex-shrink: 0; }
+  .search-bar .close-search-btn { margin-left: auto; border: 0; background: transparent; font-size: 16px; color: var(--muted); padding: 0 4px; height: 26px; line-height: 1; cursor: pointer; }
+  .search-bar .close-search-btn:hover { color: var(--text); background: transparent; }
+  .search-bar .search-count { color: var(--muted); font-size: 11px; white-space: nowrap; flex-shrink: 0; }
+  .status { height: 30px; display: flex; align-items: center; flex-wrap: nowrap; padding: 0 10px; gap: 6px; font-size: 12px; border-top: 1px solid var(--line); color: var(--muted); overflow: hidden; min-width: 0; }
+  .status .status-name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 40px; flex: 0 1 auto; }
+  .status .status-line { white-space: nowrap; flex-shrink: 0; }
+  .status button, .status select { height: 20px; padding: 1px 5px; font-size: 11px; line-height: 1; display: inline-flex; align-items: center; flex-shrink: 0; }
 </style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 </head>
 <body>
 <header class="topbar">
@@ -174,16 +190,43 @@
 <main class="layout">
   <section class="editor" id="rcEditorSection" aria-label="Editor RC">
     <div class="tabs" id="rcTabs"></div>
+    <div id="rcSearchBar" class="search-bar" hidden>
+      <div class="search-row">
+        <input type="text" id="rcSearchInput" placeholder="Buscar en archivo..." spellcheck="false" autocomplete="off">
+        <button id="rcFindNextBtn" type="button" title="Siguiente (Enter)">↓</button>
+        <button id="rcFindPrevBtn" type="button" title="Anterior (Shift+Enter)">↑</button>
+        <span id="rcSearchCount" class="search-count"></span>
+        <button id="rcCloseSearchBtn" type="button" class="close-search-btn" title="Cerrar (Esc)">×</button>
+      </div>
+      <div class="search-row">
+        <input type="text" id="rcReplaceInput" placeholder="Reemplazar con..." spellcheck="false" autocomplete="off">
+        <button id="rcReplaceBtn" type="button" title="Reemplazar siguiente match">Reemplazar</button>
+        <button id="rcReplaceAllBtn" type="button" title="Reemplazar todo">Todo</button>
+      </div>
+    </div>
     <div class="editor-body">
       <div class="gutter" id="rcGutter">1</div>
       <div class="editor-input-wrap">
         <pre class="highlight-layer" id="rcHighlight" aria-hidden="true"><code id="rcHighlightCode"></code></pre>
         <textarea id="rcEditor" spellcheck="false" aria-label="Código RC" aria-controls="rcAutocomplete" aria-expanded="false" autocapitalize="off" autocomplete="off" placeholder="Crea o selecciona un archivo para empezar" disabled></textarea>
         <div class="highlight-layer caret-measure" id="rcCaretMeasure" aria-hidden="true"><code></code></div>
+
+
         <div id="rcAutocomplete" class="autocomplete-popup" role="listbox" aria-label="Comandos RC" hidden></div>
       </div>
     </div>
-    <div class="status"><span id="rcStatusName">main.rc</span><span class="spacer"></span><span id="rcStatusLine">Línea 1, Col 1</span></div>
+    <div class="status">
+      <span id="rcStatusName" class="status-name">main.rc</span>
+      <span id="rcStatusLine" class="status-line">L1, C1</span>
+      <span class="spacer"></span>
+      <button id="formatRcBtn" type="button" title="Formatear código (Shift+Alt+F)">⚡ Formatear</button>
+      <select id="fontSizeSelect" style="background:var(--panel2); color:var(--text); border:1px solid var(--line); border-radius:5px;" title="Tamaño de fuente">
+        <option value="12">12px</option>
+        <option value="14" selected>14px</option>
+        <option value="16">16px</option>
+        <option value="18">18px</option>
+      </select>
+    </div>
   </section>
   <div class="pane-splitter" id="paneSplitter" role="separator" aria-label="Redimensionar editor y vista previa" aria-orientation="vertical" aria-valuemin="20" aria-valuemax="80" aria-valuenow="50" tabindex="0"></div>
   <section class="editor" id="previewPaneSection" aria-label="Vista Previa en Vivo">
@@ -252,6 +295,10 @@
         <button id="exportHtmlBtn" style="text-align: left; padding: 12px 16px; border: 1px solid var(--line); border-radius: 8px; background: var(--panel2);">
           <div style="font-weight: 600; color: var(--orange); font-size: 14px;"> Guardar como HTML </div>
           <div style="font-size: 12px; color: var(--muted); margin-top: 4px;">Exporta un documento HTML standalone funcional con sus estilos CSS y scripts.</div>
+        </button>
+        <button id="exportZipBtn" style="text-align: left; padding: 12px 16px; border: 1px solid var(--line); border-radius: 8px; background: var(--panel2);">
+          <div style="font-weight: 600; color: #5eead4; font-size: 14px;"> Guardar como Proyecto (.ZIP) </div>
+          <div style="font-size: 12px; color: var(--muted); margin-top: 4px;">Empaqueta todos los archivos RC, imágenes y HTML en un archivo ZIP descargable.</div>
         </button>
         <button id="exportManifestBtn" style="text-align: left; padding: 12px 16px; border: 1px solid var(--line); border-radius: 8px; background: var(--panel2);">
           <div style="font-weight: 600; color: #bd93f9; font-size: 14px;"> Guardar como Manifest </div>
@@ -6480,7 +6527,7 @@ ${warningBlock}${bodyChildren}
     const before = editorEl.value.slice(0, editorEl.selectionStart);
     const line = before.split("\n").length;
     const col = before.length - before.lastIndexOf("\n");
-    document.getElementById("rcStatusLine").textContent = `Línea ${line}, Col ${col}`;
+    document.getElementById("rcStatusLine").textContent = `L${line}, C${col}`;
   }
 
   let autocompleteSuggestions = [];
@@ -7733,7 +7780,298 @@ ${extraMetadata ? `${extraMetadata}\n` : ''}${activityLines}
   }
 
   // Exportar funciones globalmente para pruebas
+
+  // ==========================================
+  // AUTO-FORMATEADOR DE CÓDIGO RC
+  // ==========================================
+  function formatRcCode(code) {
+    if (!code || !code.trim()) return code;
+    const lines = code.split('\n');
+    let indentLevel = 0;
+    const indentStr = '  ';
+    const formattedLines = [];
+
+    const indentDecreaseCmds = new Set([
+      'fin', 'finseccion', 'fincontenedor', 'finrejilla', 'finlista', 'fintabla', 'finfilatabla',
+      'finmodal', 'finvista', 'finescena3d', 'finpestana', 'finacordeon', 'finventana',
+      'finholonet', 'finmanifiesto', 'manifest_fin', 'fin_si', 'fin_repetir', 'sino'
+    ]);
+
+    const indentIncreaseCmds = new Set([
+      'seccion', 'contenedor', 'rejilla', 'listadesordenada', 'listaordenada', 'tabla',
+      'filatabla', 'modal', 'vista', 'escena3d', 'pestana', 'acordeon', 'ventana',
+      'holonet', 'manifiesto', 'manifest_inicio', 'si', 'repetir', 'sino'
+    ]);
+
+    for (let rawLine of lines) {
+      const trimmed = rawLine.trim();
+      if (!trimmed) {
+        formattedLines.push('');
+        continue;
+      }
+      if (trimmed.startsWith('//')) {
+        formattedLines.push(indentStr.repeat(indentLevel) + trimmed);
+        continue;
+      }
+
+      const parsed = parseRcLine(trimmed);
+      const cmd = parsed && !parsed.parseError ? parsed.cmd : null;
+
+      if (cmd && indentDecreaseCmds.has(cmd)) {
+        indentLevel = Math.max(0, indentLevel - 1);
+      }
+
+      formattedLines.push(indentStr.repeat(indentLevel) + trimmed);
+
+      if (cmd && indentIncreaseCmds.has(cmd)) {
+        indentLevel++;
+      }
+    }
+    return formattedLines.join('\n');
+  }
+
+  document.getElementById("formatRcBtn")?.addEventListener("click", () => {
+    if (!activeFile || !isRcFile(activeFile)) return;
+    const formatted = formatRcCode(editorEl.value);
+    if (formatted !== editorEl.value) {
+      editorEl.value = formatted;
+      editorEl.dispatchEvent(new Event("input", { bubbles: true }));
+      notify("Código RC formateado correctamente.");
+    } else {
+      notify("El código ya está formateado.");
+    }
+  });
+
+  // ==========================================
+  // CONFIGURACIÓN TAMAÑO DE FUENTE Y WRAP
+  // ==========================================
+  const fontSizeSelect = document.getElementById("fontSizeSelect");
+
+  fontSizeSelect?.addEventListener("change", (e) => {
+    const numSize = parseFloat(e.target.value) || 14;
+    const bodyEl = document.querySelector("#rcEditorSection .editor-body");
+    if (bodyEl) {
+      bodyEl.style.setProperty("--editor-font", numSize + "px");
+      bodyEl.style.setProperty("--editor-line-height", (numSize * 1.75) + "px");
+    }
+    updateLineNumbers();
+    updateHighlight();
+    scheduleEditorViewportSync();
+  });
+
+
+  // ==========================================
+  // BÚSQUEDA Y REEMPLAZO EN EL EDITOR
+  // ==========================================
+  const searchBar = document.getElementById("rcSearchBar");
+  const searchInput = document.getElementById("rcSearchInput");
+  const replaceInput = document.getElementById("rcReplaceInput");
+  const searchCount = document.getElementById("rcSearchCount");
+
+  function showSearchBar() {
+    if (!searchBar) return;
+    searchBar.hidden = false;
+    searchInput.focus();
+    searchInput.select();
+    updateSearchResults();
+  }
+
+  function hideSearchBar() {
+    if (!searchBar) return;
+    searchBar.hidden = true;
+    editorEl.focus();
+  }
+
+  function updateSearchResults() {
+    if (!searchInput || !searchBar || searchBar.hidden) return;
+    const query = searchInput.value;
+    if (!query) {
+      searchCount.textContent = "";
+      return;
+    }
+    const text = editorEl.value;
+    let count = 0;
+    let pos = text.indexOf(query);
+    while (pos !== -1) {
+      count++;
+      pos = text.indexOf(query, pos + query.length);
+    }
+    searchCount.textContent = count > 0 ? `${count} coincidencia${count === 1 ? '' : 's'}` : "Sin resultados";
+  }
+
+  function findNextSearch(reverse = false) {
+    const query = searchInput.value;
+    if (!query) return;
+    const text = editorEl.value;
+    const currentPos = reverse ? editorEl.selectionStart : editorEl.selectionEnd;
+    let index = reverse ? text.lastIndexOf(query, currentPos - 1) : text.indexOf(query, currentPos);
+    if (index === -1) {
+      index = reverse ? text.lastIndexOf(query) : text.indexOf(query);
+    }
+    if (index !== -1) {
+      editorEl.setSelectionRange(index, index + query.length);
+      editorEl.focus();
+      const line = text.slice(0, index).split('\n').length;
+      const fontPx = parseFloat(fontSizeSelect?.value) || 14;
+      const lineHeight = fontPx * 1.75;
+      editorEl.scrollTop = (line - 3) * lineHeight;
+      syncEditorScroll();
+      updateSearchResults();
+    }
+  }
+
+  function replaceCurrentMatch() {
+    const query = searchInput.value;
+    const replaceVal = replaceInput.value;
+    if (!query) return;
+    let start = editorEl.selectionStart;
+    let end = editorEl.selectionEnd;
+    let selected = editorEl.value.slice(start, end);
+    if (selected !== query) {
+      findNextSearch(false);
+      start = editorEl.selectionStart;
+      end = editorEl.selectionEnd;
+      selected = editorEl.value.slice(start, end);
+    }
+    if (selected === query) {
+      editorEl.setRangeText(replaceVal, start, end, "end");
+      editorEl.dispatchEvent(new Event("input", { bubbles: true }));
+    }
+    findNextSearch(false);
+  }
+
+  function replaceAllMatches() {
+    const query = searchInput.value;
+    const replaceVal = replaceInput.value;
+    if (!query) return;
+    const newText = editorEl.value.split(query).join(replaceVal);
+    if (newText !== editorEl.value) {
+      editorEl.value = newText;
+      editorEl.dispatchEvent(new Event("input", { bubbles: true }));
+      notify("Se reemplazaron todas las coincidencias.");
+    }
+    updateSearchResults();
+  }
+
+  document.getElementById("rcFindNextBtn")?.addEventListener("click", () => findNextSearch(false));
+  document.getElementById("rcFindPrevBtn")?.addEventListener("click", () => findNextSearch(true));
+  document.getElementById("rcReplaceBtn")?.addEventListener("click", replaceCurrentMatch);
+  document.getElementById("rcReplaceAllBtn")?.addEventListener("click", replaceAllMatches);
+  document.getElementById("rcCloseSearchBtn")?.addEventListener("click", hideSearchBar);
+
+  searchInput?.addEventListener("input", updateSearchResults);
+  searchInput?.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      findNextSearch(e.shiftKey);
+    } else if (e.key === "Escape") {
+      hideSearchBar();
+    }
+  });
+
+  replaceInput?.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      replaceCurrentMatch();
+    } else if (e.key === "Escape") {
+      hideSearchBar();
+    }
+  });
+
+  // ==========================================
+  // ATAJOS DE TECLADO GLOBALES
+  // ==========================================
+  document.addEventListener("keydown", (e) => {
+    // Ctrl+S / Cmd+S : Guardar archivo de forma silenciosa
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "s") {
+      e.preventDefault();
+      if (activeFile && files.has(activeFile)) {
+        files.get(activeFile).content = editorEl.value;
+        saveState();
+      }
+      notify("Archivo guardado (" + (activeFile || "proyecto") + ").");
+      return;
+    }
+
+    // Ctrl+Enter / Cmd+Enter : Forzar actualización e interpretación inmediata
+    if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
+      e.preventDefault();
+      autoTranslate();
+      notify("Vista previa actualizada.");
+      return;
+    }
+
+    // Ctrl+B / Cmd+B : Alternar explorador de archivos
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "b") {
+      e.preventDefault();
+      explorerEl.classList.toggle("hidden");
+      document.getElementById("toggleExplorer")?.setAttribute("aria-expanded", String(!explorerEl.classList.contains("hidden")));
+      return;
+    }
+
+    // Ctrl+F / Cmd+F : Abrir barra de búsqueda en el editor
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "f" && (document.activeElement === editorEl || document.getElementById("rcEditorSection")?.contains(document.activeElement))) {
+      e.preventDefault();
+      showSearchBar();
+      return;
+    }
+
+    // Shift+Alt+F : Formatear código RC
+    if (e.shiftKey && e.altKey && e.key.toLowerCase() === "f") {
+      e.preventDefault();
+      document.getElementById("formatRcBtn")?.click();
+      return;
+    }
+  });
+
+  // ==========================================
+  // EXPORTACIÓN A ZIP (.ZIP)
+  // ==========================================
+  document.getElementById("exportZipBtn")?.addEventListener("click", async () => {
+    if (typeof JSZip === "undefined") {
+      notify("La librería JSZip no está disponible para generar el archivo ZIP.", 5000);
+      return;
+    }
+    try {
+      if (activeFile && files.has(activeFile)) {
+        files.get(activeFile).content = editorEl.value;
+      }
+      saveState();
+
+      const zip = new JSZip();
+
+      // Agregar archivos RC
+      files.forEach((fileObj, filename) => {
+        if (fileObj.type === "rc") {
+          zip.file(filename, fileObj.content);
+        } else if (fileObj.type === "image") {
+          const base64Data = fileObj.content.replace(/^data:image\/[a-z0-9.+-]+;base64,/i, "");
+          zip.file(filename, base64Data, { base64: true });
+        }
+      });
+
+      // Agregar versión HTML compilada
+      const mainContent = files.get("main.rc")?.content || editorEl.value;
+      const compiledHtml = rcToHtml(mainContent);
+      zip.file("index.html", compiledHtml);
+
+      const content = await zip.generateAsync({ type: "blob" });
+      const url = URL.createObjectURL(content);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "proyecto_rc.zip";
+      a.click();
+      setTimeout(() => URL.revokeObjectURL(url), 2000);
+      hideExportModal();
+      notify("Proyecto exportado como proyecto_rc.zip");
+    } catch (error) {
+      console.error("Error al exportar ZIP:", error);
+      notify("No se pudo generar el archivo ZIP.", 5000);
+    }
+  });
+
   window.rcToHtml = rcToHtml;
+  window.formatRcCode = formatRcCode;
   window.parseRcLine = parseRcLine;
   window.RC_COMMANDS_SPEC = RC_COMMANDS_SPEC;
 
