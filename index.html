@@ -4661,13 +4661,71 @@
           element.style.setProperty('pointer-events', 'none', 'important');
         });
       };
+      const coordBadge = document.createElement('div');
+      Object.assign(coordBadge.style, {
+        position: 'fixed', zIndex: '2147483647', padding: '3px 7px',
+        borderRadius: '5px', background: '#191b22', color: '#68b5ff',
+        border: '1px solid #68b5ff', font: '11px ui-monospace, monospace',
+        pointerEvents: 'none', display: 'none', boxShadow: '0 4px 12px #0008'
+      });
+      document.body.appendChild(coordBadge);
+
+      const guideLineX = document.createElement('div');
+      Object.assign(guideLineX.style, {
+        position: 'fixed', zIndex: '2147483646', width: '1px', top: '0', bottom: '0',
+        background: '#68b5ff', pointerEvents: 'none', display: 'none'
+      });
+      document.body.appendChild(guideLineX);
+
+      const guideLineY = document.createElement('div');
+      Object.assign(guideLineY.style, {
+        position: 'fixed', zIndex: '2147483646', height: '1px', left: '0', right: '0',
+        background: '#68b5ff', pointerEvents: 'none', display: 'none'
+      });
+      document.body.appendChild(guideLineY);
+
       const setDragPosition = (gesture, clientX, clientY) => {
         gesture.lastX = clientX;
         gesture.lastY = clientY;
-        gesture.element.style.setProperty('translate',
-          (gesture.baseX + clientX - gesture.startX) + 'px '
-          + (gesture.baseY + clientY - gesture.startY) + 'px');
+        const totalX = gesture.baseX + clientX - gesture.startX;
+        const totalY = gesture.baseY + clientY - gesture.startY;
+
+        const screenCenterX = window.innerWidth / 2;
+        const screenCenterY = window.innerHeight / 2;
+        const rect = gesture.element.getBoundingClientRect();
+        const elemCenterX = rect.left + rect.width / 2;
+        const elemCenterY = rect.top + rect.height / 2;
+
+        if (Math.abs(elemCenterX - screenCenterX) < 12) {
+          guideLineX.style.left = screenCenterX + 'px';
+          guideLineX.style.display = 'block';
+        } else {
+          guideLineX.style.display = 'none';
+        }
+
+        if (Math.abs(elemCenterY - screenCenterY) < 12) {
+          guideLineY.style.top = screenCenterY + 'px';
+          guideLineY.style.display = 'block';
+        } else {
+          guideLineY.style.display = 'none';
+        }
+
+        const xVw = (totalX / window.innerWidth) * 100;
+        const yVh = (totalY / window.innerHeight) * 100;
+        gesture.element.style.setProperty('translate', xVw.toFixed(3) + 'vw ' + yVh.toFixed(3) + 'vh');
+
+        coordBadge.textContent = 'X: ' + xVw.toFixed(1) + 'vw | Y: ' + yVh.toFixed(1) + 'vh';
+        coordBadge.style.left = Math.max(8, Math.min(window.innerWidth - 120, clientX + 14)) + 'px';
+        coordBadge.style.top = Math.max(8, Math.min(window.innerHeight - 30, clientY - 28)) + 'px';
+        coordBadge.style.display = 'block';
       };
+
+      const hideDragGuides = () => {
+        coordBadge.style.display = 'none';
+        guideLineX.style.display = 'none';
+        guideLineY.style.display = 'none';
+      };
+
       const resizeHandle = document.createElement('button');
       resizeHandle.type = 'button';
       resizeHandle.setAttribute('aria-label', 'Redimensionar elemento');
@@ -4681,8 +4739,12 @@
       document.body.appendChild(resizeHandle);
       const readOffset = (value, size) => {
         if (!value || value === 'none') return 0;
-        const amount = parseFloat(value) || 0;
-        return value.trim().endsWith('%') ? amount * size / 100 : amount;
+        const trimmed = value.trim();
+        const amount = parseFloat(trimmed) || 0;
+        if (trimmed.endsWith('%')) return amount * size / 100;
+        if (trimmed.endsWith('vw')) return amount * window.innerWidth / 100;
+        if (trimmed.endsWith('vh')) return amount * window.innerHeight / 100;
+        return amount;
       };
       window.addEventListener('message', event => {
         if (event.source !== window.parent || event.data?.type !== 'rc-studio-edit-mode') return;
@@ -4806,17 +4868,22 @@
         if (completedDrag.moved && Number.isFinite(event.clientX) && Number.isFinite(event.clientY)) {
           setDragPosition(completedDrag, event.clientX, event.clientY);
         }
+        hideDragGuides();
         restoreInlineProperties(completedDrag.pointerProperties);
         restoreInlineProperties([completedDrag.cursorProperty]);
         if (!completedDrag.moved) return;
         suppressClick = true;
         setTimeout(() => { suppressClick = false; }, 400);
+        const totalX = completedDrag.baseX + completedDrag.lastX - completedDrag.startX;
+        const totalY = completedDrag.baseY + completedDrag.lastY - completedDrag.startY;
+        const xVw = (totalX / window.innerWidth) * 100;
+        const yVh = (totalY / window.innerHeight) * 100;
         window.parent.postMessage({
           type: 'rc-studio-position',
           filename: completedDrag.element.dataset.rcFile,
           line: Number(completedDrag.element.dataset.rcLine),
-          x: completedDrag.baseX + completedDrag.lastX - completedDrag.startX,
-          y: completedDrag.baseY + completedDrag.lastY - completedDrag.startY
+          x: xVw.toFixed(3) + 'vw',
+          y: yVh.toFixed(3) + 'vh'
         }, '*');
       };
       const finishResize = event => {
@@ -4845,17 +4912,22 @@
         if (completedDrag.moved && Number.isFinite(event.clientX) && Number.isFinite(event.clientY)) {
           setDragPosition(completedDrag, event.clientX, event.clientY);
         }
+        hideDragGuides();
         restoreInlineProperties(completedDrag.pointerProperties);
         restoreInlineProperties([completedDrag.userSelectProperty]);
         if (!completedDrag.moved) return;
         suppressClick = true;
         setTimeout(() => { suppressClick = false; }, 400);
+        const totalX = completedDrag.baseX + completedDrag.lastX - completedDrag.startX;
+        const totalY = completedDrag.baseY + completedDrag.lastY - completedDrag.startY;
+        const xVw = (totalX / window.innerWidth) * 100;
+        const yVh = (totalY / window.innerHeight) * 100;
         window.parent.postMessage({
           type: 'rc-studio-text-position',
           filename: completedDrag.element.dataset.rcFile,
           line: Number(completedDrag.element.dataset.rcLine),
-          x: completedDrag.baseX + completedDrag.lastX - completedDrag.startX,
-          y: completedDrag.baseY + completedDrag.lastY - completedDrag.startY
+          x: xVw.toFixed(3) + 'vw',
+          y: yVh.toFixed(3) + 'vh'
         }, '*');
       };
       const postTextUpdate = (element, final) => {
@@ -4867,6 +4939,51 @@
           final
         }, '*');
       };
+      let selectedEditElement = null;
+
+      window.addEventListener('click', event => {
+        if (!editMode) return;
+        const target = getDragTarget(event.target);
+        if (target?.dataset.rcLine && target.dataset.rcFile) {
+          selectedEditElement = target;
+        }
+      }, true);
+
+      window.addEventListener('keydown', event => {
+        if (!editMode || !selectedEditElement) return;
+        if (!['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(event.key)) return;
+        if (event.target.tagName === 'INPUT' || event.target.tagName === 'TEXTAREA' || event.target.isContentEditable) return;
+        event.preventDefault();
+
+        const step = event.shiftKey ? 2.0 : 0.5;
+        const rect = selectedEditElement.getBoundingClientRect();
+        const offset = (getComputedStyle(selectedEditElement).translate || 'none').split(/\s+/);
+        const currentXInPx = readOffset(offset[0], rect.width);
+        const currentYInPx = readOffset(offset[1], rect.height);
+
+        let deltaX = 0;
+        let deltaY = 0;
+        if (event.key === 'ArrowLeft') deltaX = -step * window.innerWidth / 100;
+        if (event.key === 'ArrowRight') deltaX = step * window.innerWidth / 100;
+        if (event.key === 'ArrowUp') deltaY = -step * window.innerHeight / 100;
+        if (event.key === 'ArrowDown') deltaY = step * window.innerHeight / 100;
+
+        const newX = currentXInPx + deltaX;
+        const newY = currentYInPx + deltaY;
+        const xVw = (newX / window.innerWidth) * 100;
+        const yVh = (newY / window.innerHeight) * 100;
+
+        selectedEditElement.style.setProperty('translate', xVw.toFixed(3) + 'vw ' + yVh.toFixed(3) + 'vh');
+
+        window.parent.postMessage({
+          type: 'rc-studio-position',
+          filename: selectedEditElement.dataset.rcFile,
+          line: Number(selectedEditElement.dataset.rcLine),
+          x: xVw.toFixed(3) + 'vw',
+          y: yVh.toFixed(3) + 'vh'
+        }, '*');
+      }, true);
+
       window.addEventListener('dblclick', event => {
         if (!editMode) return;
         const textElement = event.target.closest?.('[data-rc-text-editable]');
