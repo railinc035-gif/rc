@@ -1,0 +1,1168 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RC Studio - Entorno de Desarrollo para Lenguaje RC</title>
+<style>
+  :root {
+    color-scheme: dark;
+    --bg-main: #0f1117;
+    --bg-topbar: #161822;
+    --panel-bg: #1a1d28;
+    --panel-border: #2d3345;
+    --editor-bg: #0d0e14;
+    --gutter-bg: #131520;
+    --gutter-color: #525e7a;
+    --text-primary: #e2e8f0;
+    --text-muted: #8893b0;
+    --accent-blue: #60a5fa;
+    --accent-indigo: #818cf8;
+    --accent-green: #34d399;
+    --accent-orange: #fb923c;
+    --accent-red: #f87171;
+    --btn-bg: #222636;
+    --btn-hover: #2e354a;
+    --font-mono: 'Fira Code', 'Cascadia Code', Consolas, Monaco, monospace;
+    --font-ui: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 0;
+    background: var(--bg-main);
+    color: var(--text-primary);
+    font-family: var(--font-ui);
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  button, input, select { font: inherit; }
+
+  /* Topbar */
+  .topbar {
+    height: 54px;
+    background: var(--bg-topbar);
+    border-bottom: 1px solid var(--panel-border);
+    display: flex;
+    align-items: center;
+    padding: 0 16px;
+    gap: 16px;
+    z-index: 10;
+  }
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-weight: 700;
+    font-size: 17px;
+    color: #ffffff;
+    letter-spacing: -0.3px;
+  }
+  .brand .star {
+    font-size: 18px;
+    color: #f59e0b;
+  }
+  .brand .tag {
+    font-size: 11px;
+    padding: 2px 7px;
+    border-radius: 12px;
+    background: rgba(96, 165, 250, 0.15);
+    color: var(--accent-blue);
+    border: 1px solid rgba(96, 165, 250, 0.3);
+    font-weight: 600;
+  }
+  .status-badge {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 5px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 500;
+    transition: all 0.2s ease;
+  }
+  .status-badge .dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+  }
+  .status-badge.status-ok {
+    background: rgba(52, 211, 153, 0.1);
+    color: var(--accent-green);
+    border: 1px solid rgba(52, 211, 153, 0.25);
+  }
+  .status-badge.status-ok .dot { background: var(--accent-green); box-shadow: 0 0 8px var(--accent-green); }
+  .status-badge.status-error {
+    background: rgba(248, 113, 113, 0.12);
+    color: var(--accent-red);
+    border: 1px solid rgba(248, 113, 113, 0.3);
+  }
+  .status-badge.status-error .dot { background: var(--accent-red); box-shadow: 0 0 8px var(--accent-red); }
+
+  .actions {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .btn {
+    cursor: pointer;
+    border: 1px solid var(--panel-border);
+    background: var(--btn-bg);
+    color: var(--text-primary);
+    border-radius: 7px;
+    padding: 7px 12px;
+    font-size: 13px;
+    font-weight: 500;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    transition: background 0.15s ease, border-color 0.15s ease, transform 0.1s ease;
+    user-select: none;
+  }
+  .btn:hover {
+    background: var(--btn-hover);
+    border-color: #3f475e;
+  }
+  .btn:active { transform: scale(0.98); }
+  .btn-primary {
+    background: #3b82f6;
+    border-color: #2563eb;
+    color: #ffffff;
+    font-weight: 600;
+  }
+  .btn-primary:hover {
+    background: #2563eb;
+  }
+  .btn-success {
+    background: #10b981;
+    border-color: #059669;
+    color: #ffffff;
+    font-weight: 600;
+  }
+  .btn-success:hover {
+    background: #059669;
+  }
+  .btn-sm {
+    padding: 4px 9px;
+    font-size: 12px;
+    border-radius: 5px;
+  }
+
+  /* Layout / Splitter */
+  .layout {
+    flex: 1;
+    display: flex;
+    height: calc(100vh - 82px);
+    overflow: hidden;
+    padding: 8px;
+    gap: 8px;
+  }
+  .editor-panel, .preview-panel {
+    flex: 1 1 0%;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    background: var(--panel-bg);
+    border: 1px solid var(--panel-border);
+    border-radius: 9px;
+    overflow: hidden;
+  }
+  .panel-header {
+    height: 42px;
+    background: #151722;
+    border-bottom: 1px solid var(--panel-border);
+    display: flex;
+    align-items: center;
+    padding: 0 12px;
+    justify-content: space-between;
+  }
+  .file-tab {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    background: var(--editor-bg);
+    border: 1px solid var(--panel-border);
+    border-bottom: 0;
+    border-radius: 6px 6px 0 0;
+    font-size: 13px;
+    color: var(--accent-blue);
+    font-family: var(--font-mono);
+  }
+  .panel-title {
+    font-weight: 600;
+    font-size: 13px;
+    color: var(--text-primary);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .splitter {
+    width: 8px;
+    cursor: col-resize;
+    user-select: none;
+    position: relative;
+    z-index: 5;
+  }
+  .splitter::before {
+    content: "";
+    position: absolute;
+    top: 10px;
+    bottom: 10px;
+    left: 3px;
+    width: 2px;
+    background: var(--panel-border);
+    border-radius: 2px;
+    transition: background 0.15s ease;
+  }
+  .splitter:hover::before, .splitter.dragging::before {
+    background: var(--accent-blue);
+  }
+
+  /* Editor Body */
+  .editor-body {
+    flex: 1;
+    display: flex;
+    position: relative;
+    overflow: hidden;
+    background: var(--editor-bg);
+  }
+  .gutter {
+    width: 48px;
+    flex: 0 0 48px;
+    background: var(--gutter-bg);
+    color: var(--gutter-color);
+    border-right: 1px solid var(--panel-border);
+    padding: 12px 8px;
+    font-family: var(--font-mono);
+    font-size: 13px;
+    line-height: 22px;
+    text-align: right;
+    user-select: none;
+    overflow: hidden;
+    white-space: pre;
+  }
+  .editor-wrap {
+    flex: 1;
+    position: relative;
+    overflow: hidden;
+  }
+  .highlight-layer, textarea#rcEditor {
+    margin: 0;
+    padding: 12px 14px;
+    border: 0;
+    font-family: var(--font-mono);
+    font-size: 13px;
+    line-height: 22px;
+    tab-size: 2;
+    white-space: pre;
+    word-wrap: normal;
+    overflow-wrap: normal;
+    box-sizing: border-box;
+    width: 100%;
+    height: 100%;
+    position: absolute;
+    top: 0;
+    left: 0;
+  }
+  .highlight-layer {
+    pointer-events: none;
+    color: var(--text-primary);
+    overflow: hidden;
+  }
+  .highlight-layer code {
+    font-family: inherit;
+    font-size: inherit;
+    line-height: inherit;
+  }
+  textarea#rcEditor {
+    background: transparent;
+    color: transparent;
+    caret-color: #ffffff;
+    resize: none;
+    outline: none;
+    z-index: 1;
+    overflow: auto;
+  }
+  textarea#rcEditor::selection {
+    background: rgba(96, 165, 250, 0.3);
+  }
+
+  /* Syntax Highlighting */
+  .hl-comment { color: #6272a4; font-style: italic; }
+  .hl-cmd     { color: #5eead4; font-weight: 600; }
+  .hl-block   { color: #f472b6; font-weight: 600; }
+  .hl-bracket { color: #fb923c; font-weight: 600; }
+  .hl-string  { color: #f1fa8c; }
+  .hl-num     { color: #a7f3d0; }
+  .hl-assign  { color: #93c5fd; }
+  .hl-symbol  { color: #38bdf8; }
+
+  /* Preview Body */
+  .preview-body {
+    flex: 1;
+    background: #090a0f;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    position: relative;
+  }
+  .preview-container {
+    width: 100%;
+    height: 100%;
+    background: #ffffff;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  .preview-body[data-mode="mobile"] .preview-container {
+    width: 375px;
+    height: 667px;
+    border-radius: 28px;
+    box-shadow: 0 20px 50px rgba(0,0,0,0.8), 0 0 0 10px #1e2230;
+    overflow: hidden;
+  }
+  iframe#previewFrame {
+    width: 100%;
+    height: 100%;
+    border: 0;
+    background: #ffffff;
+    display: block;
+  }
+
+  /* Footer */
+  .footer {
+    height: 28px;
+    background: var(--bg-topbar);
+    border-top: 1px solid var(--panel-border);
+    display: flex;
+    align-items: center;
+    padding: 0 16px;
+    justify-content: space-between;
+    font-size: 12px;
+    color: var(--text-muted);
+  }
+  .footer-left, .footer-right {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+
+  /* Toast notification */
+  .toast {
+    position: fixed;
+    bottom: 38px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #1e293b;
+    border: 1px solid #334155;
+    color: #f8fafc;
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-size: 13px;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+    z-index: 100;
+    display: none;
+  }
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="brand">
+    <span class="star">⭐</span>
+    <span>RC Studio</span>
+    <span class="tag">Lenguaje RC</span>
+  </div>
+
+  <div id="compilerStatus" class="status-badge status-ok">
+    <span class="dot"></span>
+    <span id="statusText">Compilador RC: Listo</span>
+  </div>
+
+  <div class="actions">
+    <button id="btnRun" class="btn btn-primary" title="Compilar y Ejecutar en el lienzo">▶ Ejecutar</button>
+    <button id="btnSample" class="btn" title="Cargar proyecto de ejemplo completo">📄 Cargar Ejemplo</button>
+    <button id="btnExportHtml" class="btn btn-success" title="Exportar como aplicación HTML autónoma">💾 Exportar HTML</button>
+    <button id="btnSaveRc" class="btn" title="Guardar código fuente .rc">📥 Guardar .rc</button>
+  </div>
+</header>
+
+<main class="layout">
+  <!-- Panel Izquierdo: Editor -->
+  <section class="editor-panel">
+    <div class="panel-header">
+      <div class="file-tab">
+        <span>📝</span>
+        <span id="fileNameTab">main.rc</span>
+      </div>
+      <div>
+        <button id="btnToggleAuto" class="btn btn-sm" title="Alternar compilación en tiempo real">Auto-ejecutar: ON</button>
+      </div>
+    </div>
+    <div class="editor-body">
+      <div class="gutter" id="editorGutter">1</div>
+      <div class="editor-wrap">
+        <pre class="highlight-layer" id="highlightLayer"><code id="highlightCode"></code></pre>
+        <textarea id="rcEditor" spellcheck="false" autocapitalize="off" autocomplete="off" placeholder="// Escribe tu código en lenguaje RC aquí..."></textarea>
+      </div>
+    </div>
+  </section>
+
+  <div class="splitter" id="paneSplitter" title="Arrastrar para cambiar tamaño"></div>
+
+  <!-- Panel Derecho: Vista previa / Lienzo -->
+  <section class="preview-panel">
+    <div class="panel-header">
+      <span class="panel-title">🖥️ Lienzo / Vista Previa Interactiva</span>
+      <div style="display: flex; gap: 6px;">
+        <button id="btnDesktopMode" class="btn btn-sm" style="border-color: var(--accent-blue);">Escritorio</button>
+        <button id="btnMobileMode" class="btn btn-sm">Teléfono</button>
+      </div>
+    </div>
+    <div class="preview-body" id="previewStage" data-mode="desktop">
+      <div class="preview-container">
+        <iframe id="previewFrame" title="Lienzo RC App"></iframe>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer class="footer">
+  <div class="footer-left">
+    <span id="fileStatus">archivo: main.rc | L: 1, C: 1</span>
+  </div>
+  <div class="footer-right">
+    <span id="engineStatus">Motor RC (Rint Coll) v1.0.0</span>
+  </div>
+</footer>
+
+<div class="toast" id="toast"></div>
+
+<script>
+(() => {
+  // ==========================================
+  // ESPECIFICACIÓN Y BLOQUES DEL LENGUAJE RC
+  // ==========================================
+  const BLOCK_COMMANDS = new Set([
+    'manifiesto', 'seccion', 'contenedor', 'rejilla', 'listadesordenada',
+    'listaordenada', 'tabla', 'filatabla', 'modal', 'vista', 'si', 'repetir',
+    'pestana', 'acordeon', 'ventana'
+  ]);
+
+  // Ejemplos por defecto
+  const EXAMPLE_RC_CODE = `// ==========================================
+// PROYECTO MANIFIESTO Y DEMOSTRACIÓN RC STUDIO
+// Lenguaje RC (Rint Coll)
+// ==========================================
+
+manifiesto [mi_aplicacion]
+  version = "1.0.0"
+  autor = "Desarrollador RC"
+  descripcion = "Ejemplo oficial de RC Studio"
+fin
+
+seccion [principal]
+  titulo(Demostración RC Studio)
+  fondo(#0f172a)
+  color(#f8fafc)
+  relleno(24)
+
+  contenedor [tarjeta_bienvenida]
+    fondo(#1e293b)
+    radio(12)
+    relleno(20)
+    sombra(4)
+    margen(12)
+
+    encabezado(2, ¡Bienvenido a RC Studio!)
+    mensaje_personalizado = "Procesamiento de cadenas con comas, y 'comillas' sin errores."
+    parrafo(mensaje_personalizado)
+
+    boton [btn_saludo](Mostrar Saludo Especial)
+    avisar(btn_saludo, "¡Hola desde RC Studio! Cadenas con comas, y comillas operativas.")
+  fin
+
+  contenedor [seccion_calculadora]
+    fondo(#1e293b)
+    radio(12)
+    relleno(20)
+    margen(12)
+
+    encabezado(3, Sumadora de Valores)
+    parrafo(Ingresa dos números para sumarlos en tiempo real:)
+
+    entrada [num1](15)
+    entrada [num2](25)
+    boton [btn_calcular](Calcular Suma)
+    etiqueta [lbl_resultado](Resultado: 40)
+
+    sumar(btn_calcular, num1, num2, lbl_resultado)
+  fin
+fin
+`;
+
+  // ==========================================
+  // PARSER DE LÍNEAS RC
+  // ==========================================
+  function parseCommaArgs(str) {
+    const result = [];
+    let current = '';
+    let inQuote = false;
+    let quoteChar = '';
+    let depth = 0;
+
+    for (let i = 0; i < str.length; i++) {
+      const ch = str[i];
+      if (inQuote) {
+        current += ch;
+        if (ch === quoteChar) inQuote = false;
+      } else if (ch === '"' || ch === "'") {
+        inQuote = true;
+        quoteChar = ch;
+        current += ch;
+      } else if (ch === '(') {
+        depth++;
+        current += ch;
+      } else if (ch === ')') {
+        depth--;
+        current += ch;
+      } else if (ch === ',' && depth === 0) {
+        let val = current.trim();
+        if ((val.startsWith('"') && val.endsWith('"')) || (val.startsWith("'") && val.endsWith("'"))) {
+          val = val.slice(1, -1);
+        }
+        result.push(val);
+        current = '';
+      } else {
+        current += ch;
+      }
+    }
+    if (current.trim()) {
+      let val = current.trim();
+      if ((val.startsWith('"') && val.endsWith('"')) || (val.startsWith("'") && val.endsWith("'"))) {
+        val = val.slice(1, -1);
+      }
+      result.push(val);
+    }
+    return result;
+  }
+
+  function parseRcLine(rawLine, lineNum) {
+    const line = rawLine.trim();
+    if (!line || line.startsWith('//')) return null;
+
+    // Asignación de variable: clave = valor
+    const assignMatch = line.match(/^([a-z0-9_]+)\s*=\s*(.*)$/i);
+    if (assignMatch) {
+      const varNameRaw = assignMatch[1];
+      if (varNameRaw !== varNameRaw.toLowerCase()) {
+        return { parseError: `El identificador '${varNameRaw}' en asignaciones debe estar estrictamente en minúsculas.`, lineNum, rawLine };
+      }
+      let val = assignMatch[2].trim();
+      if ((val.startsWith('"') && val.endsWith('"')) || (val.startsWith("'") && val.endsWith("'"))) {
+        val = val.slice(1, -1);
+      }
+      return {
+        isAssignment: true,
+        varName: varNameRaw.toLowerCase(),
+        varVal: val,
+        lineNum,
+        rawLine
+      };
+    }
+
+    // Comando RC
+    const cmdMatch = line.match(/^([a-zA-Z0-9_]+)/);
+    if (!cmdMatch) {
+      return { parseError: "Sintaxis no válida.", lineNum, rawLine };
+    }
+
+    const rawCmd = cmdMatch[1];
+    if (rawCmd !== rawCmd.toLowerCase()) {
+      return { parseError: `El comando '${rawCmd}' debe escribirse en minúsculas.`, lineNum, rawLine };
+    }
+
+    const cmd = rawCmd;
+    let cursor = rawCmd.length;
+    let bracketId = '';
+
+    while (cursor < line.length && /\s/.test(line[cursor])) cursor++;
+    if (line[cursor] === '[') {
+      const bracketMatch = line.slice(cursor).match(/^\[([^\]]*)\]/);
+      if (!bracketMatch) {
+        return { parseError: "Identificador entre corchetes con sintaxis incompleta.", lineNum, rawLine };
+      }
+      bracketId = bracketMatch[1].trim();
+      cursor += bracketMatch[0].length;
+    }
+
+    let args = [];
+    while (cursor < line.length) {
+      while (cursor < line.length && /\s/.test(line[cursor])) cursor++;
+      if (cursor >= line.length) break;
+      if (line[cursor] !== '(') {
+        return { parseError: `Sintaxis no válida cerca de '${line.slice(cursor)}'.`, lineNum, rawLine };
+      }
+      cursor++; // Omitir '('
+      let argStart = cursor;
+      let depth = 1;
+      let inQuote = false;
+      let quoteChar = '';
+
+      while (cursor < line.length && depth > 0) {
+        const ch = line[cursor];
+        if (inQuote) {
+          if (ch === quoteChar) inQuote = false;
+        } else if (ch === '"' || ch === "'") {
+          inQuote = true;
+          quoteChar = ch;
+        } else if (ch === '(') {
+          depth++;
+        } else if (ch === ')') {
+          depth--;
+        }
+        if (depth > 0) cursor++;
+      }
+
+      if (depth > 0) {
+        return { parseError: "Falta paréntesis de cierre ')'.", lineNum, rawLine };
+      }
+
+      let argVal = line.slice(argStart, cursor).trim();
+      cursor++; // Omitir ')'
+      if ((argVal.startsWith('"') && argVal.endsWith('"')) || (argVal.startsWith("'") && argVal.endsWith("'"))) {
+        argVal = argVal.slice(1, -1);
+      }
+      args.push(argVal);
+    }
+
+    if (args.length === 1 && args[0].includes(',')) {
+      const commaSplit = parseCommaArgs(args[0]);
+      if (commaSplit.length > 1) {
+        args = commaSplit;
+      }
+    }
+
+    return { cmd, bracketId, args, lineNum, rawLine };
+  }
+
+  // ==========================================
+  // COMPILADOR RC -> HTML / CSS / JS ISOLATED
+  // ==========================================
+  function compileRcToHtml(rcCode) {
+    const lines = rcCode.split('\n');
+    const openStack = [];
+    const errors = [];
+    const variables = new Map();
+
+    let pageTitle = "Aplicación RC Studio";
+    let manifestMeta = {};
+    const htmlElements = [];
+    const scriptListeners = [];
+
+    // Validar estructura y reglas de cierre estrictas 'fin'
+    lines.forEach((line, index) => {
+      const lineNum = index + 1;
+      const parsed = parseRcLine(line, lineNum);
+      if (!parsed) return;
+
+      if (parsed.parseError) {
+        errors.push({ lineNum, message: `Línea ${lineNum}: ${parsed.parseError}` });
+        return;
+      }
+
+      if (parsed.isAssignment) {
+        variables.set(parsed.varName, parsed.varVal);
+        return;
+      }
+
+      const { cmd, bracketId } = parsed;
+
+      if (cmd === 'fin') {
+        if (openStack.length > 0) {
+          openStack.pop();
+        } else {
+          errors.push({ lineNum, message: `Línea ${lineNum}: 'fin' no tiene ninguna estructura abierta que cerrar.` });
+        }
+      } else if (BLOCK_COMMANDS.has(cmd)) {
+        openStack.push({ cmd, bracketId, lineNum });
+      } else if (cmd.startsWith('fin') && cmd !== 'fin') {
+        errors.push({ lineNum, message: `Línea ${lineNum}: Cierre no válido '${cmd}'. Todos los contenedores o estructuras se cierran ÚNICAMENTE con la palabra clave 'fin'.` });
+      }
+    });
+
+    openStack.forEach(b => {
+      const blockDesc = b.bracketId ? `[${b.bracketId}]` : b.cmd;
+      errors.push({ lineNum: b.lineNum, message: `Línea ${b.lineNum}: La estructura '${blockDesc}' no se cerró correctamente con 'fin'.` });
+    });
+
+    if (errors.length > 0) {
+      return { ok: false, errors };
+    }
+
+    // Procesar elementos de renderizado
+    const resolveArg = (val) => {
+      if (!val) return '';
+      const lower = val.toLowerCase();
+      if (variables.has(lower)) return variables.get(lower);
+      return val;
+    };
+
+    const containerStack = [];
+
+    lines.forEach((line, index) => {
+      const lineNum = index + 1;
+      const parsed = parseRcLine(line, lineNum);
+      if (!parsed || parsed.parseError || parsed.isAssignment) return;
+
+      const { cmd, bracketId, args } = parsed;
+      const a1 = resolveArg(args[0] || '');
+      const a2 = resolveArg(args[1] || '');
+      const a3 = resolveArg(args[2] || '');
+      const a4 = resolveArg(args[3] || '');
+
+      switch (cmd) {
+        case 'manifiesto':
+          manifestMeta.name = bracketId || 'Aplicación RC';
+          break;
+
+        case 'titulo':
+          pageTitle = a1;
+          break;
+
+        case 'seccion':
+        case 'contenedor': {
+          const elementId = bracketId ? ` id="${bracketId}"` : '';
+          htmlElements.push(`<div${elementId} class="rc-container">`);
+          containerStack.push('div');
+          break;
+        }
+
+        case 'fin':
+          if (containerStack.length > 0) {
+            containerStack.pop();
+            htmlElements.push(`</div>`);
+          }
+          break;
+
+        case 'encabezado': {
+          const level = Math.min(Math.max(parseInt(a1) || 2, 1), 6);
+          const text = a2 || a1;
+          htmlElements.push(`<h${level} class="rc-heading">${escapeHtml(text)}</h${level}>`);
+          break;
+        }
+
+        case 'parrafo':
+        case 'texto': {
+          const idAttr = bracketId ? ` id="${bracketId}"` : '';
+          htmlElements.push(`<p${idAttr} class="rc-text">${escapeHtml(a1)}</p>`);
+          break;
+        }
+
+        case 'etiqueta': {
+          const idAttr = bracketId ? ` id="${bracketId}"` : a1 ? ` id="${a1}"` : '';
+          const txt = bracketId ? a1 : a2 || a1;
+          htmlElements.push(`<span${idAttr} class="rc-label">${escapeHtml(txt)}</span>`);
+          break;
+        }
+
+        case 'boton': {
+          const idAttr = bracketId ? ` id="${bracketId}"` : a1 ? ` id="${a1}"` : '';
+          const txt = bracketId ? a1 : a2 || a1;
+          htmlElements.push(`<button${idAttr} class="rc-btn">${escapeHtml(txt)}</button>`);
+          break;
+        }
+
+        case 'entrada': {
+          const idAttr = bracketId ? ` id="${bracketId}"` : a1 ? ` id="${a1}"` : '';
+          const val = bracketId ? a1 : a2;
+          htmlElements.push(`<input type="text"${idAttr} class="rc-input" value="${escapeHtml(val)}">`);
+          break;
+        }
+
+        case 'fondo': {
+          const color = a1;
+          htmlElements.push(`<style>.rc-app-root { background-color: ${color} !important; }</style>`);
+          break;
+        }
+
+        case 'color': {
+          const color = a1;
+          htmlElements.push(`<style>.rc-app-root { color: ${color} !important; }</style>`);
+          break;
+        }
+
+        case 'relleno': {
+          const pad = formatUnit(a1);
+          htmlElements.push(`<style>.rc-container:last-of-type { padding: ${pad} !important; }</style>`);
+          break;
+        }
+
+        case 'radio': {
+          const rad = formatUnit(a1);
+          htmlElements.push(`<style>.rc-container:last-of-type { border-radius: ${rad} !important; }</style>`);
+          break;
+        }
+
+        case 'sombra': {
+          htmlElements.push(`<style>.rc-container:last-of-type { box-shadow: 0 4px 12px rgba(0,0,0,0.3) !important; }</style>`);
+          break;
+        }
+
+        case 'margen': {
+          const mar = formatUnit(a1);
+          htmlElements.push(`<style>.rc-container:last-of-type { margin: ${mar} !important; }</style>`);
+          break;
+        }
+
+        case 'avisar': {
+          const targetBtn = a1;
+          const msg = a2;
+          scriptListeners.push(`
+            document.getElementById('${targetBtn}')?.addEventListener('click', () => {
+              alert(${JSON.stringify(msg)});
+            });
+          `);
+          break;
+        }
+
+        case 'sumar': {
+          const btnId = a1;
+          const in1Id = a2;
+          const in2Id = a3;
+          const lblId = a4;
+          scriptListeners.push(`
+            document.getElementById('${btnId}')?.addEventListener('click', () => {
+              const v1 = parseFloat(document.getElementById('${in1Id}')?.value || 0);
+              const v2 = parseFloat(document.getElementById('${in2Id}')?.value || 0);
+              const res = v1 + v2;
+              const lbl = document.getElementById('${lblId}');
+              if (lbl) lbl.textContent = 'Resultado: ' + res;
+            });
+          `);
+          break;
+        }
+      }
+    });
+
+    const fullHtml = `<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>${escapeHtml(pageTitle)}</title>
+<style>
+  /* Estilos Aislados del Lienzo (Sin interferir con RC Studio) */
+  * { box-sizing: border-box; }
+  body, html {
+    margin: 0;
+    padding: 0;
+    font-family: system-ui, -apple-system, sans-serif;
+    background: #0f172a;
+    color: #f8fafc;
+    min-height: 100vh;
+  }
+  .rc-app-root {
+    padding: 16px;
+    min-height: 100vh;
+  }
+  .rc-container {
+    background: #1e293b;
+    border-radius: 8px;
+    padding: 16px;
+    margin-bottom: 16px;
+    border: 1px solid rgba(255,255,255,0.08);
+  }
+  .rc-heading {
+    margin-top: 0;
+    margin-bottom: 12px;
+  }
+  .rc-text, .rc-label {
+    line-height: 1.5;
+    margin-bottom: 12px;
+  }
+  .rc-btn {
+    cursor: pointer;
+    background: #3b82f6;
+    color: #ffffff;
+    border: 0;
+    padding: 10px 18px;
+    border-radius: 6px;
+    font-weight: 600;
+    font-size: 14px;
+    transition: background 0.15s;
+    margin: 4px 0;
+    display: inline-block;
+  }
+  .rc-btn:hover { background: #2563eb; }
+  .rc-input {
+    background: #0f172a;
+    border: 1px solid #334155;
+    color: #ffffff;
+    padding: 8px 12px;
+    border-radius: 6px;
+    font-size: 14px;
+    margin-bottom: 8px;
+    display: block;
+    width: 100%;
+    max-width: 320px;
+  }
+</style>
+</head>
+<body>
+<main class="rc-app-root">
+${htmlElements.join('\n')}
+</main>
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  ${scriptListeners.join('\n')}
+});
+<\/script>
+</body>
+</html>`;
+
+    return { ok: true, html: fullHtml };
+  }
+
+  function formatUnit(val) {
+    if (!val) return '0px';
+    val = String(val).trim();
+    if (/^\d+$/.test(val)) return val + 'px';
+    return val;
+  }
+
+  function escapeHtml(str) {
+    if (!str) return '';
+    return str
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
+
+  // ==========================================
+  // ELEMENTOS Y EVENTOS DE INTERFAZ RC STUDIO
+  // ==========================================
+  const editorEl = document.getElementById('rcEditor');
+  const gutterEl = document.getElementById('editorGutter');
+  const highlightCodeEl = document.getElementById('highlightCode');
+  const previewFrame = document.getElementById('previewFrame');
+  const compilerStatusEl = document.getElementById('compilerStatus');
+  const statusTextEl = document.getElementById('statusText');
+  const fileStatusEl = document.getElementById('fileStatus');
+  const toastEl = document.getElementById('toast');
+  const splitterEl = document.getElementById('paneSplitter');
+  const previewStage = document.getElementById('previewStage');
+
+  let autoRunEnabled = true;
+  let autoRunTimer = null;
+
+  function showToast(msg, duration = 2500) {
+    toastEl.textContent = msg;
+    toastEl.style.display = 'block';
+    setTimeout(() => { toastEl.style.display = 'none'; }, duration);
+  }
+
+  function updateEditorGutter() {
+    const lines = editorEl.value.split('\n').length;
+    gutterEl.textContent = Array.from({ length: lines }, (_, i) => i + 1).join('\n') + '\n';
+  }
+
+  function updateCursorInfo() {
+    const before = editorEl.value.slice(0, editorEl.selectionStart);
+    const line = before.split('\n').length;
+    const col = before.length - before.lastIndexOf('\n');
+    fileStatusEl.textContent = `archivo: main.rc | L: ${line}, C: ${col}`;
+  }
+
+  function highlightSyntax(code) {
+    const tokenRegex = /(\/\/[^\n]*)|("[^"]*"|\x27[^\x27]*\x27)|(\[[^\]]*\])|\b(manifiesto|seccion|contenedor|rejilla|listadesordenada|listaordenada|tabla|filatabla|modal|vista|si|repetir|pestana|acordeon|ventana|fin)\b|\b([a-zA-Z_0-9]+)\b(?=\s*=)|\b([a-z0-9_]+)\b(?=\()|\b(\d+)\b/g;
+
+    return code.split('\n').map(line => {
+      let lastIdx = 0;
+      let result = '';
+      let match;
+      tokenRegex.lastIndex = 0;
+      while ((match = tokenRegex.exec(line)) !== null) {
+        result += escapeHtml(line.slice(lastIdx, match.index));
+        const [full, comment, str, bracket, blockKw, assignKey, cmd, num] = match;
+        const text = escapeHtml(full);
+
+        if (comment !== undefined) {
+          result += `<span class="hl-comment">${text}</span>`;
+        } else if (str !== undefined) {
+          result += `<span class="hl-str">${text}</span>`;
+        } else if (bracket !== undefined) {
+          result += `<span class="hl-bracket">${text}</span>`;
+        } else if (blockKw !== undefined) {
+          result += `<span class="hl-block">${text}</span>`;
+        } else if (assignKey !== undefined) {
+          result += `<span class="hl-assign">${text}</span>`;
+        } else if (cmd !== undefined) {
+          result += `<span class="hl-cmd">${text}</span>`;
+        } else if (num !== undefined) {
+          result += `<span class="hl-num">${text}</span>`;
+        } else {
+          result += text;
+        }
+        lastIdx = tokenRegex.lastIndex;
+      }
+      result += escapeHtml(line.slice(lastIdx));
+      return result;
+    }).join('\n');
+  }
+
+  function updateHighlight() {
+    highlightCodeEl.innerHTML = highlightSyntax(editorEl.value);
+  }
+
+  function runCompiler() {
+    const rcVal = editorEl.value;
+    const res = compileRcToHtml(rcVal);
+
+    if (res.ok) {
+      compilerStatusEl.className = 'status-badge status-ok';
+      statusTextEl.textContent = 'Compilador RC: Listo';
+      previewFrame.srcdoc = res.html;
+    } else {
+      compilerStatusEl.className = 'status-badge status-error';
+      const firstErr = res.errors[0];
+      statusTextEl.textContent = firstErr.message;
+
+      const errHtml = `<!DOCTYPE html>
+<html lang="es">
+<head>
+<style>
+  body { background: #1e1215; color: #f87171; font-family: monospace; padding: 24px; line-height: 1.6; }
+  h2 { margin-top: 0; color: #ef4444; }
+  .err-box { background: #2a181c; border: 1px solid #7f1d1d; border-radius: 8px; padding: 16px; margin-top: 12px; }
+</style>
+</head>
+<body>
+  <h2>⚠️ Error de Compilador RC</h2>
+  <div class="err-box">
+    ${res.errors.map(e => `<div>• ${escapeHtml(e.message)}</div>`).join('')}
+  </div>
+</body>
+</html>`;
+      previewFrame.srcdoc = errHtml;
+    }
+  }
+
+  function scheduleAutoRun() {
+    if (!autoRunEnabled) return;
+    clearTimeout(autoRunTimer);
+    autoRunTimer = setTimeout(runCompiler, 200);
+  }
+
+  // Event Listeners del Editor
+  editorEl.addEventListener('input', () => {
+    updateEditorGutter();
+    updateCursorInfo();
+    updateHighlight();
+    scheduleAutoRun();
+  });
+
+  editorEl.addEventListener('keyup', updateCursorInfo);
+  editorEl.addEventListener('click', updateCursorInfo);
+  editorEl.addEventListener('scroll', () => {
+    gutterEl.scrollTop = editorEl.scrollTop;
+    document.getElementById('highlightLayer').scrollTop = editorEl.scrollTop;
+  });
+
+  editorEl.addEventListener('keydown', (e) => {
+    if (e.key === 'Tab') {
+      e.preventDefault();
+      const start = editorEl.selectionStart;
+      const end = editorEl.selectionEnd;
+      editorEl.setRangeText('  ', start, end, 'end');
+      updateEditorGutter();
+      updateCursorInfo();
+      updateHighlight();
+      scheduleAutoRun();
+    } else if (e.ctrlKey && e.key === 'Enter') {
+      e.preventDefault();
+      runCompiler();
+      showToast("▶ Compilado y ejecutado");
+    }
+  });
+
+  // Botones Topbar
+  document.getElementById('btnRun').addEventListener('click', () => {
+    runCompiler();
+    showToast("▶ Compilado y ejecutado");
+  });
+
+  document.getElementById('btnSample').addEventListener('click', () => {
+    editorEl.value = EXAMPLE_RC_CODE;
+    updateEditorGutter();
+    updateCursorInfo();
+    updateHighlight();
+    runCompiler();
+    showToast("📄 Ejemplo oficial cargado");
+  });
+
+  document.getElementById('btnExportHtml').addEventListener('click', () => {
+    const res = compileRcToHtml(editorEl.value);
+    if (!res.ok) {
+      showToast("⚠️ Corrige los errores antes de exportar");
+      return;
+    }
+    const blob = new Blob([res.html], { type: 'text/html;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'aplicacion_rc.html';
+    a.click();
+    URL.revokeObjectURL(url);
+    showToast("💾 Aplicación HTML exportada con éxito");
+  });
+
+  document.getElementById('btnSaveRc').addEventListener('click', () => {
+    const blob = new Blob([editorEl.value], { type: 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'main.rc';
+    a.click();
+    URL.revokeObjectURL(url);
+    showToast("📥 Código .rc descargado");
+  });
+
+  document.getElementById('btnToggleAuto').addEventListener('click', (e) => {
+    autoRunEnabled = !autoRunEnabled;
+    e.target.textContent = `Auto-ejecutar: ${autoRunEnabled ? 'ON' : 'OFF'}`;
+    e.target.style.borderColor = autoRunEnabled ? '' : 'var(--accent-red)';
+    showToast(`Compilación automática: ${autoRunEnabled ? 'Activada' : 'Desactivada'}`);
+  });
+
+  // Toggles Escritorio / Móvil
+  const btnDesktop = document.getElementById('btnDesktopMode');
+  const btnMobile = document.getElementById('btnMobileMode');
+
+  btnDesktop.addEventListener('click', () => {
+    previewStage.dataset.mode = 'desktop';
+    btnDesktop.style.borderColor = 'var(--accent-blue)';
+    btnMobile.style.borderColor = '';
+  });
+
+  btnMobile.addEventListener('click', () => {
+    previewStage.dataset.mode = 'mobile';
+    btnMobile.style.borderColor = 'var(--accent-blue)';
+    btnDesktop.style.borderColor = '';
+  });
+
+  // Cargar ejemplo inicial por defecto
+  editorEl.value = EXAMPLE_RC_CODE;
+  updateEditorGutter();
+  updateCursorInfo();
+  updateHighlight();
+  runCompiler();
+
+})();
+</script>
+</body>
+</html>
