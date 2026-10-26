@@ -454,6 +454,9 @@
     desplegable: { cat: 3, name: 'desplegable', params: ['id'], minArgs: 1, type: 'element', tag: 'select', desc: 'Crea un menú desplegable (<select>)' },
     al_clic_fuera: { cat: 3, name: 'al_clic_fuera', params: ['id_elemento'], minArgs: 1, type: 'outsideClick', desc: 'Detecta clics fuera, oculta el elemento y emite rc:clickoutside' },
     deslizar: { cat: 3, name: 'deslizar', params: ['id_elemento', 'direccion'], minArgs: 2, type: 'swipe', desc: 'Detecta un gesto swipe en la dirección indicada y emite rc:swipe' },
+    al_deslizar: { cat: 3, name: 'al_deslizar', params: ['id', 'direccion', 'accion'], minArgs: 3, type: 'hammerSwipe', desc: 'Gestos táctiles de deslizamiento con Hammer.js (izquierda, derecha, arriba, abajo)' },
+    al_pellizcar: { cat: 3, name: 'al_pellizcar', params: ['id', 'accion'], minArgs: 2, type: 'hammerPinch', desc: 'Gestos táctiles de pellizco (zoom/pinch) con Hammer.js' },
+    animar: { cat: 6, name: 'animar', params: ['id', 'propiedad', 'valor', 'duracion'], minArgs: 4, type: 'gsapAnimation', desc: 'Anima propiedades de un elemento con GSAP (ej: animar(btn)(scale)(1.2)(0.5s))' },
     al_presionar_atras: { cat: 3, name: 'al_presionar_atras', params: [], minArgs: 0, type: 'back', desc: 'Detecta Atrás en móvil o Escape y emite rc:back' },
     estado: { cat: 3, name: 'estado', params: ['id_elemento', 'clave, valor'], signatures: ['estado(id_elemento)(clave, valor)', 'estado(id_elemento)(clave)(valor)'], minArgs: 2, maxArgs: 3, type: 'state', desc: 'Guarda estado interno y emite rc:statechange' },
     si_estado: { cat: 3, name: 'si_estado', params: ['id_elemento', 'clave, valor'], signatures: ['si_estado(id_elemento)(clave, valor)', 'si_estado(id_elemento)(clave)(valor)'], minArgs: 2, maxArgs: 3, type: 'stateCondition', desc: 'Evalúa el estado y emite rc:statecheck' },
@@ -935,7 +938,29 @@
   // ==========================================
   function parseRcLine(line, lineNum = 1) {
     const rawLine = String(line);
-    line = rawLine.trim();
+    let quoteChar = '';
+    let isEscaped = false;
+    let cleanLine = rawLine;
+    for (let i = 0; i < rawLine.length - 1; i++) {
+      const char = rawLine[i];
+      if (isEscaped) {
+        isEscaped = false;
+        continue;
+      }
+      if (quoteChar && char === '\\') {
+        isEscaped = true;
+        continue;
+      }
+      if (quoteChar) {
+        if (char === quoteChar) quoteChar = '';
+      } else if (char === '"' || char === "'") {
+        quoteChar = char;
+      } else if (char === '/' && rawLine[i + 1] === '/') {
+        cleanLine = rawLine.slice(0, i);
+        break;
+      }
+    }
+    line = cleanLine.trim();
     if (!line || line.startsWith('//')) return null;
 
     const parseError = message => ({ parseError: message, rawLine: line, lineNum });
@@ -1673,6 +1698,78 @@
             if (el) {
               el.style.setProperty('display', 'none');
               setTimeout(() => el.style.removeProperty('display'), ${Math.floor(delay)});
+            }
+          }`);
+          break;
+        }
+
+        case 'hammerSwipe':
+        case 'al_deslizar': {
+          const targetId = cleanParam(a1);
+          const dirStr = cleanParam(a2).toLowerCase();
+          const actionCode = cleanParam(a3);
+          scriptLines.push(`{
+            const element = document.getElementById(${escapeJsString(targetId)});
+            if (element) {
+              if (typeof Hammer !== 'undefined') {
+                const mc = new Hammer(element);
+                mc.get('swipe').set({ direction: Hammer.DIRECTION_ALL });
+                let eventName = 'swipe';
+                if (${escapeJsString(dirStr)} === 'izquierda' || ${escapeJsString(dirStr)} === 'left') eventName = 'swipeleft';
+                else if (${escapeJsString(dirStr)} === 'derecha' || ${escapeJsString(dirStr)} === 'right') eventName = 'swiperight';
+                else if (${escapeJsString(dirStr)} === 'arriba' || ${escapeJsString(dirStr)} === 'up') eventName = 'swipeup';
+                else if (${escapeJsString(dirStr)} === 'abajo' || ${escapeJsString(dirStr)} === 'down') eventName = 'swipedown';
+                mc.on(eventName, function(ev) {
+                  try { ${actionCode}; } catch(err) { console.error(err); }
+                });
+              }
+            }
+          }`);
+          break;
+        }
+
+        case 'hammerPinch':
+        case 'al_pellizcar': {
+          const targetId = cleanParam(a1);
+          const actionCode = cleanParam(a2);
+          scriptLines.push(`{
+            const element = document.getElementById(${escapeJsString(targetId)});
+            if (element) {
+              if (typeof Hammer !== 'undefined') {
+                const mc = new Hammer(element);
+                mc.get('pinch').set({ enable: true });
+                mc.on('pinch pinchout pinchin', function(ev) {
+                  try { ${actionCode}; } catch(err) { console.error(err); }
+                });
+              }
+            }
+          }`);
+          break;
+        }
+
+        case 'gsapAnimation':
+        case 'animar': {
+          const targetId = cleanParam(a1);
+          const propName = cleanParam(a2);
+          const rawVal = cleanParam(a3);
+          const durStr = cleanParam(a4);
+          let durationSec = parseFloat(durStr) || 0.5;
+          if (durStr.endsWith('ms')) durationSec = (parseFloat(durStr) || 500) / 1000;
+          let parsedVal = rawVal;
+          if (!isNaN(Number(rawVal))) parsedVal = Number(rawVal);
+
+          scriptLines.push(`{
+            const element = document.getElementById(${escapeJsString(targetId)});
+            if (element) {
+              if (typeof gsap !== 'undefined') {
+                const animObj = {};
+                animObj[${escapeJsString(propName)}] = ${JSON.stringify(parsedVal)};
+                animObj.duration = ${durationSec};
+                gsap.to(element, animObj);
+              } else {
+                element.style.transition = ${escapeJsString(propName)} + ' ' + ${durationSec} + 's ease';
+                element.style[${escapeJsString(propName)}] = ${escapeJsString(rawVal)};
+              }
             }
           }`);
           break;
