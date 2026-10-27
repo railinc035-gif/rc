@@ -4645,7 +4645,7 @@
 
       const textContent = escapeHtml(node.innerText || '');
       const renderedText = node.tag === 'button'
-        ? `<span class="rc-button-label" data-rc-text-editable="true" data-rc-line="${node.lineNum}" data-rc-file="${escapeHtml(node.filename || '')}" style="display: inline-block; ${escapeHtml(node.textStyles.join(' '))}">${textContent}</span>`
+        ? `<span class="rc-button-label" data-rc-text-editable="true" data-rc-line="${node.lineNum}" data-rc-file="${escapeHtml(node.filename || '')}" style="display: inline-block; max-width: 100%; white-space: normal; word-break: break-word; overflow-wrap: anywhere; box-sizing: border-box; ${escapeHtml(node.textStyles.join(' '))}">${textContent}</span>`
         : textContent;
       if (node.structureType === 'window') {
         const windowContent = node.children.map(c => renderNode(c, depth + 2)).join('\n');
@@ -5077,9 +5077,10 @@
     @supports (min-height: 100dvh) { body, .rc-app-root { min-height: 100dvh; } }
     .rc-app-root > * { max-width: 100%; }
     *, *:before, *:after { box-sizing: inherit; }
-    button { cursor: pointer; padding: 10px 14px; font-size: 15px; border-radius: 8px; border: 1px solid var(--rc-border); background: var(--rc-surface-raised); color: var(--rc-text); display: inline-block; vertical-align: middle; box-sizing: border-box; transition: background 0.15s ease; margin: 4px; }
+    button { cursor: pointer; padding: 10px 14px; font-size: 15px; border-radius: 8px; border: 1px solid var(--rc-border); background: var(--rc-surface-raised); color: var(--rc-text); display: inline-flex; align-items: center; justify-content: center; text-align: center; vertical-align: middle; box-sizing: border-box; max-width: 100%; min-width: 0; white-space: normal; word-break: break-word; overflow-wrap: anywhere; transition: background 0.15s ease, transform 0.1s ease; margin: 4px; }
     button:hover { background: var(--rc-surface-hover); }
     button:active { background: var(--rc-surface-active); }
+    .rc-button-label { display: inline-block; max-width: 100%; white-space: normal; word-break: break-word; overflow-wrap: anywhere; text-align: center; box-sizing: border-box; }
     input[type="text"], input[type="number"], input[type="email"], input[type="password"], input[type="date"], textarea, select { width: 100%; padding: 10px; font-size: 15px; border-radius: 8px; border: 1px solid var(--rc-border); background: var(--rc-input-bg); color: var(--rc-text); outline: none; box-sizing: border-box; margin: 4px 0; }
     img { background-color: transparent; }
     .rejilla { display: grid; width: 100%; gap: 10px; box-sizing: border-box; }
@@ -5118,12 +5119,26 @@
     .rc-toggle input[type="checkbox"][role="switch"]:checked { border-color: #318ce7; background: #318ce7; }
     .rc-toggle input[type="checkbox"][role="switch"]:checked::before { transform: translateX(18px); background: #fff; }
     .rc-toggle input[type="checkbox"][role="switch"]:focus-visible { outline: 2px solid #68b5ff; outline-offset: 2px; }
-    .rc-tab-button, .rc-accordion-button { display: block; width: 100%; text-align: left; }
-    .rc-accordion { margin: 8px 0; border: 1px solid var(--rc-border); border-radius: 8px; overflow: hidden; }
+    .rc-tab-button, .rc-accordion-button { display: flex; align-items: center; width: 100%; max-width: 100%; min-width: 0; text-align: left; box-sizing: border-box; word-break: break-word; overflow-wrap: anywhere; white-space: normal; }
+    .rc-accordion-button { justify-content: space-between; }
+    .rc-accordion { margin: 8px 0; border: 1px solid var(--rc-border); border-radius: 8px; overflow: hidden; max-width: 100%; box-sizing: border-box; }
     .rc-accordion.collapsed > :not(.rc-accordion-button) { display: none; }
-    .rc-window { position: fixed; z-index: 900; top: 10%; left: 10%; width: min(520px, calc(100vw - 32px)); max-height: 80vh; overflow: auto; border: 1px solid var(--rc-border); border-radius: 10px; background: var(--rc-surface); color: var(--rc-text); box-shadow: 0 16px 48px #000a; }
-    .rc-window-titlebar { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 8px 10px; background: var(--rc-surface-raised); color: var(--rc-text); cursor: move; touch-action: none; }
-    .rc-window-titlebar button { margin: 0 0 0 4px; padding: 2px 8px; }
+    .rc-window { position: fixed; z-index: 900; top: 10%; left: 10%; width: min(520px, calc(100vw - 32px)); max-height: 80vh; overflow: auto; border: 1px solid var(--rc-border); border-radius: 10px; background: var(--rc-surface); color: var(--rc-text); box-shadow: 0 16px 48px #000a; max-width: calc(100vw - 16px); box-sizing: border-box; }
+    .rc-window-titlebar { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 8px 10px; background: var(--rc-surface-raised); color: var(--rc-text); cursor: move; touch-action: none; max-width: 100%; box-sizing: border-box; }
+    .rc-window-titlebar button { margin: 0 0 0 4px; padding: 2px 8px; flex-shrink: 0; min-width: auto; max-width: 100%; }
+    .rc-modal-close { position: absolute; top: 8px; right: 8px; margin: 0; padding: 4px 10px; font-size: 20px; line-height: 1; flex-shrink: 0; min-width: auto; max-width: 100%; }
+    .rc-file-action { max-width: 100%; min-width: 0; word-break: break-word; box-sizing: border-box; }
+    @media (max-width: 768px) {
+      .rc-app-root { padding: 12px; }
+      button { max-width: 100%; }
+      .rc-brush-library-actions { flex-wrap: wrap; }
+    }
+    @media (max-width: 480px) {
+      .rc-app-root { padding: 8px; }
+      button { max-width: 100%; font-size: 14px; padding: 8px 12px; margin: 3px 2px; }
+      .rc-modal-content { padding: 16px; width: calc(100vw - 24px); }
+      .rc-window { width: calc(100vw - 16px); left: 8px !important; }
+    }
     .rc-window-body { min-height: 32px; padding: 12px; }
     .rc-statusbar { position: sticky; bottom: 0; padding: 7px 10px; border-top: 1px solid var(--rc-border); background: var(--rc-surface); color: var(--rc-muted); font-size: 12px; }
     .rc-console { min-height: 100px; max-height: 320px; overflow: auto; padding: 12px; border: 1px solid var(--rc-border); border-radius: 8px; background: var(--rc-console-bg); color: var(--rc-console-text); white-space: pre-wrap; }
@@ -7794,7 +7809,7 @@ ${extraMetadata ? `${extraMetadata}\n` : ''}${activityLines}
     const indentDecreaseCmds = new Set([
       'fin', 'finseccion', 'fincontenedor', 'finrejilla', 'finlista', 'fintabla', 'finfilatabla',
       'finmodal', 'finvista', 'finescena3d', 'finpestana', 'finacordeon', 'finventana',
-      'finholonet', 'finmanifiesto', 'manifest_fin', 'fin_si', 'fin_repetir', 'sino'
+      'finholonet', 'finmanifiesto', 'manifest_fin', 'finsi', 'fin_si', 'finrepetir', 'fin_repetir', 'sino'
     ]);
 
     const indentIncreaseCmds = new Set([
