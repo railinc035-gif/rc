@@ -91,10 +91,9 @@
   .preview-mode-button[aria-pressed="true"]{border-color:var(--blue);background:#21354a;color:var(--text)}
   .preview-body{justify-content:center;background:#d9dde5!important}
   .preview-stage{display:flex;align-items:center;justify-content:center;width:100%;height:100%;min-width:0;min-height:0;overflow:hidden!important;background:#d9dde5}
-  .preview-device{position:relative;display:flex;width:100%;height:100%;flex:0 0 auto;overflow:hidden;background:transparent}
+  .preview-device{position:relative;display:flex;width:min(380px,calc(100% - 32px));height:min(780px,calc(100% - 32px));flex:0 0 auto;overflow:hidden;background:transparent;border:12px solid #1c1f26;border-radius:42px;box-shadow:0 25px 60px rgba(0,0,0,.75),inset 0 0 0 1px rgba(255,255,255,.12),0 0 0 1px rgba(0,0,0,.5)}
+  .preview-device::before{content:"";position:absolute;top:0;left:50%;z-index:10;width:95px;height:18px;transform:translateX(-50%);border-radius:0 0 12px 12px;background:#1c1f26;pointer-events:none}
   .preview-device #previewFrame{display:block;width:100%;height:100%;flex:0 0 auto;border:0;background:transparent}
-  .preview-stage[data-preview-mode="mobile"] .preview-device{width:min(380px,calc(100% - 32px));height:min(780px,calc(100% - 32px));border:12px solid #1c1f26;border-radius:42px;box-shadow:0 25px 60px rgba(0,0,0,.75),inset 0 0 0 1px rgba(255,255,255,.12),0 0 0 1px rgba(0,0,0,.5)}
-  .preview-stage[data-preview-mode="mobile"] .preview-device::before{content:"";position:absolute;top:0;left:50%;z-index:10;width:95px;height:18px;transform:translateX(-50%);border-radius:0 0 12px 12px;background:#1c1f26;pointer-events:none}
 
   /* Modal Overlay y Contenido Diccionario */
   .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.75); backdrop-filter: blur(4px); display: flex; align-items: center; justify-content: center; z-index: 1000; padding: 16px; }
@@ -191,12 +190,10 @@
       <button class="tab active" style="pointer-events:none;">Vista Previa ▶</button>
       <div class="preview-mode-controls" role="group" aria-label="Tamaño de vista previa">
         <button class="preview-mode-button" id="visualEditBtn" type="button" aria-pressed="false" title="Arrastra elementos o el texto de los botones para moverlos; usa doble clic para editar texto y el control de esquina para redimensionar">Editar visual</button>
-        <button class="preview-mode-button" id="previewDesktopBtn" type="button" aria-pressed="true" title="Vista de escritorio"> Escritorio</button>
-        <button class="preview-mode-button" id="previewMobileBtn" type="button" aria-pressed="false" title="Vista de teléfono"> Teléfono</button>
       </div>
     </div>
     <div class="editor-body preview-body">
-      <div class="preview-stage" id="previewStage" data-preview-mode="desktop">
+      <div class="preview-stage" id="previewStage">
         <div class="preview-device">
           <iframe id="previewFrame" title="Vista Previa App"></iframe>
         </div>
@@ -5025,9 +5022,10 @@
     body.rc-visual-edit-mode [data-rc-text-editable="true"] {
       touch-action: none;
     }
-    body { position: relative; min-width: 0; min-height: 100vh; margin: 0; font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; box-sizing: border-box; background: var(--rc-page-bg); color: var(--rc-text); }
-    .rc-app-root { display: flex; flex-direction: column; align-items: center; justify-content: center; width: 100%; min-height: 100vh; padding: 16px; }
-    @supports (min-height: 100dvh) { body, .rc-app-root { min-height: 100dvh; } }
+    html, body { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: var(--rc-page-bg); color: var(--rc-text); font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; box-sizing: border-box; }
+    body { display: flex; align-items: center; justify-content: center; position: relative; }
+    .rc-app-viewport { position: relative; width: 380px; height: 780px; flex: 0 0 auto; overflow: auto; background: var(--rc-page-bg); transform-origin: center center; box-shadow: 0 0 40px rgba(0,0,0,0.15); }
+    .rc-app-root { display: flex; flex-direction: column; align-items: center; justify-content: center; width: 100%; min-height: 100%; padding: 16px; box-sizing: border-box; }
     .rc-app-root > * { max-width: 100%; }
     *, *:before, *:after { box-sizing: inherit; }
     button { cursor: pointer; padding: 10px 14px; font-size: 15px; border-radius: 8px; border: 1px solid var(--rc-border); background: var(--rc-surface-raised); color: var(--rc-text); display: inline-block; vertical-align: middle; box-sizing: border-box; transition: background 0.15s ease; margin: 4px; }
@@ -5088,9 +5086,31 @@
   </style>
 </head>
 <body>
-  <main class="rc-app-root">
+  <div class="rc-app-viewport" id="rcAppViewport">
+    <main class="rc-app-root">
 ${warningBlock}${bodyChildren}
-  </main>${scriptBlock}
+    </main>
+  </div>${scriptBlock}
+  <script>
+    (function() {
+      function updateViewportScale() {
+        var viewport = document.getElementById("rcAppViewport");
+        if (!viewport) return;
+        var baseW = 380;
+        var baseH = 780;
+        var winW = window.innerWidth;
+        var winH = window.innerHeight;
+        var scale = Math.min(winW / baseW, winH / baseH);
+        viewport.style.transform = "scale(" + scale + ")";
+      }
+      window.addEventListener("resize", updateViewportScale);
+      if (document.readyState === "loading") {
+        document.addEventListener("DOMContentLoaded", updateViewportScale);
+      } else {
+        updateViewportScale();
+      }
+    })();
+  <\/script>
 </body>
 </html>
 `;
@@ -7096,19 +7116,9 @@ ${extraMetadata ? `${extraMetadata}\n` : ''}${activityLines}
   const previewStage = document.getElementById("previewStage");
   const visualEditBtn = document.getElementById("visualEditBtn");
   const previewFrame = document.getElementById("previewFrame");
-  const previewDesktopBtn = document.getElementById("previewDesktopBtn");
-  const previewMobileBtn = document.getElementById("previewMobileBtn");
   visualEditBtn.addEventListener("click", () => {
     setVisualEditMode(!visualEditMode);
   });
-  function setPreviewMode(mode) {
-    const isMobile = mode === "mobile";
-    previewStage.dataset.previewMode = isMobile ? "mobile" : "desktop";
-    previewDesktopBtn.setAttribute("aria-pressed", String(!isMobile));
-    previewMobileBtn.setAttribute("aria-pressed", String(isMobile));
-  }
-  previewDesktopBtn.addEventListener("click", () => setPreviewMode("desktop"));
-  previewMobileBtn.addEventListener("click", () => setPreviewMode("mobile"));
 
   const historyBtn = document.getElementById("historyBtn");
   const historyModal = document.getElementById("historyModal");
