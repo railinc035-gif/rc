@@ -91,10 +91,9 @@
   .preview-mode-button[aria-pressed="true"]{border-color:var(--blue);background:#21354a;color:var(--text)}
   .preview-body{justify-content:center;background:#d9dde5!important}
   .preview-stage{display:flex;align-items:center;justify-content:center;width:100%;height:100%;min-width:0;min-height:0;overflow:hidden!important;background:#d9dde5}
-  .preview-device{position:relative;display:flex;width:100%;height:100%;flex:0 0 auto;overflow:hidden;background:transparent}
+  .preview-device{position:relative;display:flex;box-sizing:border-box;width:380px;height:804px;flex:0 0 auto;overflow:hidden;background:transparent;border:12px solid #1c1f26;border-radius:42px;box-shadow:0 25px 60px rgba(0,0,0,.75),inset 0 0 0 1px rgba(255,255,255,.12),0 0 0 1px rgba(0,0,0,.5)}
   .preview-device #previewFrame{display:block;width:100%;height:100%;flex:0 0 auto;border:0;background:transparent}
-  .preview-stage[data-preview-mode="mobile"] .preview-device{width:min(380px,calc(100% - 32px));height:min(780px,calc(100% - 32px));border:12px solid #1c1f26;border-radius:42px;box-shadow:0 25px 60px rgba(0,0,0,.75),inset 0 0 0 1px rgba(255,255,255,.12),0 0 0 1px rgba(0,0,0,.5)}
-  .preview-stage[data-preview-mode="mobile"] .preview-device::before{content:"";position:absolute;top:0;left:50%;z-index:10;width:95px;height:18px;transform:translateX(-50%);border-radius:0 0 12px 12px;background:#1c1f26;pointer-events:none}
+  .preview-device::before{content:"";position:absolute;top:0;left:50%;z-index:10;width:95px;height:18px;transform:translateX(-50%);border-radius:0 0 12px 12px;background:#1c1f26;pointer-events:none}
 
   /* Modal Overlay y Contenido Diccionario */
   .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.75); backdrop-filter: blur(4px); display: flex; align-items: center; justify-content: center; z-index: 1000; padding: 16px; }
@@ -189,14 +188,12 @@
   <section class="editor" id="previewPaneSection" aria-label="Vista Previa en Vivo">
     <div class="tabs">
       <button class="tab active" style="pointer-events:none;">Vista Previa ▶</button>
-      <div class="preview-mode-controls" role="group" aria-label="Tamaño de vista previa">
+      <div class="preview-mode-controls" role="group" aria-label="Herramientas de vista previa">
         <button class="preview-mode-button" id="visualEditBtn" type="button" aria-pressed="false" title="Arrastra elementos o el texto de los botones para moverlos; usa doble clic para editar texto y el control de esquina para redimensionar">Editar visual</button>
-        <button class="preview-mode-button" id="previewDesktopBtn" type="button" aria-pressed="true" title="Vista de escritorio"> Escritorio</button>
-        <button class="preview-mode-button" id="previewMobileBtn" type="button" aria-pressed="false" title="Vista de teléfono"> Teléfono</button>
       </div>
     </div>
     <div class="editor-body preview-body">
-      <div class="preview-stage" id="previewStage" data-preview-mode="desktop">
+      <div class="preview-stage" id="previewStage">
         <div class="preview-device">
           <iframe id="previewFrame" title="Vista Previa App"></iframe>
         </div>
@@ -466,6 +463,8 @@
     repetir: { cat: 3, name: 'repetir', params: ['veces'], minArgs: 1, type: 'repeatBlock', desc: 'Repite un bloque RC un número entero de veces' },
     fin_repetir: { cat: 3, name: 'fin_repetir', params: [], minArgs: 0, type: 'closing', desc: 'Cierra un bloque de repetición' },
     navegar: { cat: 3, name: 'navegar', params: ['id_vista'], minArgs: 1, type: 'navigation', desc: 'Navega a una vista interna por ID' },
+    continuar: { cat: 3, name: 'continuar', params: ['idbtn', 'id_vista'], signatures: ['continuar(idbtn, id_vista)', 'continuar(idbtn)(id_vista)'], minArgs: 2, maxArgs: 2, type: 'event', desc: 'Abre una vista al pulsar un botón y guarda el historial para volver' },
+    volver: { cat: 3, name: 'volver', params: ['idbtn'], minArgs: 1, maxArgs: 1, type: 'event', desc: 'Vuelve a la vista anterior al pulsar un botón' },
     avisar: { cat: 3, name: 'avisar', params: ['idbtn', 'mensaje'], minArgs: 2, type: 'event', desc: 'Muestra alerta al presionar un botón' },
     ira: { cat: 3, name: 'ira', params: ['idbtn', 'url'], minArgs: 2, type: 'event', desc: 'Navega a una URL al presionar un botón' },
     ocultarboton: { cat: 3, name: 'ocultarboton', params: ['idbtn', 'idtarget'], minArgs: 2, type: 'event', desc: 'Oculta el elemento objetivo al hacer clic' },
@@ -1137,6 +1136,14 @@
   // ==========================================
   // COMPILADOR Y GENERADOR RC -> HTML/CSS/JS
   // ==========================================
+  // Lienzo único de diseño (teléfono). Todas las posiciones/tamaños se expresan en estos px
+  // y el HTML resultante escala el lienzo completo de forma uniforme.
+  const RC_DESIGN_WIDTH = 360;
+  const RC_DESIGN_HEIGHT = 780;
+  // Pantallas horizontales (laptops, monitores): el lienzo se escala por ancho hasta este
+  // máximo y la página de diseño se recorre con scroll vertical.
+  const RC_WIDE_MAX_SCALE = 1.5;
+
   function rcToHtml(rcCode, visitedFiles = new Set(), sourceFile = activeFile || '') {
     if (!rcCode || !rcCode.trim()) return '';
 
@@ -1571,7 +1578,7 @@
         exportarcanvas: [a1], luz: [a1], notificacion: [a1],
         tamano_lienzo: [a1], acercar_lienzo: [a1], alejar_lienzo: [a1], ajustar_lienzo: [a1],
         al_clic_fuera: [a1], deslizar: [a1], estado: args.length === 2 && splitTopLevel(a2).length !== 2 ? [] : [a1],
-        si_estado: [a1], enlazar: [a1], navegar: [a1],
+        si_estado: [a1], enlazar: [a1], navegar: [a1], continuar: [a1, a2], volver: [a1],
         reproducir: [a1], pausar: [a1], detener: [a1], volumen: [a1],
         retardar: [a2], desvanecer: [a1], aparecer_lento: [a1],
         fondo: args.length === 2 ? [a1] : [],
@@ -1873,7 +1880,16 @@
               const subHtml = rcToHtml(targetFile.content, newVisited);
               const incNode = createNode('comment');
               const bodyMatch = subHtml.match(/<body[^>]*>([\s\S]*?)<\/body>/i);
-              incNode.rawHtml = bodyMatch ? bodyMatch[1].trim() : subHtml;
+              let includedHtml = bodyMatch ? bodyMatch[1].trim() : subHtml;
+              const canvasOpen = '<main class="rc-app-root"><div class="rc-app-scroll"><div class="rc-app-page">';
+              const canvasClose = '</div></div></main>';
+              const openAt = includedHtml.indexOf(canvasOpen);
+              const closeAt = includedHtml.lastIndexOf(canvasClose);
+              if (openAt === 0 && closeAt > openAt) {
+                includedHtml = includedHtml.slice(canvasOpen.length, closeAt).trim()
+                  + includedHtml.slice(closeAt + canvasClose.length);
+              }
+              incNode.rawHtml = includedHtml;
               currentContainer().children.push(incNode);
 
               const scriptMatch = subHtml.match(/<script>([\s\S]*?)<\/script>/i);
@@ -2420,14 +2436,17 @@
             let drag = null;
             handle?.addEventListener('pointerdown', event => {
               if (event.target.closest('button')) return;
+              const scale = window.__rcScale || 1;
               const rect = windowEl.getBoundingClientRect();
-              drag = { x: event.clientX - rect.left, y: event.clientY - rect.top };
+              drag = { x: (event.clientX - rect.left) / scale, y: (event.clientY - rect.top) / scale };
               handle.setPointerCapture(event.pointerId);
             });
             handle?.addEventListener('pointermove', event => {
               if (!drag || !windowEl) return;
-              windowEl.style.left = (event.clientX - drag.x) + 'px';
-              windowEl.style.top = (event.clientY - drag.y) + 'px';
+              const scale = window.__rcScale || 1;
+              const origin = (document.querySelector('.rc-app-root') || document.body).getBoundingClientRect();
+              windowEl.style.left = ((event.clientX - origin.left) / scale - drag.x) + 'px';
+              windowEl.style.top = ((event.clientY - origin.top) / scale - drag.y) + 'px';
               windowEl.style.right = 'auto';
             });
             handle?.addEventListener('pointerup', () => { drag = null; });
@@ -2599,7 +2618,7 @@
         case 'notificacionos':
           scriptLines.push(`{
             let toast = document.querySelector('.rc-os-toast');
-            if (!toast) { toast = document.createElement('div'); toast.className = 'rc-os-toast'; toast.setAttribute('role', 'status'); toast.setAttribute('aria-live', 'polite'); document.body.appendChild(toast); }
+            if (!toast) { toast = document.createElement('div'); toast.className = 'rc-os-toast'; toast.setAttribute('role', 'status'); toast.setAttribute('aria-live', 'polite'); (document.querySelector('.rc-app-root') || document.body).appendChild(toast); }
             toast.textContent = ${escapeJsString(`${cleanParam(a1)}: ${cleanParam(a2)}`)};
             toast.classList.add('visible');
             clearTimeout(toast.dismissTimer);
@@ -3222,6 +3241,21 @@
           scriptLines.push(`window.rcNavigate(${escapeJsString(cleanParam(a1))});`);
           break;
 
+        case 'continuar': {
+          const buttonId = cleanParam(a1);
+          const viewId = cleanParam(a2);
+          if (!/^[a-z][a-z0-9_]*$/.test(viewId)) {
+            warnings.push(`${filename || 'RC'}:${lineNum}: 'continuar' requiere un ID de vista válido como segundo parámetro.`);
+            break;
+          }
+          scriptLines.push(`document.getElementById(${escapeJsString(buttonId)})?.addEventListener('click', () => window.rcNavigate(${escapeJsString(viewId)}));`);
+          break;
+        }
+
+        case 'volver':
+          scriptLines.push(`document.getElementById(${escapeJsString(cleanParam(a1))})?.addEventListener('click', () => window.rcGoBack());`);
+          break;
+
         case 'fondo': {
           const colorValue = args.length === 2 ? a2 : a1;
           if (!isCssColor(colorValue)) {
@@ -3730,7 +3764,7 @@
               toast.id = 'rc-generated-toast';
               toast.className = 'rc-toast';
               toast.setAttribute('role', 'status');
-              document.body.appendChild(toast);
+              (document.querySelector('.rc-app-root') || document.body).appendChild(toast);
             }
             toast.textContent = ${escapeJsString(a2)};
             toast.classList.add('visible');
@@ -4534,28 +4568,109 @@
       });
 
       const rcViews = [...document.querySelectorAll('[data-rc-view]')];
+      const appRoot = document.querySelector('.rc-app-root');
+      const appScroll = document.querySelector('.rc-app-scroll');
+      const rcViewScrollPositions = new Map();
+      let rcViewHistory = [];
+      let rcCurrentView = null;
+      let rcBackPending = false;
+      let scrollHint = null;
+      const updateScrollHint = () => {
+        if (!scrollHint || !appScroll) return;
+        const hasMore = appScroll.scrollHeight > appScroll.clientHeight + 8;
+        const atBottom = appScroll.scrollTop + appScroll.clientHeight >= appScroll.scrollHeight - 8;
+        scrollHint.classList.toggle('visible', hasMore && !atBottom);
+        scrollHint.setAttribute('aria-hidden', hasMore && !atBottom ? 'false' : 'true');
+      };
+      const rememberCurrentScroll = () => {
+        if (rcCurrentView && appScroll) rcViewScrollPositions.set(rcCurrentView, appScroll.scrollTop);
+      };
+      const restoreViewScroll = viewId => {
+        if (appScroll) appScroll.scrollTop = rcViewScrollPositions.get(String(viewId)) || 0;
+        requestAnimationFrame(updateScrollHint);
+      };
       const setRcView = viewId => {
-        const target = rcViews.find(view => view.dataset.rcView === viewId);
+        const target = rcViews.find(view => view.dataset.rcView === String(viewId));
         if (!target) {
           console.warn('La vista RC no existe:', viewId);
           return false;
         }
-        rcViews.forEach(view => { view.style.display = view === target ? '' : 'none'; });
+        // Ocultar vistas sin borrar sus estilos inline originales ni recrear su contenido.
+        rcViews.forEach(view => {
+          const active = view === target;
+          view.hidden = !active;
+          view.setAttribute('aria-hidden', active ? 'false' : 'true');
+        });
+        rcCurrentView = String(viewId);
+        restoreViewScroll(rcCurrentView);
         return true;
       };
       window.rcNavigate = viewId => {
-        if (!setRcView(String(viewId))) return false;
-        if (window.history?.pushState) window.history.pushState({ rcView: String(viewId) }, '', '#vista=' + encodeURIComponent(viewId));
+        viewId = String(viewId);
+        if (!rcViews.some(view => view.dataset.rcView === viewId)) {
+          console.warn('La vista RC no existe:', viewId);
+          return false;
+        }
+        if (viewId === rcCurrentView) return true;
+        rememberCurrentScroll();
+        const nextHistory = rcCurrentView ? [...rcViewHistory, rcCurrentView] : [...rcViewHistory];
+        if (!setRcView(viewId)) return false;
+        rcViewHistory = nextHistory;
+        if (window.history?.pushState) {
+          window.history.pushState({ rcView: viewId, rcViewHistory: [...rcViewHistory] }, '', '#vista=' + encodeURIComponent(viewId));
+        }
+        updateScrollHint();
+        return true;
+      };
+      window.rcGoBack = () => {
+        if (!rcViewHistory.length || rcBackPending) return false;
+        // Usar el historial real permite que el botón Atrás de la app y el del navegador coincidan.
+        if (window.history?.back && window.history.state?.rcView === rcCurrentView && Array.isArray(window.history.state?.rcViewHistory)) {
+          rcBackPending = true;
+          window.history.back();
+          return true;
+        }
+        const previous = rcViewHistory[rcViewHistory.length - 1];
+        const nextHistory = rcViewHistory.slice(0, -1);
+        rememberCurrentScroll();
+        if (!setRcView(previous)) return false;
+        rcViewHistory = nextHistory;
+        if (window.history?.replaceState) {
+          window.history.replaceState({ rcView: previous, rcViewHistory: [...rcViewHistory] }, '', '#vista=' + encodeURIComponent(previous));
+        }
         return true;
       };
       window.addEventListener('popstate', event => {
-        const viewId = event.state?.rcView || rcViews[0]?.dataset.rcView;
-        if (viewId) setRcView(viewId);
+        rcBackPending = false;
+        const viewId = event.state?.rcView || (window.location.hash.startsWith('#vista=')
+          ? decodeURIComponent(window.location.hash.slice(7)) : rcViews[0]?.dataset.rcView);
+        if (viewId && rcViews.some(view => view.dataset.rcView === viewId)) {
+          rememberCurrentScroll();
+          if (setRcView(viewId)) {
+            if (Array.isArray(event.state?.rcViewHistory)) {
+              rcViewHistory = event.state.rcViewHistory.filter(id => rcViews.some(view => view.dataset.rcView === id));
+            } else {
+              rcViewHistory = [];
+            }
+          }
+        }
       });
       if (rcViews.length) {
         const initialView = window.location.hash.startsWith('#vista=')
           ? decodeURIComponent(window.location.hash.slice(7)) : rcViews[0].dataset.rcView;
         if (!setRcView(initialView)) setRcView(rcViews[0].dataset.rcView);
+        if (window.history?.replaceState) window.history.replaceState({ rcView: rcCurrentView, rcViewHistory: [] }, '', window.location.href);
+      }
+      // Indicador discreto cuando existe contenido desplazable en la pantalla activa.
+      if (appRoot && appScroll) {
+        scrollHint = document.createElement('div');
+        scrollHint.className = 'rc-scroll-hint';
+        scrollHint.textContent = 'Desliza para ver más ↓';
+        scrollHint.setAttribute('aria-hidden', 'true');
+        appRoot.appendChild(scrollHint);
+        appScroll.addEventListener('scroll', updateScrollHint, { passive: true });
+        window.addEventListener('resize', updateScrollHint);
+        requestAnimationFrame(updateScrollHint);
       }
       refreshRcBindings();
     }`);
@@ -4640,6 +4755,7 @@
       let resize = null;
       let resizeTarget = null;
       let suppressClick = false;
+      const rcScale = () => window.__rcScale || 1;
       const getDragTarget = target => target.closest('a, button, img, input, select, textarea, [data-rc-draggable="true"]');
       const saveInlineProperty = (element, property) => ({
         element,
@@ -4665,8 +4781,8 @@
         gesture.lastX = clientX;
         gesture.lastY = clientY;
         gesture.element.style.setProperty('translate',
-          (gesture.baseX + clientX - gesture.startX) + 'px '
-          + (gesture.baseY + clientY - gesture.startY) + 'px');
+          (gesture.baseX + (clientX - gesture.startX) / rcScale()) + 'px '
+          + (gesture.baseY + (clientY - gesture.startY) / rcScale()) + 'px');
       };
       const resizeHandle = document.createElement('button');
       resizeHandle.type = 'button';
@@ -4704,8 +4820,8 @@
             pointerId: event.pointerId,
             startX: event.clientX,
             startY: event.clientY,
-            width: resizeTarget.getBoundingClientRect().width,
-            height: resizeTarget.getBoundingClientRect().height,
+            width: resizeTarget.getBoundingClientRect().width / rcScale(),
+            height: resizeTarget.getBoundingClientRect().height / rcScale(),
             moved: false
           };
           resizeHandle.setPointerCapture(event.pointerId);
@@ -4723,8 +4839,8 @@
             startY: event.clientY,
             lastX: event.clientX,
             lastY: event.clientY,
-            baseX: readOffset(offset[0], rect.width),
-            baseY: readOffset(offset[1], rect.height),
+            baseX: readOffset(offset[0], rect.width / rcScale()),
+            baseY: readOffset(offset[1], rect.height / rcScale()),
             pointerProperties: null,
             userSelectProperty: saveInlineProperty(textElement, 'user-select'),
             moved: false
@@ -4743,8 +4859,8 @@
           startY: event.clientY,
           lastX: event.clientX,
           lastY: event.clientY,
-          baseX: readOffset(offset[0], rect.width),
-          baseY: readOffset(offset[1], rect.height),
+          baseX: readOffset(offset[0], rect.width / rcScale()),
+          baseY: readOffset(offset[1], rect.height / rcScale()),
           pointerProperties: null,
           cursorProperty: saveInlineProperty(element, 'cursor'),
           moved: false
@@ -4766,8 +4882,8 @@
           return;
         }
         if (resize && resize.pointerId === event.pointerId) {
-          const width = Math.max(16, resize.width + event.clientX - resize.startX);
-          const height = Math.max(16, resize.height + event.clientY - resize.startY);
+          const width = Math.max(16, resize.width + (event.clientX - resize.startX) / rcScale());
+          const height = Math.max(16, resize.height + (event.clientY - resize.startY) / rcScale());
           resize.moved = true;
           event.preventDefault();
           resize.element.style.setProperty('width', width + 'px');
@@ -4815,8 +4931,8 @@
           type: 'rc-studio-position',
           filename: completedDrag.element.dataset.rcFile,
           line: Number(completedDrag.element.dataset.rcLine),
-          x: completedDrag.baseX + completedDrag.lastX - completedDrag.startX,
-          y: completedDrag.baseY + completedDrag.lastY - completedDrag.startY
+          x: completedDrag.baseX + (completedDrag.lastX - completedDrag.startX) / rcScale(),
+          y: completedDrag.baseY + (completedDrag.lastY - completedDrag.startY) / rcScale()
         }, '*');
       };
       const finishResize = event => {
@@ -4831,8 +4947,8 @@
           type: 'rc-studio-size',
           filename: completedResize.element.dataset.rcFile,
           line: Number(completedResize.element.dataset.rcLine),
-          width: rect.width,
-          height: rect.height
+          width: rect.width / rcScale(),
+          height: rect.height / rcScale()
         }, '*');
       };
       const finishTextDrag = event => {
@@ -4854,8 +4970,8 @@
           type: 'rc-studio-text-position',
           filename: completedDrag.element.dataset.rcFile,
           line: Number(completedDrag.element.dataset.rcLine),
-          x: completedDrag.baseX + completedDrag.lastX - completedDrag.startX,
-          y: completedDrag.baseY + completedDrag.lastY - completedDrag.startY
+          x: completedDrag.baseX + (completedDrag.lastX - completedDrag.startX) / rcScale(),
+          y: completedDrag.baseY + (completedDrag.lastY - completedDrag.startY) / rcScale()
         }, '*');
       };
       const postTextUpdate = (element, final) => {
@@ -4963,24 +5079,54 @@
       scriptBlock = `\n  <script>\n    window.addEventListener('DOMContentLoaded', async () => {\n      ${scriptLines.join('\n      ')}\n    });\n  <\/script>`;
     }
 
+    // Incluir únicamente dependencias externas que el código RC realmente necesita.
+    // Las funciones básicas (alertas, iconos y animaciones CSS propias) tienen alternativas locales.
+    const needsThree = /\b(escena3d|lienzo3d|objeto3d|exportar3d|sombra3d|enfocar3d|capa3d|textura3d|particulas3d|fisica3d)\s*\(/i.test(rcCode);
+    const externalHeadAssets = needsThree
+      ? '  <script defer src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"><\/script>\n'
+      : '';
+
     return `<!DOCTYPE html>
 <html lang="es">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>${escapeHtml(title)}</title>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-  <script defer src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"><\/script>
-  <script defer src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"><\/script>
-  <script defer src="https://cdn.jsdelivr.net/npm/sweetalert2@11"><\/script>
-  <script defer src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"><\/script>
-  <script defer src="https://cdnjs.cloudflare.com/ajax/libs/dexie.js/3.2.4/dexie.min.js"><\/script>
-  <script defer src="https://cdn.jsdelivr.net/npm/chart.js"><\/script>
-  <script defer src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"><\/script>
+  <script id="rc-fit-script">
+    (function () {
+      var W = ${RC_DESIGN_WIDTH}, H = ${RC_DESIGN_HEIGHT}, MAXS = ${RC_WIDE_MAX_SCALE}, root = document.documentElement;
+      function fit() {
+        var w = Math.max(1, window.innerWidth || root.clientWidth);
+        var h = Math.max(1, window.innerHeight || root.clientHeight);
+        // Ajuste completo: toda la página de diseño cabe en la ventana.
+        var s = Math.min(w / W, h / H);
+        var ch = H;
+        // Pantalla horizontal: se escala por ancho (con tope) y el lienzo ocupa todo el alto;
+        // la página de diseño de 780 px se recorre con scroll vertical.
+        if (w > h) {
+          var ws = Math.min(w / W, MAXS);
+          if (ws > s * 1.001) { s = ws; ch = Math.min(H, h / s); }
+        }
+        window.__rcScale = s;
+        root.style.setProperty('--rc-scale', String(s));
+        root.style.setProperty('--rc-canvas-h', ch + 'px');
+      }
+      fit();
+      window.addEventListener('resize', fit);
+      window.addEventListener('orientationchange', fit);
+      window.addEventListener('pageshow', fit);
+      if (window.visualViewport) window.visualViewport.addEventListener('resize', fit);
+    })();
+  <\/script>
+${externalHeadAssets.trimEnd()}
   <style>
     html, body {
       scrollbar-width: none !important;
       -ms-overflow-style: none !important;
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      overflow: hidden;
     }
     html::-webkit-scrollbar, body::-webkit-scrollbar {
       display: none !important;
@@ -5025,10 +5171,18 @@
     body.rc-visual-edit-mode [data-rc-text-editable="true"] {
       touch-action: none;
     }
-    body { position: relative; min-width: 0; min-height: 100vh; margin: 0; font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; box-sizing: border-box; background: var(--rc-page-bg); color: var(--rc-text); }
-    .rc-app-root { display: flex; flex-direction: column; align-items: center; justify-content: center; width: 100%; min-height: 100vh; padding: 16px; }
-    @supports (min-height: 100dvh) { body, .rc-app-root { min-height: 100dvh; } }
-    .rc-app-root > * { max-width: 100%; }
+    body { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; overflow: hidden; min-width: 0; margin: 0; padding: env(safe-area-inset-top, 0px) env(safe-area-inset-right, 0px) env(safe-area-inset-bottom, 0px) env(safe-area-inset-left, 0px); font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; box-sizing: border-box; background: var(--rc-page-bg); color: var(--rc-text); }
+    /* Indicador visible de desplazamiento cuando hay contenido debajo del área actual. */
+    .rc-scroll-hint { position: absolute; z-index: 100; left: 50%; bottom: max(10px, env(safe-area-inset-bottom, 0px)); max-width: calc(100% - 24px); padding: 7px 12px; border: 1px solid var(--rc-border); border-radius: 999px; background: color-mix(in srgb, var(--rc-surface-raised) 92%, transparent); color: var(--rc-text); font-size: 12px; line-height: 1.2; white-space: nowrap; opacity: 0; transform: translate(-50%, 8px); pointer-events: none; transition: opacity 160ms ease, transform 160ms ease; }
+    .rc-scroll-hint.visible { opacity: 1; transform: translate(-50%, 0); }
+    /* Lienzo de diseño: tamaño fijo de teléfono, escalado uniforme y centrado. */
+    [hidden] { display: none !important; }
+    .rc-app-root { position: relative; flex: 0 0 auto; width: ${RC_DESIGN_WIDTH}px; height: var(--rc-canvas-h, ${RC_DESIGN_HEIGHT}px); overflow: hidden; isolation: isolate; transform-origin: center center; transform: scale(var(--rc-scale, 1)); }
+    .rc-app-scroll { width: 100%; height: 100%; overflow-x: hidden; overflow-y: auto; scrollbar-width: none; -ms-overflow-style: none; }
+    .rc-app-scroll::-webkit-scrollbar { display: none; }
+    /* Página de diseño: siempre al menos ${RC_DESIGN_HEIGHT}px de alto, para que la composición no dependa del alto de la ventana. */
+    .rc-app-page { display: flex; flex-direction: column; align-items: center; justify-content: center; width: 100%; min-height: ${RC_DESIGN_HEIGHT}px; padding: 16px; }
+    .rc-app-page > * { flex-shrink: 0; max-width: 100%; }
     *, *:before, *:after { box-sizing: inherit; }
     button { cursor: pointer; padding: 10px 14px; font-size: 15px; border-radius: 8px; border: 1px solid var(--rc-border); background: var(--rc-surface-raised); color: var(--rc-text); display: inline-block; vertical-align: middle; box-sizing: border-box; transition: background 0.15s ease; margin: 4px; }
     button:hover { background: var(--rc-surface-hover); }
@@ -5050,7 +5204,7 @@
     .rc-brush-library-status { min-height: 1.4em; color: var(--rc-muted); font-size: 12px; }
     .rc-layer { display: block; }
     .rc-modal-overlay { position: fixed; inset: 0; z-index: 1000; display: flex; align-items: center; justify-content: center; padding: 20px; background: var(--rc-overlay); }
-    .rc-modal-content { position: relative; width: min(100%, 720px); max-height: 85vh; overflow: auto; padding: 28px; border: 1px solid var(--rc-border); border-radius: 12px; background: var(--rc-surface); color: var(--rc-text); box-shadow: 0 16px 40px #0009; }
+    .rc-modal-content { position: relative; width: min(100%, 720px); max-height: 85%; overflow: auto; padding: 28px; border: 1px solid var(--rc-border); border-radius: 12px; background: var(--rc-surface); color: var(--rc-text); box-shadow: 0 16px 40px #0009; }
     .rc-modal-close { position: absolute; top: 8px; right: 8px; margin: 0; padding: 4px 10px; font-size: 20px; }
     .rc-toast { position: fixed; z-index: 1100; left: 50%; bottom: 20px; max-width: calc(100% - 32px); padding: 10px 16px; border: 1px solid var(--rc-border); border-radius: 8px; background: var(--rc-toast-bg); color: var(--rc-text); opacity: 0; pointer-events: none; transform: translate(-50%, 12px); transition: opacity 160ms ease, transform 160ms ease; }
     .rc-toast.visible { opacity: 1; transform: translate(-50%, 0); }
@@ -5074,7 +5228,7 @@
     .rc-tab-button, .rc-accordion-button { display: block; width: 100%; text-align: left; }
     .rc-accordion { margin: 8px 0; border: 1px solid var(--rc-border); border-radius: 8px; overflow: hidden; }
     .rc-accordion.collapsed > :not(.rc-accordion-button) { display: none; }
-    .rc-window { position: fixed; z-index: 900; top: 10%; left: 10%; width: min(520px, calc(100vw - 32px)); max-height: 80vh; overflow: auto; border: 1px solid var(--rc-border); border-radius: 10px; background: var(--rc-surface); color: var(--rc-text); box-shadow: 0 16px 48px #000a; }
+    .rc-window { position: fixed; z-index: 900; top: 10%; left: 10%; width: min(520px, calc(100% - 32px)); max-height: 80%; overflow: auto; border: 1px solid var(--rc-border); border-radius: 10px; background: var(--rc-surface); color: var(--rc-text); box-shadow: 0 16px 48px #000a; }
     .rc-window-titlebar { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 8px 10px; background: var(--rc-surface-raised); color: var(--rc-text); cursor: move; touch-action: none; }
     .rc-window-titlebar button { margin: 0 0 0 4px; padding: 2px 8px; }
     .rc-window-body { min-height: 32px; padding: 12px; }
@@ -5082,15 +5236,15 @@
     .rc-console { min-height: 100px; max-height: 320px; overflow: auto; padding: 12px; border: 1px solid var(--rc-border); border-radius: 8px; background: var(--rc-console-bg); color: var(--rc-console-text); white-space: pre-wrap; }
     .rc-kernel { padding: 10px 12px; border: 1px solid var(--rc-border); border-radius: 8px; background: var(--rc-input-bg); color: var(--rc-console-text); font-family: ui-monospace, monospace; }
     .rc-language-selector { max-width: 280px; cursor: pointer; }
-    .rc-os-toast { position: fixed; z-index: 1200; right: 20px; top: 20px; max-width: min(360px, calc(100vw - 40px)); padding: 12px 16px; border: 1px solid var(--rc-border); border-radius: 9px; background: var(--rc-surface-raised); color: var(--rc-text); opacity: 0; transform: translateY(-8px); transition: opacity 160ms ease, transform 160ms ease; pointer-events: none; }
+    .rc-os-toast { position: fixed; z-index: 1200; right: 20px; top: 20px; max-width: min(360px, calc(100% - 40px)); padding: 12px 16px; border: 1px solid var(--rc-border); border-radius: 9px; background: var(--rc-surface-raised); color: var(--rc-text); opacity: 0; transform: translateY(-8px); transition: opacity 160ms ease, transform 160ms ease; pointer-events: none; }
     .rc-os-toast.visible { opacity: 1; transform: translateY(0); }
     ${Array.from(generatedKeyframes, ([name, frames]) => `@keyframes rc-${name} { ${frames} }`).join('\n    ')}
   </style>
 </head>
 <body>
-  <main class="rc-app-root">
+  <main class="rc-app-root"><div class="rc-app-scroll"><div class="rc-app-page">
 ${warningBlock}${bodyChildren}
-  </main>${scriptBlock}
+  </div></div></main>${scriptBlock}
 </body>
 </html>
 `;
@@ -7096,19 +7250,28 @@ ${extraMetadata ? `${extraMetadata}\n` : ''}${activityLines}
   const previewStage = document.getElementById("previewStage");
   const visualEditBtn = document.getElementById("visualEditBtn");
   const previewFrame = document.getElementById("previewFrame");
-  const previewDesktopBtn = document.getElementById("previewDesktopBtn");
-  const previewMobileBtn = document.getElementById("previewMobileBtn");
   visualEditBtn.addEventListener("click", () => {
     setVisualEditMode(!visualEditMode);
   });
-  function setPreviewMode(mode) {
-    const isMobile = mode === "mobile";
-    previewStage.dataset.previewMode = isMobile ? "mobile" : "desktop";
-    previewDesktopBtn.setAttribute("aria-pressed", String(!isMobile));
-    previewMobileBtn.setAttribute("aria-pressed", String(isMobile));
+
+  // El teléfono es el único lienzo: el marco conserva siempre la proporción del diseño
+  // (RC_DESIGN_WIDTH x RC_DESIGN_HEIGHT) y solo cambia su escala para caber en el panel.
+  const PHONE_BEZEL = 12;
+  const PHONE_MARGIN = 16;
+  const PHONE_MAX_SCALE = 1.25;
+  const previewDevice = previewStage.querySelector(".preview-device");
+  function fitPhoneFrame() {
+    if (!previewDevice) return;
+    const availW = previewStage.clientWidth - 2 * (PHONE_MARGIN + PHONE_BEZEL);
+    const availH = previewStage.clientHeight - 2 * (PHONE_MARGIN + PHONE_BEZEL);
+    if (availW < 40 || availH < 40) return;
+    const scale = Math.min(availW / RC_DESIGN_WIDTH, availH / RC_DESIGN_HEIGHT, PHONE_MAX_SCALE);
+    previewDevice.style.width = Math.round(RC_DESIGN_WIDTH * scale + 2 * PHONE_BEZEL) + "px";
+    previewDevice.style.height = Math.round(RC_DESIGN_HEIGHT * scale + 2 * PHONE_BEZEL) + "px";
   }
-  previewDesktopBtn.addEventListener("click", () => setPreviewMode("desktop"));
-  previewMobileBtn.addEventListener("click", () => setPreviewMode("mobile"));
+  if (window.ResizeObserver) new ResizeObserver(fitPhoneFrame).observe(previewStage);
+  window.addEventListener("resize", fitPhoneFrame);
+  fitPhoneFrame();
 
   const historyBtn = document.getElementById("historyBtn");
   const historyModal = document.getElementById("historyModal");
@@ -7416,6 +7579,7 @@ ${extraMetadata ? `${extraMetadata}\n` : ''}${activityLines}
       '3. ARQUITECTURA DEL COMPILADOR',
       '- El editor mantiene sincronizados el textarea, numeracion, resaltado y vista previa.',
       '- La edicion visual permite arrastrar y editar el texto de botones; desplazar_texto(x)(y) conserva su posicion interna.',
+      '- El diseno usa un unico lienzo de telefono de 360 x 780 px; posiciones y tamanos se guardan en esos px y el HTML exportado escala el lienzo completo de forma uniforme y centrada. En pantallas horizontales se escala por ancho (maximo 1.5x) con scroll vertical.',
       '- El lexer/parser en dos fases construye un AST con bloques anidados y diagnosticos de archivo y linea.',
       '- El AST expande dependencias incluir(), detecta ciclos y genera nodos DOM/CSS y JavaScript seguro.',
       '- window.rcState propaga cambios a controles enlazados y condiciones sin listeners por cada dato.',
